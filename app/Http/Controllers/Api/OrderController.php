@@ -5,14 +5,18 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
 use App\Models\OrderItem;
-use App\Models\Product;
+use App\Services\PharmacySelectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
 {
+    public function __construct(
+        private readonly PharmacySelectionService $pharmacySelectionService
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -48,61 +52,25 @@ class OrderController extends Controller
             'order_type' => ['required', 'in:resep,non_resep'],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
-            'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
+            'items.*.product_id' => ['nullable', 'integer', 'exists:products,id'],
+            'items.*.sku' => ['nullable', 'string', 'max:100'],
             'items.*.quantity' => ['required', 'integer', 'min:1'],
         ]);
 
         $order = DB::transaction(function () use ($validated) {
-            $subtotal = 0;
-            $orderItems = [];
-            $pharmacyUserId = null;
+            $selection = $this->pharmacySelectionService->resolveNearestPharmacyForCheckout(
+                $validated['patient_address_id'],
+                $validated['items'],
+                $validated['order_type']
+            );
 
-            foreach ($validated['items'] as $item) {
-                $product = Product::findOrFail($item['product_id']);
-
-                if (! $product->is_active) {
-                    throw ValidationException::withMessages([
-                        'items' => ["Produk {$product->name} sedang tidak aktif."],
-                    ]);
-                }
-
-                if ($product->stock < $item['quantity']) {
-                    throw ValidationException::withMessages([
-                        'items' => ["Stok produk {$product->name} tidak mencukupi."],
-                    ]);
-                }
-
-                if ($validated['order_type'] === 'non_resep' && $product->requires_prescription) {
-                    throw ValidationException::withMessages([
-                        'items' => ["Produk {$product->name} membutuhkan resep dokter."],
-                    ]);
-                }
-
-                if ($pharmacyUserId === null) {
-                    $pharmacyUserId = $product->pharmacy_user_id;
-                }
-
-                if ($pharmacyUserId !== $product->pharmacy_user_id) {
-                    throw ValidationException::withMessages([
-                        'items' => ['Semua produk dalam satu order harus berasal dari apotik yang sama.'],
-                    ]);
-                }
-
-                $lineTotal = $product->price * $item['quantity'];
-                $subtotal += $lineTotal;
-
-                $orderItems[] = [
-                    'product' => $product,
-                    'quantity' => $item['quantity'],
-                    'total_price' => $lineTotal,
-                ];
-            }
+            $subtotal = collect($selection['items'])->sum('total_price');
 
             $shippingCost = 10000;
             $order = Order::create([
                 'order_code' => 'ORD-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
                 'patient_user_id' => $validated['patient_user_id'],
-                'pharmacy_user_id' => $pharmacyUserId,
+                'pharmacy_user_id' => $selection['pharmacy']->id,
                 'patient_address_id' => $validated['patient_address_id'],
                 'prescription_id' => $validated['prescription_id'] ?? null,
                 'order_type' => $validated['order_type'],
@@ -110,11 +78,11 @@ class OrderController extends Controller
                 'subtotal' => $subtotal,
                 'shipping_cost' => $shippingCost,
                 'total_amount' => $subtotal + $shippingCost,
-                'notes' => $validated['notes'] ?? null,
+                'notes' => trim(($validated['notes'] ?? '') . ' Dipilih otomatis dari apotik terdekat.'),
                 'ordered_at' => now(),
             ]);
 
-            foreach ($orderItems as $item) {
+            foreach ($selection['items'] as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product']->id,

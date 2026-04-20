@@ -74,6 +74,17 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
+        $pharmacyTwo = User::updateOrCreate(
+            ['email' => 'apotik.kota@example.com'],
+            [
+                'name' => 'Apotik Kota Jember',
+                'role' => 'apotik',
+                'phone' => '081234567807',
+                'email_verified_at' => now(),
+                'password' => $password,
+            ]
+        );
+
         $courierOne = User::updateOrCreate(
             ['email' => 'kurir.jember1@example.com'],
             [
@@ -131,6 +142,8 @@ class JemberMedicSeeder extends Seeder
                 'specialization' => 'Dokter Umum',
                 'license_number' => 'SIP-DOK-JBR-001',
                 'work_location' => 'Klinik Sehat Jember, Kaliwates, Jember',
+                'latitude' => -8.1721000,
+                'longitude' => 113.6998000,
                 'years_of_experience' => 8,
                 'consultation_fee' => 75000,
                 'is_available' => true,
@@ -146,10 +159,29 @@ class JemberMedicSeeder extends Seeder
                 'specialization' => 'Apotek dan Penjualan Produk Kesehatan',
                 'license_number' => 'SIA-JBR-001',
                 'work_location' => 'Jl. Karimata No. 20, Sumbersari, Jember',
+                'latitude' => -8.1662000,
+                'longitude' => 113.7171000,
                 'years_of_experience' => 10,
                 'consultation_fee' => 0,
                 'is_available' => true,
                 'bio' => 'Apotik mitra di Kota Jember yang menyediakan obat resep dan produk kesehatan.',
+            ]
+        );
+
+        PartnerProfile::updateOrCreate(
+            ['user_id' => $pharmacyTwo->id],
+            [
+                'profession' => 'apotik',
+                'pharmacy_name' => 'Apotik Kota Jember',
+                'specialization' => 'Apotek Pusat Kota',
+                'license_number' => 'SIA-JBR-002',
+                'work_location' => 'Jl. Sultan Agung No. 45, Kaliwates, Jember',
+                'latitude' => -8.1738000,
+                'longitude' => 113.6881000,
+                'years_of_experience' => 7,
+                'consultation_fee' => 0,
+                'is_available' => true,
+                'bio' => 'Apotik pusat kota dengan layanan pengiriman cepat area Kaliwates dan Patrang.',
             ]
         );
 
@@ -209,6 +241,20 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'pharmacy_user_id' => $pharmacyTwo->id,
+                'sku' => 'JBR-OBT-001',
+                'name' => 'Paracetamol 500mg',
+                'type' => 'obat',
+                'category' => 'Demam dan Nyeri',
+                'description' => 'Obat penurun demam dan pereda nyeri dari apotik pusat kota.',
+                'price' => 12500,
+                'stock' => 200,
+                'minimum_stock_alert' => 25,
+                'track_stock' => true,
+                'requires_prescription' => false,
+                'is_active' => true,
+            ],
+            [
                 'pharmacy_user_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-002',
                 'name' => 'Amoxicillin 500mg',
@@ -223,6 +269,20 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
+                'pharmacy_user_id' => $pharmacyTwo->id,
+                'sku' => 'JBR-OBT-002',
+                'name' => 'Amoxicillin 500mg',
+                'type' => 'obat',
+                'category' => 'Antibiotik',
+                'description' => 'Obat antibiotik resep dari apotik pusat kota.',
+                'price' => 36000,
+                'stock' => 50,
+                'minimum_stock_alert' => 10,
+                'track_stock' => true,
+                'requires_prescription' => true,
+                'is_active' => true,
+            ],
+            [
                 'pharmacy_user_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-003',
                 'name' => 'Vitamin C 1000mg',
@@ -232,6 +292,20 @@ class JemberMedicSeeder extends Seeder
                 'price' => 28000,
                 'stock' => 120,
                 'minimum_stock_alert' => 10,
+                'track_stock' => true,
+                'requires_prescription' => false,
+                'is_active' => true,
+            ],
+            [
+                'pharmacy_user_id' => $pharmacyTwo->id,
+                'sku' => 'JBR-OBT-003',
+                'name' => 'Vitamin C 1000mg',
+                'type' => 'produk_kesehatan',
+                'category' => 'Vitamin',
+                'description' => 'Suplemen vitamin C dari apotik pusat kota.',
+                'price' => 29000,
+                'stock' => 140,
+                'minimum_stock_alert' => 15,
                 'track_stock' => true,
                 'requires_prescription' => false,
                 'is_active' => true,
@@ -267,7 +341,13 @@ class JemberMedicSeeder extends Seeder
         ];
 
         foreach ($products as $product) {
-            Product::updateOrCreate(['sku' => $product['sku']], $product);
+            Product::updateOrCreate(
+                [
+                    'pharmacy_user_id' => $product['pharmacy_user_id'],
+                    'sku' => $product['sku'],
+                ],
+                $product
+            );
         }
 
         $addressOne = PatientAddress::updateOrCreate(
@@ -354,9 +434,9 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
-        $paracetamol = Product::where('sku', 'JBR-OBT-001')->firstOrFail();
-        $amoxicillin = Product::where('sku', 'JBR-OBT-002')->firstOrFail();
-        $vitaminC = Product::where('sku', 'JBR-OBT-003')->firstOrFail();
+        $paracetamol = Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-001')->firstOrFail();
+        $amoxicillin = Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-002')->firstOrFail();
+        $vitaminC = Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-003')->firstOrFail();
 
         PrescriptionItem::updateOrCreate(
             ['prescription_id' => $prescription->id, 'medicine_name' => 'Paracetamol 500mg'],
@@ -458,7 +538,7 @@ class JemberMedicSeeder extends Seeder
         );
 
         OrderItem::updateOrCreate(
-            ['order_id' => $orderTwo->id, 'product_id' => Product::where('sku', 'JBR-OBT-004')->firstOrFail()->id],
+            ['order_id' => $orderTwo->id, 'product_id' => Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-004')->firstOrFail()->id],
             [
                 'product_name' => 'Termometer Digital',
                 'unit_price' => 55000,

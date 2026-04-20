@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('products', function (Blueprint $table) {
             $table->id();
             $table->foreignId('pharmacy_user_id')->constrained('users')->cascadeOnDelete();
-            $table->string('sku')->unique();
+            $table->string('sku');
             $table->string('name');
             $table->enum('type', ['obat', 'produk_kesehatan']);
             $table->string('category')->nullable();
@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string('image')->nullable();
             $table->timestamps();
 
+            $table->unique(['pharmacy_user_id', 'sku']);
             $table->index(['pharmacy_user_id', 'is_active']);
             $table->index(['type', 'is_active']);
         });

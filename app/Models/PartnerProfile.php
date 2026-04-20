@@ -13,6 +13,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'specialization',
     'license_number',
     'work_location',
+    'latitude',
+    'longitude',
     'years_of_experience',
     'consultation_fee',
     'is_available',
@@ -23,6 +25,8 @@ class PartnerProfile extends Model
     protected function casts(): array
     {
         return [
+            'latitude' => 'decimal:7',
+            'longitude' => 'decimal:7',
             'consultation_fee' => 'decimal:2',
             'is_available' => 'boolean',
         ];

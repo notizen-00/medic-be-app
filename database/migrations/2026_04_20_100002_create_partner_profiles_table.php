@@ -19,6 +19,8 @@ return new class extends Migration
             $table->string('specialization')->nullable();
             $table->string('license_number')->nullable()->unique();
             $table->string('work_location')->nullable();
+            $table->decimal('latitude', 10, 7)->nullable();
+            $table->decimal('longitude', 10, 7)->nullable();
             $table->unsignedInteger('years_of_experience')->default(0);
             $table->decimal('consultation_fee', 12, 2)->default(0);
             $table->boolean('is_available')->default(true);
