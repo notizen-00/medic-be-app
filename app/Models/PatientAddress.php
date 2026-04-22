@@ -41,4 +41,9 @@ class PatientAddress extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    public function serviceBookings(): HasMany
+    {
+        return $this->hasMany(ServiceBooking::class, 'patient_address_id');
+    }
 }

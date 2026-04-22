@@ -8,13 +8,17 @@ use App\Models\CourierProfile;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PartnerProfile;
+use App\Models\PartnerService;
 use App\Models\PartnerSchedule;
 use App\Models\PatientAddress;
 use App\Models\PatientProfile;
 use App\Models\Payment;
+use App\Models\Pharmacy;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\Product;
+use App\Models\Service;
+use App\Models\ServiceBooking;
 use App\Models\Shipment;
 use App\Models\ShipmentHistory;
 use App\Models\User;
@@ -52,33 +56,55 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
+        User::updateOrCreate(
+            ['email' => 'admin.jember@example.com'],
+            [
+                'name' => 'Admin Medic Jember',
+                'role' => 'admin',
+                'phone' => '081234567800',
+                'email_verified_at' => now(),
+                'password' => $password,
+            ]
+        );
+
         $doctor = User::updateOrCreate(
             ['email' => 'dokter.jember@example.com'],
             [
                 'name' => 'dr. Bima Pratama',
-                'role' => 'dokter',
+                'role' => 'mitra',
                 'phone' => '081234567803',
                 'email_verified_at' => now(),
                 'password' => $password,
             ]
         );
 
-        $pharmacy = User::updateOrCreate(
+        $nurse = User::updateOrCreate(
+            ['email' => 'perawat.jember@example.com'],
+            [
+                'name' => 'Ns. Laras Widya',
+                'role' => 'mitra',
+                'phone' => '081234567808',
+                'email_verified_at' => now(),
+                'password' => $password,
+            ]
+        );
+
+        $pharmacyOwner = User::updateOrCreate(
             ['email' => 'apotik.jember@example.com'],
             [
                 'name' => 'Apotik Sehat Jember',
-                'role' => 'apotik',
+                'role' => 'mitra',
                 'phone' => '081234567804',
                 'email_verified_at' => now(),
                 'password' => $password,
             ]
         );
 
-        $pharmacyTwo = User::updateOrCreate(
+        $pharmacyOwnerTwo = User::updateOrCreate(
             ['email' => 'apotik.kota@example.com'],
             [
                 'name' => 'Apotik Kota Jember',
-                'role' => 'apotik',
+                'role' => 'mitra',
                 'phone' => '081234567807',
                 'email_verified_at' => now(),
                 'password' => $password,
@@ -89,7 +115,7 @@ class JemberMedicSeeder extends Seeder
             ['email' => 'kurir.jember1@example.com'],
             [
                 'name' => 'Rizal Anwar',
-                'role' => 'kurir',
+                'role' => 'mitra',
                 'phone' => '081234567805',
                 'email_verified_at' => now(),
                 'password' => $password,
@@ -100,7 +126,7 @@ class JemberMedicSeeder extends Seeder
             ['email' => 'kurir.jember2@example.com'],
             [
                 'name' => 'Deni Saputra',
-                'role' => 'kurir',
+                'role' => 'mitra',
                 'phone' => '081234567806',
                 'email_verified_at' => now(),
                 'password' => $password,
@@ -152,10 +178,25 @@ class JemberMedicSeeder extends Seeder
         );
 
         PartnerProfile::updateOrCreate(
-            ['user_id' => $pharmacy->id],
+            ['user_id' => $nurse->id],
             [
-                'profession' => 'apotik',
-                'pharmacy_name' => 'Apotik Sehat Jember',
+                'profession' => 'perawat',
+                'specialization' => 'Perawat Homecare',
+                'license_number' => 'SIPP-JBR-003',
+                'work_location' => 'Area Sumbersari dan Kaliwates, Jember',
+                'latitude' => -8.1703000,
+                'longitude' => 113.7052000,
+                'years_of_experience' => 6,
+                'consultation_fee' => 50000,
+                'is_available' => true,
+                'bio' => 'Perawat homecare untuk rawat luka, pemasangan infus, dan pendampingan pasien di rumah.',
+            ]
+        );
+
+        PartnerProfile::updateOrCreate(
+            ['user_id' => $pharmacyOwner->id],
+            [
+                'profession' => 'perawat',
                 'specialization' => 'Apotek dan Penjualan Produk Kesehatan',
                 'license_number' => 'SIA-JBR-001',
                 'work_location' => 'Jl. Karimata No. 20, Sumbersari, Jember',
@@ -169,10 +210,9 @@ class JemberMedicSeeder extends Seeder
         );
 
         PartnerProfile::updateOrCreate(
-            ['user_id' => $pharmacyTwo->id],
+            ['user_id' => $pharmacyOwnerTwo->id],
             [
-                'profession' => 'apotik',
-                'pharmacy_name' => 'Apotik Kota Jember',
+                'profession' => 'perawat',
                 'specialization' => 'Apotek Pusat Kota',
                 'license_number' => 'SIA-JBR-002',
                 'work_location' => 'Jl. Sultan Agung No. 45, Kaliwates, Jember',
@@ -182,6 +222,32 @@ class JemberMedicSeeder extends Seeder
                 'consultation_fee' => 0,
                 'is_available' => true,
                 'bio' => 'Apotik pusat kota dengan layanan pengiriman cepat area Kaliwates dan Patrang.',
+            ]
+        );
+
+        $pharmacy = Pharmacy::updateOrCreate(
+            ['owner_user_id' => $pharmacyOwner->id],
+            [
+                'name' => 'Apotik Sehat Jember',
+                'license_number' => 'SIA-JBR-001',
+                'address' => 'Jl. Karimata No. 20, Sumbersari, Jember',
+                'latitude' => -8.1662000,
+                'longitude' => 113.7171000,
+                'is_active' => true,
+                'description' => 'Apotik mitra di Kota Jember yang menyediakan obat resep dan produk kesehatan.',
+            ]
+        );
+
+        $pharmacyTwo = Pharmacy::updateOrCreate(
+            ['owner_user_id' => $pharmacyOwnerTwo->id],
+            [
+                'name' => 'Apotik Kota Jember',
+                'license_number' => 'SIA-JBR-002',
+                'address' => 'Jl. Sultan Agung No. 45, Kaliwates, Jember',
+                'latitude' => -8.1738000,
+                'longitude' => 113.6881000,
+                'is_active' => true,
+                'description' => 'Apotik pusat kota dengan layanan pengiriman cepat area Kaliwates dan Patrang.',
             ]
         );
 
@@ -227,7 +293,7 @@ class JemberMedicSeeder extends Seeder
 
         $products = [
             [
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-001',
                 'name' => 'Paracetamol 500mg',
                 'type' => 'obat',
@@ -241,7 +307,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacyTwo->id,
+                'pharmacy_id' => $pharmacyTwo->id,
                 'sku' => 'JBR-OBT-001',
                 'name' => 'Paracetamol 500mg',
                 'type' => 'obat',
@@ -255,7 +321,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-002',
                 'name' => 'Amoxicillin 500mg',
                 'type' => 'obat',
@@ -269,7 +335,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacyTwo->id,
+                'pharmacy_id' => $pharmacyTwo->id,
                 'sku' => 'JBR-OBT-002',
                 'name' => 'Amoxicillin 500mg',
                 'type' => 'obat',
@@ -283,7 +349,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-003',
                 'name' => 'Vitamin C 1000mg',
                 'type' => 'produk_kesehatan',
@@ -297,7 +363,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacyTwo->id,
+                'pharmacy_id' => $pharmacyTwo->id,
                 'sku' => 'JBR-OBT-003',
                 'name' => 'Vitamin C 1000mg',
                 'type' => 'produk_kesehatan',
@@ -311,7 +377,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-004',
                 'name' => 'Termometer Digital',
                 'type' => 'produk_kesehatan',
@@ -325,7 +391,7 @@ class JemberMedicSeeder extends Seeder
                 'is_active' => true,
             ],
             [
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'sku' => 'JBR-OBT-005',
                 'name' => 'Salep Luka Antiseptik',
                 'type' => 'obat',
@@ -338,15 +404,97 @@ class JemberMedicSeeder extends Seeder
                 'requires_prescription' => false,
                 'is_active' => true,
             ],
+            [
+                'pharmacy_id' => $pharmacy->id,
+                'sku' => 'JBR-RNT-001',
+                'name' => 'Sewa Ambulans',
+                'type' => 'sewa_alat_kesehatan',
+                'category' => 'Transportasi Medis',
+                'description' => 'Layanan sewa ambulans untuk antar jemput pasien non-gawat dan rujukan terjadwal area Jember.',
+                'price' => 550000,
+                'stock' => 2,
+                'minimum_stock_alert' => 0,
+                'track_stock' => true,
+                'requires_prescription' => false,
+                'is_active' => true,
+            ],
+            [
+                'pharmacy_id' => $pharmacy->id,
+                'sku' => 'JBR-RNT-002',
+                'name' => 'Sewa Ventilator',
+                'type' => 'sewa_alat_kesehatan',
+                'category' => 'Sewa Alat Kesehatan',
+                'description' => 'Sewa ventilator rumahan lengkap dengan edukasi penggunaan awal dan koordinasi instalasi.',
+                'price' => 1750000,
+                'stock' => 3,
+                'minimum_stock_alert' => 1,
+                'track_stock' => true,
+                'requires_prescription' => false,
+                'is_active' => true,
+            ],
         ];
 
         foreach ($products as $product) {
             Product::updateOrCreate(
                 [
-                    'pharmacy_user_id' => $product['pharmacy_user_id'],
+                    'pharmacy_id' => $product['pharmacy_id'],
                     'sku' => $product['sku'],
                 ],
                 $product
+            );
+        }
+
+        $services = [
+            [
+                'service_code' => 'SRV-DOC-JBR-001',
+                'name' => 'Dokter Home Visit Umum',
+                'service_type' => 'dokter_homecare',
+                'category' => 'Kunjungan Dokter',
+                'description' => 'Kunjungan dokter umum ke rumah untuk pemeriksaan dasar, evaluasi keluhan, dan rekomendasi terapi awal.',
+                'base_price' => 225000,
+                'duration_minutes' => 60,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+            [
+                'service_code' => 'SRV-DOC-JBR-002',
+                'name' => 'Tindakan Medis Ringan oleh Dokter',
+                'service_type' => 'konsultasi_tindakan',
+                'category' => 'Tindakan Medis',
+                'description' => 'Tindakan medis ringan di rumah sesuai asesmen dokter, termasuk edukasi lanjutan untuk keluarga pasien.',
+                'base_price' => 300000,
+                'duration_minutes' => 90,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+            [
+                'service_code' => 'SRV-NRS-JBR-001',
+                'name' => 'Perawat Home Visit Non ICU',
+                'service_type' => 'perawat_homecare',
+                'category' => 'Layanan Perawat',
+                'description' => 'Layanan perawat ke rumah untuk observasi kondisi pasien, pemberian tindakan dasar, dan monitoring harian.',
+                'base_price' => 185000,
+                'duration_minutes' => 90,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+            [
+                'service_code' => 'SRV-NRS-JBR-002',
+                'name' => 'Rawat Luka Homecare',
+                'service_type' => 'konsultasi_tindakan',
+                'category' => 'Perawatan Luka',
+                'description' => 'Perawatan luka di rumah untuk luka operasi, luka diabetes, dan luka kronis dengan teknik steril.',
+                'base_price' => 210000,
+                'duration_minutes' => 75,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+        ];
+
+        foreach ($services as $service) {
+            Service::updateOrCreate(
+                ['service_code' => $service['service_code']],
+                $service
             );
         }
 
@@ -379,6 +527,108 @@ class JemberMedicSeeder extends Seeder
                 'latitude' => -8.1654000,
                 'longitude' => 113.7162000,
                 'is_primary' => true,
+            ]
+        );
+
+        $doctorHomecareService = Service::where('service_code', 'SRV-DOC-JBR-001')->firstOrFail();
+        $doctorProcedureService = Service::where('service_code', 'SRV-DOC-JBR-002')->firstOrFail();
+        $nurseHomecareService = Service::where('service_code', 'SRV-NRS-JBR-001')->firstOrFail();
+        $nurseWoundCareService = Service::where('service_code', 'SRV-NRS-JBR-002')->firstOrFail();
+
+        $partnerServices = [
+            [
+                'service_id' => $doctorHomecareService->id,
+                'partner_user_id' => $doctor->id,
+                'custom_price' => 235000,
+                'coverage_radius_km' => 12,
+                'is_active' => true,
+                'is_verified' => true,
+                'notes' => 'Dokter umum untuk home visit area Jember kota.',
+            ],
+            [
+                'service_id' => $doctorProcedureService->id,
+                'partner_user_id' => $doctor->id,
+                'custom_price' => 325000,
+                'coverage_radius_km' => 10,
+                'is_active' => true,
+                'is_verified' => true,
+                'notes' => 'Dokter melayani tindakan medis ringan homecare.',
+            ],
+            [
+                'service_id' => $nurseHomecareService->id,
+                'partner_user_id' => $nurse->id,
+                'custom_price' => 185000,
+                'coverage_radius_km' => 15,
+                'is_active' => true,
+                'is_verified' => true,
+                'notes' => 'Perawat aktif untuk layanan homecare umum.',
+            ],
+            [
+                'service_id' => $nurseWoundCareService->id,
+                'partner_user_id' => $nurse->id,
+                'custom_price' => 210000,
+                'coverage_radius_km' => 15,
+                'is_active' => true,
+                'is_verified' => true,
+                'notes' => 'Perawat rawat luka aktif area Jember.',
+            ],
+        ];
+
+        foreach ($partnerServices as $partnerService) {
+            PartnerService::updateOrCreate(
+                [
+                    'service_id' => $partnerService['service_id'],
+                    'partner_user_id' => $partnerService['partner_user_id'],
+                ],
+                $partnerService
+            );
+        }
+
+        ServiceBooking::updateOrCreate(
+            ['booking_code' => 'SVB-JBR-0001'],
+            [
+                'service_id' => $doctorHomecareService->id,
+                'patient_user_id' => $patientOne->id,
+                'assigned_partner_user_id' => $doctor->id,
+                'patient_address_id' => $addressOne->id,
+                'status' => 'completed',
+                'scheduled_at' => now()->subDays(2),
+                'started_at' => now()->subDays(2)->addMinutes(10),
+                'completed_at' => now()->subDays(2)->addMinutes(70),
+                'total_amount' => 235000,
+                'notes' => 'Kunjungan dokter home visit untuk evaluasi demam dan batuk.',
+            ]
+        );
+
+        ServiceBooking::updateOrCreate(
+            ['booking_code' => 'SVB-JBR-0002'],
+            [
+                'service_id' => $nurseHomecareService->id,
+                'patient_user_id' => $patientTwo->id,
+                'assigned_partner_user_id' => $nurse->id,
+                'patient_address_id' => $addressTwo->id,
+                'status' => 'scheduled',
+                'scheduled_at' => now()->addDay()->setTime(9, 0),
+                'started_at' => null,
+                'completed_at' => null,
+                'total_amount' => 185000,
+                'notes' => 'Booking perawat home visit untuk kontrol kondisi pasien pasca perawatan.',
+            ]
+        );
+
+        ServiceBooking::updateOrCreate(
+            ['booking_code' => 'SVB-JBR-0003'],
+            [
+                'service_id' => $nurseWoundCareService->id,
+                'patient_user_id' => $patientOne->id,
+                'assigned_partner_user_id' => $nurse->id,
+                'patient_address_id' => $addressOne->id,
+                'status' => 'confirmed',
+                'scheduled_at' => now()->addHours(6),
+                'started_at' => null,
+                'completed_at' => null,
+                'total_amount' => 210000,
+                'notes' => 'Rawat luka lanjutan di rumah pasien area Kaliwates.',
             ]
         );
 
@@ -434,9 +684,9 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
-        $paracetamol = Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-001')->firstOrFail();
-        $amoxicillin = Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-002')->firstOrFail();
-        $vitaminC = Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-003')->firstOrFail();
+        $paracetamol = Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-001')->firstOrFail();
+        $amoxicillin = Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-002')->firstOrFail();
+        $vitaminC = Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-003')->firstOrFail();
 
         PrescriptionItem::updateOrCreate(
             ['prescription_id' => $prescription->id, 'medicine_name' => 'Paracetamol 500mg'],
@@ -477,7 +727,7 @@ class JemberMedicSeeder extends Seeder
             ['order_code' => 'ORD-JBR-0001'],
             [
                 'patient_user_id' => $patientOne->id,
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'patient_address_id' => $addressOne->id,
                 'prescription_id' => $prescription->id,
                 'order_type' => 'resep',
@@ -514,7 +764,7 @@ class JemberMedicSeeder extends Seeder
             ['order_code' => 'ORD-JBR-0002'],
             [
                 'patient_user_id' => $patientTwo->id,
-                'pharmacy_user_id' => $pharmacy->id,
+                'pharmacy_id' => $pharmacy->id,
                 'patient_address_id' => $addressTwo->id,
                 'prescription_id' => null,
                 'order_type' => 'non_resep',
@@ -538,7 +788,7 @@ class JemberMedicSeeder extends Seeder
         );
 
         OrderItem::updateOrCreate(
-            ['order_id' => $orderTwo->id, 'product_id' => Product::where('pharmacy_user_id', $pharmacy->id)->where('sku', 'JBR-OBT-004')->firstOrFail()->id],
+            ['order_id' => $orderTwo->id, 'product_id' => Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-004')->firstOrFail()->id],
             [
                 'product_name' => 'Termometer Digital',
                 'unit_price' => 55000,
@@ -659,5 +909,7 @@ class JemberMedicSeeder extends Seeder
                 'notes' => 'Pembayaran produk kesehatan area Jember.',
             ]
         );
+
     }
 }
+

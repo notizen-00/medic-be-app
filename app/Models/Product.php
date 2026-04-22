@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
-    'pharmacy_user_id',
+    'pharmacy_id',
     'sku',
     'name',
     'type',
@@ -36,7 +36,7 @@ class Product extends Model
 
     public function pharmacy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'pharmacy_user_id');
+        return $this->belongsTo(Pharmacy::class, 'pharmacy_id');
     }
 
     public function orderItems(): HasMany

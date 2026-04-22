@@ -3,8 +3,8 @@
 namespace App\Services;
 
 use App\Models\PatientAddress;
+use App\Models\Pharmacy;
 use App\Models\Product;
-use App\Models\User;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -17,7 +17,7 @@ class PharmacySelectionService
 
         $products = Product::query()
             ->where('is_active', true)
-            ->with(['pharmacy.partnerProfile'])
+            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
             ->when(
                 $filters['type'] ?? null,
                 fn ($query, $type) => $query->where('type', $type)
@@ -49,8 +49,9 @@ class PharmacySelectionService
                     ->map(function (Product $product) use ($address) {
                         return [
                             'product_id' => $product->id,
-                            'pharmacy_user_id' => $product->pharmacy_user_id,
-                            'pharmacy_name' => $product->pharmacy?->partnerProfile?->pharmacy_name ?? $product->pharmacy?->name,
+                            'pharmacy_id' => $product->pharmacy_id,
+                            'owner_user_id' => $product->pharmacy?->owner_user_id,
+                            'pharmacy_name' => $product->pharmacy?->name,
                             'price' => $product->price,
                             'stock' => $product->stock,
                             'distance_km' => $this->distanceForAddressAndPharmacy($address, $product->pharmacy),
@@ -73,7 +74,7 @@ class PharmacySelectionService
                     'description' => $sample->description,
                     'image' => $sample->image,
                     'requires_prescription' => $sample->requires_prescription,
-                    'pharmacy_count' => $groupedProducts->pluck('pharmacy_user_id')->unique()->count(),
+                    'pharmacy_count' => $groupedProducts->pluck('pharmacy_id')->unique()->count(),
                     'total_stock' => $groupedProducts->sum('stock'),
                     'lowest_price' => $cheapest->price,
                     'highest_price' => $groupedProducts->max('price'),
@@ -91,14 +92,14 @@ class PharmacySelectionService
 
         $products = Product::query()
             ->where('is_active', true)
-            ->with(['pharmacy.partnerProfile'])
+            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
             ->when(
                 $filters['type'] ?? null,
                 fn ($query, $type) => $query->where('type', $type)
             )
             ->when(
-                $filters['pharmacy_user_id'] ?? null,
-                fn ($query, $pharmacyId) => $query->where('pharmacy_user_id', $pharmacyId)
+                $filters['pharmacy_id'] ?? null,
+                fn ($query, $pharmacyId) => $query->where('pharmacy_id', $pharmacyId)
             )
             ->when(
                 array_key_exists('requires_prescription', $filters),
@@ -116,15 +117,15 @@ class PharmacySelectionService
             ->get();
 
         return $products
-            ->groupBy('pharmacy_user_id')
+            ->groupBy('pharmacy_id')
             ->map(function (Collection $groupedProducts) use ($address) {
                 $firstProduct = $groupedProducts->first();
                 $pharmacy = $firstProduct->pharmacy;
-                $partnerProfile = $pharmacy?->partnerProfile;
 
                 return [
                     'pharmacy' => $pharmacy,
-                    'partner_profile' => $partnerProfile,
+                    'partner_profile' => $pharmacy?->owner?->partnerProfile,
+                    'owner' => $pharmacy?->owner,
                     'distance_km' => $this->distanceForAddressAndPharmacy($address, $pharmacy),
                     'products' => $groupedProducts->values(),
                 ];
@@ -142,13 +143,13 @@ class PharmacySelectionService
         $products = Product::query()
             ->whereIn('sku', $skus)
             ->where('is_active', true)
-            ->with(['pharmacy.partnerProfile'])
+            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
             ->orderBy('name')
             ->get();
 
         $candidates = $products
-            ->groupBy('pharmacy_user_id')
-            ->map(function (Collection $pharmacyProducts, $pharmacyUserId) use ($normalizedItems, $address, $orderType) {
+            ->groupBy('pharmacy_id')
+            ->map(function (Collection $pharmacyProducts, $pharmacyId) use ($normalizedItems, $address, $orderType) {
                 $productsBySku = $pharmacyProducts->keyBy('sku');
 
                 foreach ($normalizedItems as $item) {
@@ -172,9 +173,10 @@ class PharmacySelectionService
                 $sampleProduct = $pharmacyProducts->first();
 
                 return [
-                    'pharmacy_user_id' => (int) $pharmacyUserId,
+                    'pharmacy_id' => (int) $pharmacyId,
                     'pharmacy' => $sampleProduct->pharmacy,
-                    'partner_profile' => $sampleProduct->pharmacy?->partnerProfile,
+                    'partner_profile' => $sampleProduct->pharmacy?->owner?->partnerProfile,
+                    'owner' => $sampleProduct->pharmacy?->owner,
                     'distance_km' => $this->distanceForAddressAndPharmacy($address, $sampleProduct->pharmacy),
                     'products' => $pharmacyProducts,
                 ];
@@ -262,14 +264,14 @@ class PharmacySelectionService
         return $address;
     }
 
-    private function distanceForAddressAndPharmacy(?PatientAddress $address, ?User $pharmacy): ?float
+    private function distanceForAddressAndPharmacy(?PatientAddress $address, ?Pharmacy $pharmacy): ?float
     {
-        if (! $address || ! $pharmacy?->partnerProfile) {
+        if (! $address || ! $pharmacy) {
             return null;
         }
 
-        $pharmacyLatitude = $pharmacy->partnerProfile->latitude;
-        $pharmacyLongitude = $pharmacy->partnerProfile->longitude;
+        $pharmacyLatitude = $pharmacy->latitude;
+        $pharmacyLongitude = $pharmacy->longitude;
 
         if ($address->latitude === null || $address->longitude === null || $pharmacyLatitude === null || $pharmacyLongitude === null) {
             return null;

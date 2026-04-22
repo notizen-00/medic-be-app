@@ -56,9 +56,9 @@ class ShipmentController extends Controller
 
         $courier = User::with('courierProfile')->findOrFail($validated['courier_user_id']);
 
-        if ($courier->role !== 'kurir') {
+        if ($courier->role !== 'mitra' || ! $courier->courierProfile) {
             throw ValidationException::withMessages([
-                'courier_user_id' => ['User yang dipilih bukan role kurir.'],
+                'courier_user_id' => ['User yang dipilih bukan mitra kurir yang valid.'],
             ]);
         }
 

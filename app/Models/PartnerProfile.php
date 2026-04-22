@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable([
     'user_id',
     'profession',
-    'pharmacy_name',
     'specialization',
     'license_number',
     'work_location',

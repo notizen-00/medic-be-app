@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'order_code',
     'patient_user_id',
-    'pharmacy_user_id',
+    'pharmacy_id',
     'patient_address_id',
     'prescription_id',
     'order_type',
@@ -41,7 +41,7 @@ class Order extends Model
 
     public function pharmacy(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'pharmacy_user_id');
+        return $this->belongsTo(Pharmacy::class, 'pharmacy_id');
     }
 
     public function address(): BelongsTo

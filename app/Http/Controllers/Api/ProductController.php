@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pharmacy;
 use App\Models\Product;
 use App\Services\PharmacySelectionService;
 use Illuminate\Http\JsonResponse;
@@ -18,12 +19,19 @@ class ProductController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['nullable', 'in:obat,produk_kesehatan'],
+            'type' => ['nullable', 'in:obat,produk_kesehatan,layanan,sewa_alat_kesehatan'],
             'patient_address_id' => ['nullable', 'integer', 'exists:patient_addresses,id'],
+            'pharmacy_id' => ['nullable', 'integer', 'exists:pharmacies,id'],
             'pharmacy_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'requires_prescription' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
         ]);
+
+        if (! isset($validated['pharmacy_id']) && isset($validated['pharmacy_user_id'])) {
+            $validated['pharmacy_id'] = Pharmacy::query()
+                ->where('owner_user_id', $validated['pharmacy_user_id'])
+                ->value('id');
+        }
 
         $products = $this->pharmacySelectionService->getProductListGroupedByPharmacy($validated);
 
@@ -36,7 +44,7 @@ class ProductController extends Controller
     public function global(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'type' => ['nullable', 'in:obat,produk_kesehatan'],
+            'type' => ['nullable', 'in:obat,produk_kesehatan,layanan,sewa_alat_kesehatan'],
             'patient_address_id' => ['nullable', 'integer', 'exists:patient_addresses,id'],
             'requires_prescription' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
@@ -52,7 +60,7 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        $product->load('pharmacy.partnerProfile');
+        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Detail produk berhasil diambil.',

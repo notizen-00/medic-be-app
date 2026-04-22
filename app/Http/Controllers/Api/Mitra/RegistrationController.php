@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api\Doctor;
+namespace App\Http\Controllers\Api\Mitra;
 
 use App\Http\Controllers\Controller;
 use App\Services\PartnerRegistrationService;
@@ -21,7 +21,7 @@ class RegistrationController extends Controller
             'email' => ['required', 'email', 'max:255', 'unique:users,email'],
             'phone' => ['required', 'string', 'max:20', 'unique:users,phone'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'profession' => ['nullable', 'in:dokter,bidan,perawat'],
+            'profession' => ['required', 'in:dokter,bidan,perawat'],
             'specialization' => ['required', 'string', 'max:255'],
             'license_number' => ['required', 'string', 'max:255', 'unique:partner_profiles,license_number'],
             'work_location' => ['nullable', 'string', 'max:255'],
@@ -32,12 +32,12 @@ class RegistrationController extends Controller
             'bio' => ['nullable', 'string'],
         ]);
 
-        $doctor = $this->partnerRegistrationService->registerDoctor($validated);
+        $mitra = $this->partnerRegistrationService->registerMitraProfessional($validated);
 
         return response()->json([
             'message' => 'Pendaftaran mitra layanan kesehatan berhasil. Akun menunggu verifikasi admin.',
-            'data' => $doctor,
-            'user_api_token' => $doctor->issueApiToken(),
+            'data' => $mitra,
+            'user_api_token' => $mitra->issueApiToken(),
         ], 201);
     }
 }

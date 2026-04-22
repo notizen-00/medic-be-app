@@ -7,7 +7,9 @@ use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -46,6 +48,11 @@ class User extends Authenticatable
     public function partnerProfile(): HasOne
     {
         return $this->hasOne(PartnerProfile::class);
+    }
+
+    public function pharmacy(): HasOne
+    {
+        return $this->hasOne(Pharmacy::class, 'owner_user_id');
     }
 
     public function courierProfile(): HasOne
@@ -98,18 +105,58 @@ class User extends Authenticatable
         return $this->hasMany(Order::class, 'patient_user_id');
     }
 
-    public function pharmacyProducts(): HasMany
+    public function pharmacyProducts(): HasManyThrough
     {
-        return $this->hasMany(Product::class, 'pharmacy_user_id');
+        return $this->hasManyThrough(
+            Product::class,
+            Pharmacy::class,
+            'owner_user_id',
+            'pharmacy_id',
+            'id',
+            'id'
+        );
     }
 
-    public function pharmacyOrders(): HasMany
+    public function pharmacyOrders(): HasManyThrough
     {
-        return $this->hasMany(Order::class, 'pharmacy_user_id');
+        return $this->hasManyThrough(
+            Order::class,
+            Pharmacy::class,
+            'owner_user_id',
+            'pharmacy_id',
+            'id',
+            'id'
+        );
     }
 
     public function courierShipments(): HasMany
     {
         return $this->hasMany(Shipment::class, 'courier_user_id');
+    }
+
+    public function services(): BelongsToMany
+    {
+        return $this->belongsToMany(
+            Service::class,
+            'partner_services',
+            'partner_user_id',
+            'service_id'
+        )->withPivot(['custom_price', 'coverage_radius_km', 'is_active', 'is_verified', 'notes'])
+            ->withTimestamps();
+    }
+
+    public function patientServiceBookings(): HasMany
+    {
+        return $this->hasMany(ServiceBooking::class, 'patient_user_id');
+    }
+
+    public function partnerServiceBookings(): HasMany
+    {
+        return $this->hasMany(ServiceBooking::class, 'assigned_partner_user_id');
+    }
+
+    public function partnerServices(): HasMany
+    {
+        return $this->hasMany(PartnerService::class, 'partner_user_id');
     }
 }

@@ -1,349 +1,10 @@
 {
     "info": {
-        "name": "Medic-App",
+        "name": "medic-app",
         "description": "API Documentation",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
     "item": [
-        {
-            "name": "doctor",
-            "item": [
-                {
-                    "name": "register",
-                    "item": [
-                        {
-                            "name": "[POST] api/doctor/register",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/doctor/register",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "doctor",
-                                        "register"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "login",
-                    "item": [
-                        {
-                            "name": "[POST] api/doctor/login",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/doctor/login",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "doctor",
-                                        "login"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "apotik",
-            "item": [
-                {
-                    "name": "register",
-                    "item": [
-                        {
-                            "name": "[POST] api/apotik/register",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/register",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "register"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "login",
-                    "item": [
-                        {
-                            "name": "[POST] api/apotik/login",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/login",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "login"
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "products",
-                    "item": [
-                        {
-                            "name": "[GET] api/apotik/products",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/products",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "products"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[POST] api/apotik/products",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/products",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "products"
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[GET] api/apotik/products/{product}",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/products/:product",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "products",
-                                        ":product"
-                                    ],
-                                    "variable": []
-                                }
-                            }
-                        },
-                        {
-                            "name": "[PATCH] api/apotik/products/{product}",
-                            "request": {
-                                "method": "PATCH",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/products/:product",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "products",
-                                        ":product"
-                                    ],
-                                    "variable": []
-                                }
-                            }
-                        },
-                        {
-                            "name": "stock",
-                            "item": [
-                                {
-                                    "name": "[PATCH] api/apotik/products/{product}/stock",
-                                    "request": {
-                                        "method": "PATCH",
-                                        "header": [
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json",
-                                                "type": "text"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json",
-                                                "type": "text"
-                                            }
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/apotik/products/:product/stock",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "apotik",
-                                                "products",
-                                                ":product",
-                                                "stock"
-                                            ],
-                                            "variable": []
-                                        }
-                                    }
-                                }
-                            ]
-                        },
-                        {
-                            "name": "[DELETE] api/apotik/products/{product}",
-                            "request": {
-                                "method": "DELETE",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/apotik/products/:product",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "apotik",
-                                        "products",
-                                        ":product"
-                                    ],
-                                    "variable": []
-                                }
-                            }
-                        }
-                    ]
-                }
-            ]
-        },
         {
             "name": "patient",
             "item": [
@@ -380,146 +41,12 @@
                             }
                         }
                     ]
-                }
-            ]
-        },
-        {
-            "name": "me",
-            "item": [
-                {
-                    "name": "[GET] api/me",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/me",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "me"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "logout",
-            "item": [
-                {
-                    "name": "[POST] api/logout",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/logout",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "logout"
-                            ]
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "users",
-            "item": [
-                {
-                    "name": "[GET] api/users",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/users",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users"
-                            ]
-                        }
-                    }
                 },
                 {
-                    "name": "[GET] api/users/{user}",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/users/:user",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "users",
-                                ":user"
-                            ],
-                            "variable": []
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "products",
-            "item": [
-                {
-                    "name": "global",
+                    "name": "apotiks",
                     "item": [
                         {
-                            "name": "[GET] api/products/global",
+                            "name": "[GET] api/patient/apotiks",
                             "request": {
                                 "method": "GET",
                                 "header": [
@@ -535,14 +62,14 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/products/global",
+                                    "raw": "{{base_url}}/api/patient/apotiks",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
-                                        "products",
-                                        "global"
+                                        "patient",
+                                        "apotiks"
                                     ]
                                 }
                             }
@@ -550,161 +77,47 @@
                     ]
                 },
                 {
-                    "name": "[GET] api/products",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/products",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "products"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "[GET] api/products/{product}",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/products/:product",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "products",
-                                ":product"
-                            ],
-                            "variable": []
-                        }
-                    }
-                }
-            ]
-        },
-        {
-            "name": "consultations",
-            "item": [
-                {
-                    "name": "[GET] api/consultations",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/consultations",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "consultations"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "[POST] api/consultations",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/consultations",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "consultations"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "[GET] api/consultations/{consultation}",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/consultations/:consultation",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "consultations",
-                                ":consultation"
-                            ],
-                            "variable": []
-                        }
-                    }
-                },
-                {
-                    "name": "status",
+                    "name": "products",
                     "item": [
                         {
-                            "name": "[PATCH] api/consultations/{consultation}/status",
+                            "name": "global",
+                            "item": [
+                                {
+                                    "name": "[GET] api/patient/products/global",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/patient/products/global",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "patient",
+                                                "products",
+                                                "global"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "[GET] api/patient/products",
                             "request": {
-                                "method": "PATCH",
+                                "method": "GET",
                                 "header": [
                                     {
                                         "key": "Accept",
@@ -718,15 +131,44 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/consultations/:consultation/status",
+                                    "raw": "{{base_url}}/api/patient/products",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
-                                        "consultations",
-                                        ":consultation",
-                                        "status"
+                                        "patient",
+                                        "products"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/patient/products/{product}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/products/:product",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "products",
+                                        ":product"
                                     ],
                                     "variable": []
                                 }
@@ -735,10 +177,39 @@
                     ]
                 },
                 {
-                    "name": "messages",
+                    "name": "consultations",
                     "item": [
                         {
-                            "name": "[POST] api/consultations/{consultation}/messages",
+                            "name": "[GET] api/patient/consultations",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/consultations",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "consultations"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[POST] api/patient/consultations",
                             "request": {
                                 "method": "POST",
                                 "header": [
@@ -754,120 +225,132 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/consultations/:consultation/messages",
+                                    "raw": "{{base_url}}/api/patient/consultations",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
+                                        "patient",
+                                        "consultations"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/patient/consultations/{consultation}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/consultations/:consultation",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
                                         "consultations",
-                                        ":consultation",
-                                        "messages"
+                                        ":consultation"
                                     ],
                                     "variable": []
                                 }
                             }
+                        },
+                        {
+                            "name": "status",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/patient/consultations/{consultation}/status",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/patient/consultations/:consultation/status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "patient",
+                                                "consultations",
+                                                ":consultation",
+                                                "status"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "messages",
+                            "item": [
+                                {
+                                    "name": "[POST] api/patient/consultations/{consultation}/messages",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/patient/consultations/:consultation/messages",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "patient",
+                                                "consultations",
+                                                ":consultation",
+                                                "messages"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     ]
-                }
-            ]
-        },
-        {
-            "name": "orders",
-            "item": [
-                {
-                    "name": "[GET] api/orders",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/orders",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders"
-                            ]
-                        }
-                    }
                 },
                 {
-                    "name": "[POST] api/orders",
-                    "request": {
-                        "method": "POST",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/orders",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "[GET] api/orders/{order}",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/orders/:order",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "orders",
-                                ":order"
-                            ],
-                            "variable": []
-                        }
-                    }
-                },
-                {
-                    "name": "status",
+                    "name": "orders",
                     "item": [
                         {
-                            "name": "[PATCH] api/orders/{order}/status",
+                            "name": "[GET] api/patient/orders",
                             "request": {
-                                "method": "PATCH",
+                                "method": "GET",
                                 "header": [
                                     {
                                         "key": "Accept",
@@ -881,15 +364,1065 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/orders/:order/status",
+                                    "raw": "{{base_url}}/api/patient/orders",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
+                                        "patient",
+                                        "orders"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[POST] api/patient/orders",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/orders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "orders"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/patient/orders/{order}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/orders/:order",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
                                         "orders",
-                                        ":order",
-                                        "status"
+                                        ":order"
+                                    ],
+                                    "variable": []
+                                }
+                            }
+                        },
+                        {
+                            "name": "status",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/patient/orders/{order}/status",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/patient/orders/:order/status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "patient",
+                                                "orders",
+                                                ":order",
+                                                "status"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "mitra",
+            "item": [
+                {
+                    "name": "register",
+                    "item": [
+                        {
+                            "name": "[POST] api/mitra/register",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/register",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "register"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "login",
+                    "item": [
+                        {
+                            "name": "[POST] api/mitra/login",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "login"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "doctor",
+                    "item": [
+                        {
+                            "name": "register",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/doctor/register",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/doctor/register",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "doctor",
+                                                "register"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "login",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/doctor/login",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/doctor/login",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "doctor",
+                                                "login"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "apotik",
+                    "item": [
+                        {
+                            "name": "login",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/apotik/login",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/login",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "login"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "register",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/apotik/register",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/register",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "register"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "products",
+                            "item": [
+                                {
+                                    "name": "[GET] api/mitra/apotik/products",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/products",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "products"
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "[POST] api/mitra/apotik/products",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/products",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "products"
+                                            ]
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "[GET] api/mitra/apotik/products/{product}",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/products/:product",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "products",
+                                                ":product"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "[PATCH] api/mitra/apotik/products/{product}",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/products/:product",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "products",
+                                                ":product"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                },
+                                {
+                                    "name": "stock",
+                                    "item": [
+                                        {
+                                            "name": "[PATCH] api/mitra/apotik/products/{product}/stock",
+                                            "request": {
+                                                "method": "PATCH",
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json",
+                                                        "type": "text"
+                                                    },
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json",
+                                                        "type": "text"
+                                                    }
+                                                ],
+                                                "url": {
+                                                    "raw": "{{base_url}}/api/mitra/apotik/products/:product/stock",
+                                                    "host": [
+                                                        "{{base_url}}"
+                                                    ],
+                                                    "path": [
+                                                        "api",
+                                                        "mitra",
+                                                        "apotik",
+                                                        "products",
+                                                        ":product",
+                                                        "stock"
+                                                    ],
+                                                    "variable": []
+                                                }
+                                            }
+                                        }
+                                    ]
+                                },
+                                {
+                                    "name": "[DELETE] api/mitra/apotik/products/{product}",
+                                    "request": {
+                                        "method": "DELETE",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/apotik/products/:product",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "apotik",
+                                                "products",
+                                                ":product"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "services",
+                    "item": [
+                        {
+                            "name": "[GET] api/mitra/services",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/services",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "services"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[POST] api/mitra/services",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/services",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "services"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/mitra/services/{service}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/services/:service",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "services",
+                                        ":service"
+                                    ],
+                                    "variable": []
+                                }
+                            }
+                        },
+                        {
+                            "name": "[PATCH] api/mitra/services/{service}",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/services/:service",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "services",
+                                        ":service"
+                                    ],
+                                    "variable": []
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "service-bookings",
+                    "item": [
+                        {
+                            "name": "[GET] api/mitra/service-bookings",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/service-bookings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "service-bookings"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[POST] api/mitra/service-bookings",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/service-bookings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "service-bookings"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/mitra/service-bookings/{serviceBooking}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/service-bookings/:serviceBooking",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "service-bookings",
+                                        ":serviceBooking"
+                                    ],
+                                    "variable": []
+                                }
+                            }
+                        },
+                        {
+                            "name": "status",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/service-bookings/{serviceBooking}/status",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/service-bookings/:serviceBooking/status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "service-bookings",
+                                                ":serviceBooking",
+                                                "status"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "shipments",
+                    "item": [
+                        {
+                            "name": "[GET] api/mitra/shipments",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/shipments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "shipments"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/mitra/shipments/{shipment}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/shipments/:shipment",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "shipments",
+                                        ":shipment"
+                                    ],
+                                    "variable": []
+                                }
+                            }
+                        },
+                        {
+                            "name": "assign-courier",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/shipments/{shipment}/assign-courier",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/shipments/:shipment/assign-courier",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "shipments",
+                                                ":shipment",
+                                                "assign-courier"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "status",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/shipments/{shipment}/status",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/shipments/:shipment/status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "shipments",
+                                                ":shipment",
+                                                "status"
+                                            ],
+                                            "variable": []
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "shared",
+            "item": [
+                {
+                    "name": "me",
+                    "item": [
+                        {
+                            "name": "[GET] api/shared/me",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shared/me",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shared",
+                                        "me"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "logout",
+                    "item": [
+                        {
+                            "name": "[POST] api/shared/logout",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shared/logout",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shared",
+                                        "logout"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "users",
+                    "item": [
+                        {
+                            "name": "[GET] api/shared/users",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shared/users",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shared",
+                                        "users"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/shared/users/{user}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/shared/users/:user",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "shared",
+                                        "users",
+                                        ":user"
                                     ],
                                     "variable": []
                                 }
@@ -900,73 +1433,15 @@
             ]
         },
         {
-            "name": "shipments",
+            "name": "admin",
             "item": [
                 {
-                    "name": "[GET] api/shipments",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shipments",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shipments"
-                            ]
-                        }
-                    }
-                },
-                {
-                    "name": "[GET] api/shipments/{shipment}",
-                    "request": {
-                        "method": "GET",
-                        "header": [
-                            {
-                                "key": "Accept",
-                                "value": "application/json",
-                                "type": "text"
-                            },
-                            {
-                                "key": "Content-Type",
-                                "value": "application/json",
-                                "type": "text"
-                            }
-                        ],
-                        "url": {
-                            "raw": "{{base_url}}/api/shipments/:shipment",
-                            "host": [
-                                "{{base_url}}"
-                            ],
-                            "path": [
-                                "api",
-                                "shipments",
-                                ":shipment"
-                            ],
-                            "variable": []
-                        }
-                    }
-                },
-                {
-                    "name": "assign-courier",
+                    "name": "apotiks",
                     "item": [
                         {
-                            "name": "[PATCH] api/shipments/{shipment}/assign-courier",
+                            "name": "[GET] api/admin/apotiks",
                             "request": {
-                                "method": "PATCH",
+                                "method": "GET",
                                 "header": [
                                     {
                                         "key": "Accept",
@@ -980,53 +1455,15 @@
                                     }
                                 ],
                                 "url": {
-                                    "raw": "{{base_url}}/api/shipments/:shipment/assign-courier",
+                                    "raw": "{{base_url}}/api/admin/apotiks",
                                     "host": [
                                         "{{base_url}}"
                                     ],
                                     "path": [
                                         "api",
-                                        "shipments",
-                                        ":shipment",
-                                        "assign-courier"
-                                    ],
-                                    "variable": []
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "status",
-                    "item": [
-                        {
-                            "name": "[PATCH] api/shipments/{shipment}/status",
-                            "request": {
-                                "method": "PATCH",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/shipments/:shipment/status",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "shipments",
-                                        ":shipment",
-                                        "status"
-                                    ],
-                                    "variable": []
+                                        "admin",
+                                        "apotiks"
+                                    ]
                                 }
                             }
                         }
@@ -1038,7 +1475,7 @@
     "variable": [
         {
             "key": "base_url",
-            "value": "http://medic-app.test"
+            "value": "http://medic-be-app.test"
         }
     ]
 }

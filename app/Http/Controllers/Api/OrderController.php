@@ -25,7 +25,7 @@ class OrderController extends Controller
         ]);
 
         $orders = Order::query()
-            ->with(['patient', 'pharmacy.partnerProfile', 'address', 'prescription', 'items.product', 'shipment.courier'])
+            ->with(['patient', 'pharmacy.owner.partnerProfile', 'pharmacy.owner', 'address', 'prescription', 'items.product', 'shipment.courier'])
             ->when(
                 $validated['patient_user_id'] ?? null,
                 fn ($query, $patientId) => $query->where('patient_user_id', $patientId)
@@ -70,7 +70,7 @@ class OrderController extends Controller
             $order = Order::create([
                 'order_code' => 'ORD-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
                 'patient_user_id' => $validated['patient_user_id'],
-                'pharmacy_user_id' => $selection['pharmacy']->id,
+                'pharmacy_id' => $selection['pharmacy']->id,
                 'patient_address_id' => $validated['patient_address_id'],
                 'prescription_id' => $validated['prescription_id'] ?? null,
                 'order_type' => $validated['order_type'],
@@ -100,7 +100,7 @@ class OrderController extends Controller
             return $order;
         });
 
-        $order->load(['patient', 'pharmacy.partnerProfile', 'address', 'items.product']);
+        $order->load(['patient', 'pharmacy.owner.partnerProfile', 'pharmacy.owner', 'address', 'items.product']);
 
         return response()->json([
             'message' => 'Order berhasil dibuat.',
@@ -110,7 +110,7 @@ class OrderController extends Controller
 
     public function show(Order $order): JsonResponse
     {
-        $order->load(['patient', 'pharmacy.partnerProfile', 'address', 'prescription.items', 'items.product.pharmacy.partnerProfile', 'shipment.histories', 'shipment.courier']);
+        $order->load(['patient', 'pharmacy.owner.partnerProfile', 'pharmacy.owner', 'address', 'prescription.items', 'items.product.pharmacy.owner.partnerProfile', 'items.product.pharmacy.owner', 'shipment.histories', 'shipment.courier']);
 
         return response()->json([
             'message' => 'Detail order berhasil diambil.',
@@ -132,7 +132,7 @@ class OrderController extends Controller
 
         return response()->json([
             'message' => 'Status order berhasil diperbarui.',
-            'data' => $order->fresh(['patient', 'pharmacy.partnerProfile', 'address', 'items.product', 'shipment']),
+            'data' => $order->fresh(['patient', 'pharmacy.owner.partnerProfile', 'pharmacy.owner', 'address', 'items.product', 'shipment']),
         ]);
     }
 }

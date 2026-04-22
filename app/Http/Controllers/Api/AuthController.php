@@ -17,19 +17,35 @@ class AuthController extends Controller
 
     public function loginDoctor(Request $request): JsonResponse
     {
-        return $this->loginByRole($request, 'dokter', 'doctor');
+        return $this->loginMitraByCapability(
+            $request,
+            'doctor',
+            fn (User $user) => $user->partnerProfile?->profession === 'dokter',
+            'Email atau password tidak valid untuk akun dokter.'
+        );
+    }
+
+    public function loginMitra(Request $request): JsonResponse
+    {
+        return $this->loginByRole($request, 'mitra', 'mitra');
     }
 
     public function loginApotik(Request $request): JsonResponse
     {
-        return $this->loginByRole($request, 'apotik', 'apotik');
+        return $this->loginMitraByCapability(
+            $request,
+            'apotik',
+            fn (User $user) => $user->pharmacy !== null,
+            'Email atau password tidak valid untuk akun mitra apotik.'
+        );
     }
 
     public function me(Request $request): JsonResponse
     {
         $user = $request->user();
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile']);
+        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
+        $user->setAttribute('profile_user', $this->resolveProfileUser($user));
 
         return response()->json([
             'message' => 'Data user login berhasil diambil.',
@@ -64,12 +80,65 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile']);
+        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
 
         return response()->json([
             'message' => 'Login berhasil.',
             'data' => $user,
             'user_api_token' => $user->issueApiToken($tokenName.'_api_token'),
         ]);
+    }
+
+    private function loginMitraByCapability(
+        Request $request,
+        string $tokenName,
+        \Closure $capability,
+        string $invalidMessage
+    ): JsonResponse {
+        $validated = $request->validate([
+            'email' => ['required', 'email'],
+            'password' => ['required', 'string'],
+        ]);
+
+        $user = User::query()
+            ->with(['partnerProfile', 'pharmacy'])
+            ->where('email', $validated['email'])
+            ->where('role', 'mitra')
+            ->first();
+
+        if (! $user || ! Hash::check($validated['password'], $user->password) || ! $capability($user)) {
+            return response()->json([
+                'message' => $invalidMessage,
+            ], 422);
+        }
+
+        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
+
+        return response()->json([
+            'message' => 'Login berhasil.',
+            'data' => $user,
+            'user_api_token' => $user->issueApiToken($tokenName.'_api_token'),
+        ]);
+    }
+
+    private function resolveProfileUser(User $user): mixed
+    {
+        if ($user->pharmacy) {
+            return $user->pharmacy;
+        }
+
+        if ($user->partnerProfile) {
+            return $user->partnerProfile;
+        }
+
+        if ($user->patientProfile) {
+            return $user->patientProfile;
+        }
+
+        if ($user->courierProfile) {
+            return $user->courierProfile;
+        }
+
+        return null;
     }
 }

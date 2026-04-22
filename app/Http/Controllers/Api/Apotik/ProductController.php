@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Apotik;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pharmacy;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -15,17 +16,17 @@ class ProductController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $apotik = $this->resolveAuthenticatedApotik($request);
+        $pharmacy = $this->resolveAuthenticatedApotik($request);
 
         $validated = $request->validate([
-            'type' => ['nullable', 'in:obat,produk_kesehatan'],
+            'type' => ['nullable', 'in:obat,produk_kesehatan,layanan,sewa_alat_kesehatan'],
             'requires_prescription' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
         ]);
 
         $products = Product::query()
-            ->where('pharmacy_user_id', $apotik->id)
+            ->where('pharmacy_id', $pharmacy->id)
             ->when(
                 $validated['type'] ?? null,
                 fn ($query, $type) => $query->where('type', $type)
@@ -42,7 +43,7 @@ class ProductController extends Controller
                 $validated['search'] ?? null,
                 fn ($query, $search) => $query->where('name', 'like', "%{$search}%")
             )
-            ->with('pharmacy.partnerProfile')
+            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
             ->latest()
             ->get();
 
@@ -56,7 +57,7 @@ class ProductController extends Controller
     {
         $this->ensureProductOwnedByAuthenticatedApotik($request, $product);
 
-        $product->load('pharmacy.partnerProfile');
+        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Detail produk apotik berhasil diambil.',
@@ -66,17 +67,17 @@ class ProductController extends Controller
 
     public function store(Request $request): JsonResponse
     {
-        $apotik = $this->resolveAuthenticatedApotik($request);
+        $pharmacy = $this->resolveAuthenticatedApotik($request);
 
         $validated = $request->validate([
             'sku' => [
                 'required',
                 'string',
                 'max:100',
-                Rule::unique('products')->where(fn ($query) => $query->where('pharmacy_user_id', $apotik->id)),
+                Rule::unique('products')->where(fn ($query) => $query->where('pharmacy_id', $pharmacy->id)),
             ],
             'name' => ['required', 'string', 'max:255'],
-            'type' => ['required', 'in:obat,produk_kesehatan'],
+            'type' => ['required', 'in:obat,produk_kesehatan,layanan,sewa_alat_kesehatan'],
             'category' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:0'],
@@ -89,7 +90,7 @@ class ProductController extends Controller
         ]);
 
         $product = Product::create([
-            'pharmacy_user_id' => $apotik->id,
+            'pharmacy_id' => $pharmacy->id,
             'sku' => $validated['sku'],
             'name' => $validated['name'],
             'type' => $validated['type'],
@@ -104,7 +105,7 @@ class ProductController extends Controller
             'image' => $validated['image'] ?? null,
         ]);
 
-        $product->load('pharmacy.partnerProfile');
+        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Produk apotik berhasil dibuat.',
@@ -118,7 +119,7 @@ class ProductController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
-            'type' => ['sometimes', 'in:obat,produk_kesehatan'],
+            'type' => ['sometimes', 'in:obat,produk_kesehatan,layanan,sewa_alat_kesehatan'],
             'category' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
             'price' => ['sometimes', 'numeric', 'min:0'],
@@ -130,7 +131,7 @@ class ProductController extends Controller
         ]);
 
         $product->update($validated);
-        $product->load('pharmacy.partnerProfile');
+        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Produk apotik berhasil diperbarui.',
@@ -158,7 +159,7 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => 'Stok produk apotik berhasil diperbarui.',
-            'data' => $product->fresh('pharmacy.partnerProfile'),
+            'data' => $product->fresh(['pharmacy.owner.partnerProfile', 'pharmacy.owner']),
         ]);
     }
 
@@ -173,24 +174,25 @@ class ProductController extends Controller
         ], Response::HTTP_OK);
     }
 
-    private function resolveAuthenticatedApotik(Request $request): User
+    private function resolveAuthenticatedApotik(Request $request): Pharmacy
     {
+        /** @var User|null $user */
         $user = $request->user();
 
-        if (! $user || $user->role !== 'apotik') {
+        if (! $user || $user->role !== 'mitra' || ! $user->pharmacy) {
             throw ValidationException::withMessages([
-                'user' => ['Akun login harus memiliki role apotik.'],
+                'user' => ['Akun login harus mitra yang memiliki data apotik.'],
             ]);
         }
 
-        return $user;
+        return $user->pharmacy;
     }
 
     private function ensureProductOwnedByAuthenticatedApotik(Request $request, Product $product): void
     {
-        $apotik = $this->resolveAuthenticatedApotik($request);
+        $pharmacy = $this->resolveAuthenticatedApotik($request);
 
-        if ($product->pharmacy_user_id !== $apotik->id) {
+        if ($product->pharmacy_id !== $pharmacy->id) {
             throw ValidationException::withMessages([
                 'product' => ['Produk ini bukan milik apotik yang sedang login.'],
             ]);

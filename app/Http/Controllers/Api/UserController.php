@@ -3,16 +3,86 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Pharmacy;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class UserController extends Controller
 {
+    public function adminApotiks(Request $request): JsonResponse
+    {
+        $this->ensureAdminAccess($request);
+
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $apotiks = Pharmacy::query()
+            ->when(
+                $validated['search'] ?? null,
+                fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('license_number', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%")
+                        ->orWhereHas('owner', fn ($ownerQuery) => $ownerQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('email', 'like', "%{$search}%")
+                            ->orWhere('phone', 'like', "%{$search}%"));
+                })
+            )
+            ->when(
+                array_key_exists('is_active', $validated),
+                fn ($query) => $query->where('is_active', $validated['is_active'])
+            )
+            ->with(['owner.partnerProfile'])
+            ->withCount(['products', 'orders'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'message' => 'Daftar semua apotik berhasil diambil.',
+            'data' => $apotiks,
+        ]);
+    }
+
+    public function apotiks(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'is_available' => ['nullable', 'boolean'],
+        ]);
+
+        $apotiks = Pharmacy::query()
+            ->whereHas('owner', fn ($query) => $query->where('role', 'mitra'))
+            ->when(
+                $validated['search'] ?? null,
+                fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
+                    $searchQuery->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%")
+                        ->orWhereHas('owner', fn ($ownerQuery) => $ownerQuery->where('name', 'like', "%{$search}%"));
+                })
+            )
+            ->when(
+                array_key_exists('is_available', $validated),
+                fn ($query) => $query->where('is_active', $validated['is_available'])
+            )
+            ->with(['owner.partnerProfile'])
+            ->latest()
+            ->get();
+
+        return response()->json([
+            'message' => 'Daftar apotik berhasil diambil.',
+            'data' => $apotiks,
+        ]);
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'role' => ['nullable', 'in:pasien,dokter,apotik,kurir'],
+            'role' => ['nullable', 'in:pasien,mitra'],
             'search' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -25,7 +95,7 @@ class UserController extends Controller
                 $validated['search'] ?? null,
                 fn ($query, $search) => $query->where('name', 'like', "%{$search}%")
             )
-            ->with(['patientProfile', 'partnerProfile', 'courierProfile'])
+            ->with(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy'])
             ->latest()
             ->get();
 
@@ -37,11 +107,23 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile']);
+        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
 
         return response()->json([
             'message' => 'Detail user berhasil diambil.',
             'data' => $user,
         ]);
+    }
+
+    private function ensureAdminAccess(Request $request): void
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if (! $user || $user->role !== 'admin') {
+            throw ValidationException::withMessages([
+                'user' => ['Hanya akun admin yang dapat mengakses endpoint ini.'],
+            ]);
+        }
     }
 }
