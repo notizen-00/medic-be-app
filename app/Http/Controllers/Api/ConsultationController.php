@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\ConsultationMessage;
+use App\Models\Payment;
 use App\Models\PartnerProfile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -49,6 +51,7 @@ class ConsultationController extends Controller
             'patient_user_id' => ['required', 'integer', 'exists:users,id'],
             'partner_user_id' => ['required', 'integer', 'exists:users,id'],
             'service_type' => ['required', 'in:chat,voice_call,video_call,visit'],
+            'payment_method' => ['required', 'in:wallet,bank_transfer,credit_card,cash'],
             'scheduled_at' => ['nullable', 'date'],
             'complaint' => ['nullable', 'string'],
             'notes' => ['nullable', 'string'],
@@ -62,32 +65,93 @@ class ConsultationController extends Controller
             ]);
         }
 
-        $consultation = Consultation::create([
-            'consultation_code' => 'KONS-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
-            'patient_user_id' => $validated['patient_user_id'],
-            'partner_user_id' => $validated['partner_user_id'],
-            'service_type' => $validated['service_type'],
-            'status' => 'pending',
-            'scheduled_at' => $validated['scheduled_at'] ?? null,
-            'complaint' => $validated['complaint'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'consultation_fee' => $partnerProfile?->consultation_fee ?? 0,
-        ]);
+        $consultation = DB::transaction(function () use ($validated, $partnerProfile) {
+            $consultation = Consultation::create([
+                'consultation_code' => 'KONS-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
+                'patient_user_id' => $validated['patient_user_id'],
+                'partner_user_id' => $validated['partner_user_id'],
+                'service_type' => $validated['service_type'],
+                'status' => 'pending',
+                'scheduled_at' => $validated['scheduled_at'] ?? null,
+                'complaint' => $validated['complaint'] ?? null,
+                'notes' => $validated['notes'] ?? null,
+                'consultation_fee' => $partnerProfile?->consultation_fee ?? 0,
+            ]);
 
-        $consultation->load(['patient', 'partner.partnerProfile']);
+            Payment::create([
+                'consultation_id' => $consultation->id,
+                'patient_user_id' => $validated['patient_user_id'],
+                'payment_code' => 'PAY-KONS-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
+                'payment_method' => $validated['payment_method'],
+                'status' => 'pending',
+                'amount' => $consultation->consultation_fee,
+                'notes' => 'Pembayaran konsultasi menunggu pelunasan sebelum sesi chat dibuka.',
+            ]);
+
+            return $consultation;
+        });
+
+        $consultation->load(['patient', 'partner.partnerProfile', 'payment']);
 
         return response()->json([
-            'message' => 'Konsultasi berhasil dibuat.',
+            'message' => 'Konsultasi berhasil dibuat. Silakan selesaikan pembayaran sebelum membuka sesi chat.',
             'data' => $consultation,
         ], 201);
     }
 
     public function show(Consultation $consultation): JsonResponse
     {
+        $this->ensureConsultationPaymentCompleted($consultation);
+
         $consultation->load(['patient', 'partner.partnerProfile', 'messages.sender', 'prescription.items', 'payment']);
 
         return response()->json([
             'message' => 'Detail konsultasi berhasil diambil.',
+            'data' => $consultation,
+        ]);
+    }
+
+    public function pay(Request $request, Consultation $consultation): JsonResponse
+    {
+        $validated = $request->validate([
+            'payment_method' => ['nullable', 'in:wallet,bank_transfer,credit_card,cash'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $payment = $consultation->payment;
+
+        if (! $payment) {
+            throw ValidationException::withMessages([
+                'consultation' => ['Tagihan konsultasi tidak ditemukan.'],
+            ]);
+        }
+
+        if ($payment->status === 'paid') {
+            $consultation->load(['patient', 'partner.partnerProfile', 'payment']);
+
+            return response()->json([
+                'message' => 'Pembayaran konsultasi sudah lunas.',
+                'data' => $consultation,
+            ]);
+        }
+
+        $payment->update([
+            'payment_method' => $validated['payment_method'] ?? $payment->payment_method,
+            'status' => 'paid',
+            'paid_at' => now(),
+            'notes' => $validated['notes'] ?? $payment->notes,
+        ]);
+
+        if ($consultation->status === 'pending') {
+            $consultation->update([
+                'status' => 'confirmed',
+            ]);
+        }
+
+        $consultation->load(['patient', 'partner.partnerProfile', 'payment']);
+
+        return response()->json([
+            'message' => 'Pembayaran konsultasi berhasil. Sesi chat sudah dapat dibuka.',
             'data' => $consultation,
         ]);
     }
@@ -105,6 +169,10 @@ class ConsultationController extends Controller
             'diagnosis' => $validated['diagnosis'] ?? $consultation->diagnosis,
             'notes' => $validated['notes'] ?? $consultation->notes,
         ];
+
+        if (in_array($validated['status'], ['confirmed', 'ongoing', 'completed'], true)) {
+            $this->ensureConsultationPaymentCompleted($consultation);
+        }
 
         if ($validated['status'] === 'ongoing' && $consultation->started_at === null) {
             $payload['started_at'] = now();
@@ -132,6 +200,14 @@ class ConsultationController extends Controller
             'attachment_path' => ['nullable', 'string', 'max:255'],
         ]);
 
+        $this->ensureConsultationPaymentCompleted($consultation);
+
+        if (! in_array($validated['sender_user_id'], [$consultation->patient_user_id, $consultation->partner_user_id], true)) {
+            throw ValidationException::withMessages([
+                'sender_user_id' => ['Pengirim pesan tidak terdaftar pada konsultasi ini.'],
+            ]);
+        }
+
         $message = ConsultationMessage::create($validated + [
             'consultation_id' => $consultation->id,
         ]);
@@ -142,5 +218,16 @@ class ConsultationController extends Controller
             'message' => 'Pesan konsultasi berhasil dikirim.',
             'data' => $message,
         ], 201);
+    }
+
+    private function ensureConsultationPaymentCompleted(Consultation $consultation): void
+    {
+        $consultation->loadMissing('payment');
+
+        if (! $consultation->payment || $consultation->payment->status !== 'paid') {
+            throw ValidationException::withMessages([
+                'payment' => ['Sesi konsultasi belum dapat dibuka. Silakan selesaikan pembayaran terlebih dahulu.'],
+            ]);
+        }
     }
 }

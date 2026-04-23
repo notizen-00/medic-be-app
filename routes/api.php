@@ -93,6 +93,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::post('/', 'store');
             Route::get('/{consultation}', 'show');
+            Route::patch('/{consultation}/pay', 'pay');
             Route::patch('/{consultation}/status', 'updateStatus');
             Route::post('/{consultation}/messages', 'addMessage');
         });
