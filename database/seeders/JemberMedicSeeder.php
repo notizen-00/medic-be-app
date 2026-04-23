@@ -134,6 +134,290 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
+        $additionalDoctors = [
+            [
+                'name' => 'dr. Andi Saputra',
+                'email' => 'dokter.jember01@example.com',
+                'phone' => '081234567820',
+                'specialization' => 'Spesialis Penyakit Dalam',
+                'license_number' => 'SIP-DOK-JBR-002',
+                'work_location' => 'Klinik Cempaka Medika, Kaliwates, Jember',
+                'latitude' => -8.1741000,
+                'longitude' => 113.6952000,
+                'years_of_experience' => 9,
+                'consultation_fee' => 120000,
+                'bio' => 'Dokter penyakit dalam untuk konsultasi keluhan metabolik, pencernaan, dan penyakit kronis.',
+            ],
+            [
+                'name' => 'dr. Bella Maharani, Sp.A',
+                'email' => 'dokter.jember02@example.com',
+                'phone' => '081234567821',
+                'specialization' => 'Spesialis Anak',
+                'license_number' => 'SIP-DOK-JBR-003',
+                'work_location' => 'Klinik Tumbuh Sehat, Sumbersari, Jember',
+                'latitude' => -8.1667000,
+                'longitude' => 113.7190000,
+                'years_of_experience' => 8,
+                'consultation_fee' => 130000,
+                'bio' => 'Fokus pada tumbuh kembang anak, demam, dan edukasi orang tua.',
+            ],
+            [
+                'name' => 'dr. Citra Lestari, Sp.OG',
+                'email' => 'dokter.jember03@example.com',
+                'phone' => '081234567822',
+                'specialization' => 'Spesialis Kandungan',
+                'license_number' => 'SIP-DOK-JBR-004',
+                'work_location' => 'RSIA Bunda Jember, Patrang, Jember',
+                'latitude' => -8.1519000,
+                'longitude' => 113.7044000,
+                'years_of_experience' => 11,
+                'consultation_fee' => 150000,
+                'bio' => 'Melayani konsultasi kehamilan, gangguan haid, dan kesehatan reproduksi wanita.',
+            ],
+            [
+                'name' => 'dr. Dimas Prakoso, Sp.JP',
+                'email' => 'dokter.jember04@example.com',
+                'phone' => '081234567823',
+                'specialization' => 'Spesialis Jantung',
+                'license_number' => 'SIP-DOK-JBR-005',
+                'work_location' => 'Heart Care Clinic, Kaliwates, Jember',
+                'latitude' => -8.1762000,
+                'longitude' => 113.6907000,
+                'years_of_experience' => 12,
+                'consultation_fee' => 165000,
+                'bio' => 'Konsultasi jantung, hipertensi, dan evaluasi risiko penyakit kardiovaskular.',
+            ],
+            [
+                'name' => 'dr. Eka Purnama, Sp.KK',
+                'email' => 'dokter.jember05@example.com',
+                'phone' => '081234567824',
+                'specialization' => 'Spesialis Kulit dan Kelamin',
+                'license_number' => 'SIP-DOK-JBR-006',
+                'work_location' => 'Dermacare Jember, Sumbersari, Jember',
+                'latitude' => -8.1635000,
+                'longitude' => 113.7234000,
+                'years_of_experience' => 7,
+                'consultation_fee' => 140000,
+                'bio' => 'Menangani masalah kulit, alergi, jerawat, dan infeksi kulit.',
+            ],
+            [
+                'name' => 'dr. Fajar Hidayat, Sp.THT',
+                'email' => 'dokter.jember06@example.com',
+                'phone' => '081234567825',
+                'specialization' => 'Spesialis THT',
+                'license_number' => 'SIP-DOK-JBR-007',
+                'work_location' => 'Klinik THT Sejahtera, Patrang, Jember',
+                'latitude' => -8.1482000,
+                'longitude' => 113.7078000,
+                'years_of_experience' => 10,
+                'consultation_fee' => 145000,
+                'bio' => 'Fokus pada gangguan telinga, hidung, tenggorokan, dan sinus.',
+            ],
+            [
+                'name' => 'dr. Gina Aprilia, Sp.M',
+                'email' => 'dokter.jember07@example.com',
+                'phone' => '081234567826',
+                'specialization' => 'Spesialis Mata',
+                'license_number' => 'SIP-DOK-JBR-008',
+                'work_location' => 'Jember Eye Center, Kaliwates, Jember',
+                'latitude' => -8.1714000,
+                'longitude' => 113.6926000,
+                'years_of_experience' => 9,
+                'consultation_fee' => 150000,
+                'bio' => 'Konsultasi gangguan penglihatan, iritasi mata, dan kontrol kesehatan mata rutin.',
+            ],
+            [
+                'name' => 'dr. Hendra Kurniawan, Sp.OT',
+                'email' => 'dokter.jember08@example.com',
+                'phone' => '081234567827',
+                'specialization' => 'Spesialis Ortopedi',
+                'license_number' => 'SIP-DOK-JBR-009',
+                'work_location' => 'Ortho Care Jember, Ajung, Jember',
+                'latitude' => -8.2087000,
+                'longitude' => 113.7195000,
+                'years_of_experience' => 13,
+                'consultation_fee' => 170000,
+                'bio' => 'Menangani cedera tulang, sendi, nyeri punggung, dan rehabilitasi muskuloskeletal.',
+            ],
+            [
+                'name' => 'dr. Intan Permata, Sp.S',
+                'email' => 'dokter.jember09@example.com',
+                'phone' => '081234567828',
+                'specialization' => 'Spesialis Saraf',
+                'license_number' => 'SIP-DOK-JBR-010',
+                'work_location' => 'Neuro Clinic Jember, Kaliwates, Jember',
+                'latitude' => -8.1771000,
+                'longitude' => 113.6973000,
+                'years_of_experience' => 10,
+                'consultation_fee' => 160000,
+                'bio' => 'Konsultasi migrain, vertigo, neuropati, dan gangguan saraf perifer.',
+            ],
+            [
+                'name' => 'dr. Joko Wibowo, Sp.B',
+                'email' => 'dokter.jember10@example.com',
+                'phone' => '081234567829',
+                'specialization' => 'Spesialis Bedah Umum',
+                'license_number' => 'SIP-DOK-JBR-011',
+                'work_location' => 'Klinik Bedah Prima, Patrang, Jember',
+                'latitude' => -8.1568000,
+                'longitude' => 113.7102000,
+                'years_of_experience' => 14,
+                'consultation_fee' => 175000,
+                'bio' => 'Melayani evaluasi pra operasi, kontrol pasca operasi, dan tindakan bedah umum.',
+            ],
+            [
+                'name' => 'dr. Kartika Sari, Sp.P',
+                'email' => 'dokter.jember11@example.com',
+                'phone' => '081234567830',
+                'specialization' => 'Spesialis Paru',
+                'license_number' => 'SIP-DOK-JBR-012',
+                'work_location' => 'Pulmo Care Jember, Sumbersari, Jember',
+                'latitude' => -8.1627000,
+                'longitude' => 113.7186000,
+                'years_of_experience' => 8,
+                'consultation_fee' => 150000,
+                'bio' => 'Fokus pada asma, infeksi saluran napas, dan penyakit paru kronis.',
+            ],
+            [
+                'name' => 'dr. Luthfi Ramadhan, Sp.KJ',
+                'email' => 'dokter.jember12@example.com',
+                'phone' => '081234567831',
+                'specialization' => 'Spesialis Kesehatan Jiwa',
+                'license_number' => 'SIP-DOK-JBR-013',
+                'work_location' => 'Mental Wellness Clinic, Kaliwates, Jember',
+                'latitude' => -8.1708000,
+                'longitude' => 113.7009000,
+                'years_of_experience' => 9,
+                'consultation_fee' => 155000,
+                'bio' => 'Pendampingan gangguan kecemasan, stres, dan kesehatan mental dewasa.',
+            ],
+            [
+                'name' => 'dr. Maya Oktaviani, Sp.GK',
+                'email' => 'dokter.jember13@example.com',
+                'phone' => '081234567832',
+                'specialization' => 'Spesialis Gizi Klinik',
+                'license_number' => 'SIP-DOK-JBR-014',
+                'work_location' => 'Nutri Health Center, Kaliwates, Jember',
+                'latitude' => -8.1729000,
+                'longitude' => 113.6941000,
+                'years_of_experience' => 6,
+                'consultation_fee' => 135000,
+                'bio' => 'Konsultasi pola makan untuk obesitas, diabetes, dan pemulihan pasca sakit.',
+            ],
+            [
+                'name' => 'dr. Nanda Putri, Sp.RM',
+                'email' => 'dokter.jember14@example.com',
+                'phone' => '081234567833',
+                'specialization' => 'Spesialis Rehabilitasi Medik',
+                'license_number' => 'SIP-DOK-JBR-015',
+                'work_location' => 'Rehab Point Jember, Arjasa, Jember',
+                'latitude' => -8.1217000,
+                'longitude' => 113.7271000,
+                'years_of_experience' => 7,
+                'consultation_fee' => 145000,
+                'bio' => 'Menangani pemulihan fungsi gerak pasca cedera dan terapi fisik ringan.',
+            ],
+            [
+                'name' => 'dr. Oki Firmansyah, Sp.U',
+                'email' => 'dokter.jember15@example.com',
+                'phone' => '081234567834',
+                'specialization' => 'Spesialis Urologi',
+                'license_number' => 'SIP-DOK-JBR-016',
+                'work_location' => 'Uro Medika Jember, Pakusari, Jember',
+                'latitude' => -8.1379000,
+                'longitude' => 113.7391000,
+                'years_of_experience' => 11,
+                'consultation_fee' => 160000,
+                'bio' => 'Konsultasi batu saluran kemih, gangguan berkemih, dan kesehatan prostat.',
+            ],
+            [
+                'name' => 'dr. Putri Nabila, Sp.PD-KEMD',
+                'email' => 'dokter.jember16@example.com',
+                'phone' => '081234567835',
+                'specialization' => 'Spesialis Endokrin Metabolik',
+                'license_number' => 'SIP-DOK-JBR-017',
+                'work_location' => 'Metabolic Care Jember, Sumbersari, Jember',
+                'latitude' => -8.1659000,
+                'longitude' => 113.7208000,
+                'years_of_experience' => 10,
+                'consultation_fee' => 165000,
+                'bio' => 'Menangani diabetes, gangguan tiroid, dan masalah hormonal metabolik.',
+            ],
+            [
+                'name' => 'dr. Qori Aulia, Sp.Onk',
+                'email' => 'dokter.jember17@example.com',
+                'phone' => '081234567836',
+                'specialization' => 'Spesialis Onkologi',
+                'license_number' => 'SIP-DOK-JBR-018',
+                'work_location' => 'Cancer Support Clinic, Kaliwates, Jember',
+                'latitude' => -8.1755000,
+                'longitude' => 113.6899000,
+                'years_of_experience' => 12,
+                'consultation_fee' => 180000,
+                'bio' => 'Pendampingan pasien kanker untuk kontrol rutin, edukasi terapi, dan manajemen gejala.',
+            ],
+            [
+                'name' => 'dr. Raka Aditya, Sp.Rad',
+                'email' => 'dokter.jember18@example.com',
+                'phone' => '081234567837',
+                'specialization' => 'Spesialis Radiologi',
+                'license_number' => 'SIP-DOK-JBR-019',
+                'work_location' => 'Radiologi Medika Jember, Patrang, Jember',
+                'latitude' => -8.1542000,
+                'longitude' => 113.7085000,
+                'years_of_experience' => 9,
+                'consultation_fee' => 150000,
+                'bio' => 'Melayani interpretasi penunjang radiologi dan konsultasi hasil pencitraan medis.',
+            ],
+            [
+                'name' => 'dr. Shinta Ayu, Sp.KFR',
+                'email' => 'dokter.jember19@example.com',
+                'phone' => '081234567838',
+                'specialization' => 'Spesialis Kedokteran Fisik dan Rehabilitasi',
+                'license_number' => 'SIP-DOK-JBR-020',
+                'work_location' => 'Physio Med Jember, Rambipuji, Jember',
+                'latitude' => -8.2239000,
+                'longitude' => 113.6112000,
+                'years_of_experience' => 8,
+                'consultation_fee' => 150000,
+                'bio' => 'Fokus pada rehabilitasi fisik, keluhan muskuloskeletal, dan pemulihan mobilitas.',
+            ],
+        ];
+
+        $seededAdditionalDoctorUsers = collect($additionalDoctors)->map(function (array $doctorData) use ($password) {
+            $user = User::updateOrCreate(
+                ['email' => $doctorData['email']],
+                [
+                    'name' => $doctorData['name'],
+                    'role' => 'mitra',
+                    'phone' => $doctorData['phone'],
+                    'email_verified_at' => now(),
+                    'password' => $password,
+                ]
+            );
+
+            PartnerProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'profession' => 'dokter',
+                    'specialization' => $doctorData['specialization'],
+                    'license_number' => $doctorData['license_number'],
+                    'work_location' => $doctorData['work_location'],
+                    'latitude' => $doctorData['latitude'],
+                    'longitude' => $doctorData['longitude'],
+                    'years_of_experience' => $doctorData['years_of_experience'],
+                    'consultation_fee' => $doctorData['consultation_fee'],
+                    'is_available' => true,
+                    'bio' => $doctorData['bio'],
+                ]
+            );
+
+            return [
+                'user' => $user,
+                'consultation_fee' => $doctorData['consultation_fee'],
+            ];
+        })->values();
+
         $additionalNurses = [
             [
                 'name' => 'Ns. Dita Puspita',
@@ -440,6 +724,23 @@ class JemberMedicSeeder extends Seeder
 
         }
 
+        foreach ($seededAdditionalDoctorUsers as $index => $additionalDoctor) {
+            foreach ([1, 2, 3, 4, 5] as $day) {
+                PartnerSchedule::updateOrCreate(
+                    [
+                        'partner_user_id' => $additionalDoctor['user']->id,
+                        'day_of_week' => $day,
+                        'start_time' => $index % 2 === 0 ? '09:00:00' : '13:00:00',
+                        'end_time' => $index % 2 === 0 ? '13:00:00' : '17:00:00',
+                    ],
+                    [
+                        'slot_duration_minutes' => 30,
+                        'is_active' => true,
+                    ]
+                );
+            }
+        }
+
         $products = [
             [
                 'pharmacy_id' => $pharmacy->id,
@@ -743,6 +1044,30 @@ class JemberMedicSeeder extends Seeder
                     'is_active' => true,
                     'is_verified' => true,
                     'notes' => 'Perawat rawat luka area Jember dan sekitarnya.',
+                ];
+            }
+        }
+
+        foreach ($seededAdditionalDoctorUsers as $index => $additionalDoctor) {
+            $partnerServices[] = [
+                'service_id' => $doctorHomecareService->id,
+                'partner_user_id' => $additionalDoctor['user']->id,
+                'custom_price' => 220000 + (($index + 1) * 5000),
+                'coverage_radius_km' => 8 + ($index % 4) * 2,
+                'is_active' => true,
+                'is_verified' => true,
+                'notes' => 'Dokter spesialis melayani konsultasi dan home visit area Jember.',
+            ];
+
+            if ($index % 3 === 0) {
+                $partnerServices[] = [
+                    'service_id' => $doctorProcedureService->id,
+                    'partner_user_id' => $additionalDoctor['user']->id,
+                    'custom_price' => 300000 + (($index + 1) * 7500),
+                    'coverage_radius_km' => 8 + ($index % 3) * 2,
+                    'is_active' => true,
+                    'is_verified' => true,
+                    'notes' => 'Dokter spesialis tersedia untuk tindakan medis ringan sesuai asesmen.',
                 ];
             }
         }

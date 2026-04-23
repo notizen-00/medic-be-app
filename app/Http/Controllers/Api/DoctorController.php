@@ -11,8 +11,7 @@ class DoctorController extends Controller
 {
     public function __construct(
         private readonly DoctorDirectoryService $doctorDirectoryService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -24,6 +23,7 @@ class DoctorController extends Controller
             'latitude' => ['nullable', 'numeric', 'between:-90,90', 'required_with:longitude'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'max_distance_km' => ['nullable', 'numeric', 'min:0'],
+            'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         $doctors = $this->doctorDirectoryService->getDoctorList($validated);

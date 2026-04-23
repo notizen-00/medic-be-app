@@ -13,7 +13,9 @@ class DoctorDirectoryService
         $referencePoint = $this->resolveReferencePoint(
             $filters['patient_address_id'] ?? null,
             $filters['latitude'] ?? null,
-            $filters['longitude'] ?? null
+            $filters['longitude'] ?? null,
+            $filters['max_distance_km'] ?? null,
+            $filters['limit'] ?? null
         );
 
         return User::query()
@@ -21,20 +23,20 @@ class DoctorDirectoryService
                 $query->where('profession', $profession)
                     ->when(
                         $filters['specialization'] ?? null,
-                        fn ($profileQuery, $specialization) => $profileQuery->where('specialization', 'like', "%{$specialization}%")
+                        fn($profileQuery, $specialization) => $profileQuery->where('specialization', 'like', "%{$specialization}%")
                     )
                     ->when(
                         array_key_exists('is_available', $filters),
-                        fn ($profileQuery) => $profileQuery->where('is_available', $filters['is_available'])
+                        fn($profileQuery) => $profileQuery->where('is_available', $filters['is_available'])
                     );
             })
             ->when(
                 $filters['search'] ?? null,
-                fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
+                fn($query, $search) => $query->where(function ($searchQuery) use ($search) {
                     $searchQuery->where('name', 'like', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%")
                         ->orWhere('phone', 'like', "%{$search}%")
-                        ->orWhereHas('partnerProfile', fn ($profileQuery) => $profileQuery
+                        ->orWhereHas('partnerProfile', fn($profileQuery) => $profileQuery
                             ->where('specialization', 'like', "%{$search}%")
                             ->orWhere('work_location', 'like', "%{$search}%")
                             ->orWhere('bio', 'like', "%{$search}%"));
@@ -54,20 +56,20 @@ class DoctorDirectoryService
             })
             ->when(
                 isset($filters['max_distance_km']),
-                fn (Collection $doctors) => $doctors->filter(function (User $doctor) use ($filters) {
+                fn(Collection $doctors) => $doctors->filter(function (User $doctor) use ($filters) {
                     $distanceKm = $doctor->getAttribute('distance_km');
 
                     return $distanceKm !== null && $distanceKm <= (float) $filters['max_distance_km'];
                 })
             )
-            ->sortBy(fn (User $doctor) => [
+            ->sortBy(fn(User $doctor) => [
                 $doctor->getAttribute('distance_km') ?? PHP_FLOAT_MAX,
                 $doctor->partnerProfile?->is_available ? 0 : 1,
                 $doctor->name,
             ])
             ->when(
                 isset($filters['limit']),
-                fn (Collection $doctors) => $doctors->take((int) $filters['limit'])
+                fn(Collection $doctors) => $doctors->take((int) $filters['limit'])
             )
             ->values();
     }
