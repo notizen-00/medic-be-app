@@ -9,6 +9,49 @@
             "name": "patient",
             "item": [
                 {
+                    "name": "register",
+                    "item": [
+                        {
+                            "name": "[POST] api/patient/register",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/register",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "register"
+                                    ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Budi Santoso\",\n    \"email\": \"pasien.baru@medic-app.test\",\n    \"phone\": \"081234567899\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"date_of_birth\": \"1998-08-17\",\n    \"gender\": \"laki-laki\",\n    \"address\": \"Jl. Mawar No. 12, Jember\",\n    \"blood_type\": \"O\",\n    \"emergency_contact_name\": \"Siti Santoso\",\n    \"emergency_contact_phone\": \"081234567800\",\n    \"allergies\": \"Debu dan udang.\",\n    \"medical_notes\": \"Riwayat asma ringan.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "login",
                     "item": [
                         {
@@ -46,6 +89,49 @@
                                             "language": "json"
                                         }
                                     }
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "logout",
+                    "item": [
+                        {
+                            "name": "[POST] api/patient/logout",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/logout",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "logout"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
                                 }
                             }
                         }
@@ -247,7 +333,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"service_id\": 1,\n    \"patient_user_id\": 2,\n    \"patient_address_id\": 1,\n    \"scheduled_at\": \"2026-04-23 09:20:33\",\n    \"notes\": \"Mohon datang sore hari.\"\n}",
+                                    "raw": "{\n    \"service_id\": 1,\n    \"patient_user_id\": 2,\n    \"patient_address_id\": 1,\n    \"scheduled_at\": \"2026-04-24 01:53:57\",\n    \"notes\": \"Mohon datang sore hari.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -340,7 +426,7 @@
                                         },
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"scheduled_at\": \"2026-04-23 09:20:33\",\n    \"notes\": \"Jadwal sudah dikonfirmasi.\"\n}",
+                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"scheduled_at\": \"2026-04-24 01:53:57\",\n    \"notes\": \"Jadwal sudah dikonfirmasi.\"\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"
@@ -559,7 +645,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"patient_user_id\": 2,\n    \"partner_user_id\": 3,\n    \"service_type\": \"chat\",\n    \"scheduled_at\": \"2026-04-22 11:20:33\",\n    \"complaint\": \"Batuk dan pilek sejak 3 hari.\",\n    \"notes\": \"Mohon konsultasi cepat.\"\n}",
+                                    "raw": "{\n    \"patient_user_id\": 2,\n    \"partner_user_id\": 3,\n    \"service_type\": \"chat\",\n    \"scheduled_at\": \"2026-04-23 03:53:57\",\n    \"complaint\": \"Batuk dan pilek sejak 3 hari.\",\n    \"notes\": \"Mohon konsultasi cepat.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"

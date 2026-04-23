@@ -158,6 +158,21 @@ return [
                 'title' => 'Kurir sedang menuju lokasi',
             ],
             'route_bodies' => [
+                'POST api/patient/register' => [
+                    'name' => 'Budi Santoso',
+                    'email' => 'pasien.baru@medic-app.test',
+                    'phone' => '081234567899',
+                    'password' => 'password123',
+                    'password_confirmation' => 'password123',
+                    'date_of_birth' => '1998-08-17',
+                    'gender' => 'laki-laki',
+                    'address' => 'Jl. Mawar No. 12, Jember',
+                    'blood_type' => 'O',
+                    'emergency_contact_name' => 'Siti Santoso',
+                    'emergency_contact_phone' => '081234567800',
+                    'allergies' => 'Debu dan udang.',
+                    'medical_notes' => 'Riwayat asma ringan.',
+                ],
                 'POST api/patient/login' => [
                     'email' => 'pasien@medic-app.test',
                     'password' => 'password123',

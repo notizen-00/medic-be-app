@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\Doctor\RegistrationController as DoctorRegistrationController;
 use App\Http\Controllers\Api\Mitra\RegistrationController as MitraRegistrationController;
+use App\Http\Controllers\Api\Patient\RegistrationController as PatientRegistrationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PartnerServiceController;
 use App\Http\Controllers\Api\ProductController;
@@ -20,8 +21,9 @@ use Illuminate\Support\Facades\Route;
 | Public Authentication Routes
 |--------------------------------------------------------------------------
 */
-Route::prefix('patient')->controller(AuthController::class)->group(function () {
-    Route::post('/login', 'loginPatient');
+Route::prefix('patient')->group(function () {
+    Route::post('/register', [PatientRegistrationController::class, 'store']);
+    Route::post('/login', [AuthController::class, 'loginPatient']);
 });
 
 Route::prefix('mitra')->group(function () {
@@ -62,6 +64,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('patient')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/apotiks', [UserController::class, 'apotiks']);
 
         Route::prefix('services')->controller(ServiceController::class)->group(function () {
