@@ -60,7 +60,7 @@ class ProductController extends Controller
 
     public function show(Product $product): JsonResponse
     {
-        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
+        $product->load(['pharmacy.profile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Detail produk berhasil diambil.',

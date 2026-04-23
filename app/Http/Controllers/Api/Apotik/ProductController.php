@@ -43,7 +43,7 @@ class ProductController extends Controller
                 $validated['search'] ?? null,
                 fn ($query, $search) => $query->where('name', 'like', "%{$search}%")
             )
-            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
+            ->with(['pharmacy.profile', 'pharmacy.owner'])
             ->latest()
             ->get();
 
@@ -57,7 +57,7 @@ class ProductController extends Controller
     {
         $this->ensureProductOwnedByAuthenticatedApotik($request, $product);
 
-        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
+        $product->load(['pharmacy.profile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Detail produk apotik berhasil diambil.',
@@ -105,7 +105,7 @@ class ProductController extends Controller
             'image' => $validated['image'] ?? null,
         ]);
 
-        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
+        $product->load(['pharmacy.profile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Produk apotik berhasil dibuat.',
@@ -131,7 +131,7 @@ class ProductController extends Controller
         ]);
 
         $product->update($validated);
-        $product->load(['pharmacy.owner.partnerProfile', 'pharmacy.owner']);
+        $product->load(['pharmacy.profile', 'pharmacy.owner']);
 
         return response()->json([
             'message' => 'Produk apotik berhasil diperbarui.',
@@ -159,7 +159,7 @@ class ProductController extends Controller
 
         return response()->json([
             'message' => 'Stok produk apotik berhasil diperbarui.',
-            'data' => $product->fresh(['pharmacy.owner.partnerProfile', 'pharmacy.owner']),
+            'data' => $product->fresh(['pharmacy.profile', 'pharmacy.owner']),
         ]);
     }
 

@@ -138,6 +138,92 @@
                     ]
                 },
                 {
+                    "name": "doctors",
+                    "item": [
+                        {
+                            "name": "[GET] api/patient/doctors",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/doctors",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "doctors"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "nurses",
+                    "item": [
+                        {
+                            "name": "[GET] api/patient/nurses",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/patient/nurses",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "patient",
+                                        "nurses"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "apotiks",
                     "item": [
                         {
@@ -333,7 +419,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"service_id\": 1,\n    \"patient_user_id\": 2,\n    \"patient_address_id\": 1,\n    \"scheduled_at\": \"2026-04-24 01:53:57\",\n    \"notes\": \"Mohon datang sore hari.\"\n}",
+                                    "raw": "{\n    \"service_id\": 1,\n    \"patient_user_id\": 2,\n    \"patient_address_id\": 1,\n    \"scheduled_at\": \"2026-04-24 03:15:10\",\n    \"notes\": \"Mohon datang sore hari.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"
@@ -426,7 +512,7 @@
                                         },
                                         "body": {
                                             "mode": "raw",
-                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"scheduled_at\": \"2026-04-24 01:53:57\",\n    \"notes\": \"Jadwal sudah dikonfirmasi.\"\n}",
+                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"scheduled_at\": \"2026-04-24 03:15:10\",\n    \"notes\": \"Jadwal sudah dikonfirmasi.\"\n}",
                                             "options": {
                                                 "raw": {
                                                     "language": "json"
@@ -645,7 +731,7 @@
                                 },
                                 "body": {
                                     "mode": "raw",
-                                    "raw": "{\n    \"patient_user_id\": 2,\n    \"partner_user_id\": 3,\n    \"service_type\": \"chat\",\n    \"scheduled_at\": \"2026-04-23 03:53:57\",\n    \"complaint\": \"Batuk dan pilek sejak 3 hari.\",\n    \"notes\": \"Mohon konsultasi cepat.\"\n}",
+                                    "raw": "{\n    \"patient_user_id\": 2,\n    \"partner_user_id\": 3,\n    \"service_type\": \"chat\",\n    \"scheduled_at\": \"2026-04-23 05:15:10\",\n    \"complaint\": \"Batuk dan pilek sejak 3 hari.\",\n    \"notes\": \"Mohon konsultasi cepat.\"\n}",
                                     "options": {
                                         "raw": {
                                             "language": "json"

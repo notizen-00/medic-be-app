@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Pharmacy;
+use App\Models\PharmacyProfile;
 use App\Models\PartnerProfile;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -62,16 +63,22 @@ class PartnerRegistrationService
 
             $pharmacy = Pharmacy::create([
                 'owner_user_id' => $owner->id,
+                'is_active' => false,
+            ]);
+
+            PharmacyProfile::create([
+                'pharmacy_id' => $pharmacy->id,
                 'name' => $payload['pharmacy_name'],
                 'license_number' => $payload['license_number'] ?? null,
                 'address' => $payload['work_location'] ?? null,
                 'latitude' => $payload['latitude'] ?? null,
                 'longitude' => $payload['longitude'] ?? null,
-                'is_active' => false,
+                'opening_time' => $payload['opening_time'] ?? null,
+                'closing_time' => $payload['closing_time'] ?? null,
                 'description' => $payload['bio'] ?? null,
             ]);
 
-            return $pharmacy->load('owner.partnerProfile');
+            return $pharmacy->load(['profile', 'owner']);
         });
     }
 }

@@ -52,7 +52,7 @@ class User extends Authenticatable
 
     public function pharmacy(): HasOne
     {
-        return $this->hasOne(Pharmacy::class, 'owner_user_id');
+        return $this->hasOne(Pharmacy::class, 'owner_user_id')->with('profile');
     }
 
     public function courierProfile(): HasOne

@@ -14,6 +14,7 @@ use App\Models\PatientAddress;
 use App\Models\PatientProfile;
 use App\Models\Payment;
 use App\Models\Pharmacy;
+use App\Models\PharmacyProfile;
 use App\Models\Prescription;
 use App\Models\PrescriptionItem;
 use App\Models\Product;
@@ -133,6 +134,170 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
+        $additionalNurses = [
+            [
+                'name' => 'Ns. Dita Puspita',
+                'email' => 'perawat.jember01@example.com',
+                'phone' => '081234567810',
+                'specialization' => 'Perawat Homecare Dewasa',
+                'license_number' => 'SIPP-JBR-010',
+                'work_location' => 'Area Patrang, Jember',
+                'latitude' => -8.1524000,
+                'longitude' => 113.7031000,
+                'years_of_experience' => 4,
+                'consultation_fee' => 55000,
+                'bio' => 'Perawat homecare untuk perawatan pasien dewasa area Patrang.',
+            ],
+            [
+                'name' => 'Ns. Rina Maharani',
+                'email' => 'perawat.jember02@example.com',
+                'phone' => '081234567811',
+                'specialization' => 'Perawat Rawat Luka',
+                'license_number' => 'SIPP-JBR-011',
+                'work_location' => 'Area Kaliwates, Jember',
+                'latitude' => -8.1786000,
+                'longitude' => 113.6915000,
+                'years_of_experience' => 7,
+                'consultation_fee' => 60000,
+                'bio' => 'Fokus pada layanan rawat luka dan observasi kondisi pasien di rumah.',
+            ],
+            [
+                'name' => 'Ns. Fajar Lestari',
+                'email' => 'perawat.jember03@example.com',
+                'phone' => '081234567812',
+                'specialization' => 'Perawat Geriatri',
+                'license_number' => 'SIPP-JBR-012',
+                'work_location' => 'Area Sumbersari, Jember',
+                'latitude' => -8.1649000,
+                'longitude' => 113.7213000,
+                'years_of_experience' => 5,
+                'consultation_fee' => 58000,
+                'bio' => 'Pendampingan pasien lansia dengan kunjungan rutin area Sumbersari.',
+            ],
+            [
+                'name' => 'Ns. Maya Kirana',
+                'email' => 'perawat.jember04@example.com',
+                'phone' => '081234567813',
+                'specialization' => 'Perawat Infus dan Injeksi',
+                'license_number' => 'SIPP-JBR-013',
+                'work_location' => 'Area Ajung, Jember',
+                'latitude' => -8.2108000,
+                'longitude' => 113.7216000,
+                'years_of_experience' => 6,
+                'consultation_fee' => 62000,
+                'bio' => 'Melayani pemasangan infus, injeksi, dan observasi pasien di rumah.',
+            ],
+            [
+                'name' => 'Ns. Tegar Ramadhan',
+                'email' => 'perawat.jember05@example.com',
+                'phone' => '081234567814',
+                'specialization' => 'Perawat Post Operasi',
+                'license_number' => 'SIPP-JBR-014',
+                'work_location' => 'Area Pakusari, Jember',
+                'latitude' => -8.1357000,
+                'longitude' => 113.7419000,
+                'years_of_experience' => 8,
+                'consultation_fee' => 65000,
+                'bio' => 'Pendampingan pasien pasca operasi dan rawat luka lanjutan area Pakusari.',
+            ],
+            [
+                'name' => 'Ns. Vina Oktavia',
+                'email' => 'perawat.jember06@example.com',
+                'phone' => '081234567815',
+                'specialization' => 'Perawat Homecare Anak',
+                'license_number' => 'SIPP-JBR-015',
+                'work_location' => 'Area Arjasa, Jember',
+                'latitude' => -8.1198000,
+                'longitude' => 113.7264000,
+                'years_of_experience' => 5,
+                'consultation_fee' => 57000,
+                'bio' => 'Homecare anak untuk tindakan dasar dan monitoring kondisi pasien.',
+            ],
+            [
+                'name' => 'Ns. Yoga Pranata',
+                'email' => 'perawat.jember07@example.com',
+                'phone' => '081234567816',
+                'specialization' => 'Perawat Homecare Umum',
+                'license_number' => 'SIPP-JBR-016',
+                'work_location' => 'Area Rambipuji, Jember',
+                'latitude' => -8.2223000,
+                'longitude' => 113.6089000,
+                'years_of_experience' => 4,
+                'consultation_fee' => 54000,
+                'bio' => 'Layanan homecare umum untuk wilayah Rambipuji dan sekitarnya.',
+            ],
+            [
+                'name' => 'Ns. Siska Amelia',
+                'email' => 'perawat.jember08@example.com',
+                'phone' => '081234567817',
+                'specialization' => 'Perawat Rawat Luka Diabetes',
+                'license_number' => 'SIPP-JBR-017',
+                'work_location' => 'Area Balung, Jember',
+                'latitude' => -8.2741000,
+                'longitude' => 113.5448000,
+                'years_of_experience' => 9,
+                'consultation_fee' => 68000,
+                'bio' => 'Fokus pada perawatan luka diabetes dan edukasi keluarga pasien.',
+            ],
+            [
+                'name' => 'Ns. Reza Anindita',
+                'email' => 'perawat.jember09@example.com',
+                'phone' => '081234567818',
+                'specialization' => 'Perawat Rehabilitasi Ringan',
+                'license_number' => 'SIPP-JBR-018',
+                'work_location' => 'Area Ambulu, Jember',
+                'latitude' => -8.3456000,
+                'longitude' => 113.6051000,
+                'years_of_experience' => 6,
+                'consultation_fee' => 61000,
+                'bio' => 'Pendampingan rehabilitasi ringan dan monitoring mobilitas pasien di rumah.',
+            ],
+            [
+                'name' => 'Ns. Nabila Safitri',
+                'email' => 'perawat.jember10@example.com',
+                'phone' => '081234567819',
+                'specialization' => 'Perawat Homecare Malam',
+                'license_number' => 'SIPP-JBR-019',
+                'work_location' => 'Area Wuluhan, Jember',
+                'latitude' => -8.2985000,
+                'longitude' => 113.6824000,
+                'years_of_experience' => 7,
+                'consultation_fee' => 63000,
+                'bio' => 'Layanan perawat homecare untuk observasi malam dan pendampingan pasien.',
+            ],
+        ];
+
+        $seededAdditionalNurseUsers = collect($additionalNurses)->map(function (array $nurseData) use ($password) {
+            $user = User::updateOrCreate(
+                ['email' => $nurseData['email']],
+                [
+                    'name' => $nurseData['name'],
+                    'role' => 'mitra',
+                    'phone' => $nurseData['phone'],
+                    'email_verified_at' => now(),
+                    'password' => $password,
+                ]
+            );
+
+            PartnerProfile::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'profession' => 'perawat',
+                    'specialization' => $nurseData['specialization'],
+                    'license_number' => $nurseData['license_number'],
+                    'work_location' => $nurseData['work_location'],
+                    'latitude' => $nurseData['latitude'],
+                    'longitude' => $nurseData['longitude'],
+                    'years_of_experience' => $nurseData['years_of_experience'],
+                    'consultation_fee' => $nurseData['consultation_fee'],
+                    'is_available' => true,
+                    'bio' => $nurseData['bio'],
+                ]
+            );
+
+            return $user;
+        })->values();
+
         PatientProfile::updateOrCreate(
             ['user_id' => $patientOne->id],
             [
@@ -193,60 +358,44 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
-        PartnerProfile::updateOrCreate(
-            ['user_id' => $pharmacyOwner->id],
-            [
-                'profession' => 'perawat',
-                'specialization' => 'Apotek dan Penjualan Produk Kesehatan',
-                'license_number' => 'SIA-JBR-001',
-                'work_location' => 'Jl. Karimata No. 20, Sumbersari, Jember',
-                'latitude' => -8.1662000,
-                'longitude' => 113.7171000,
-                'years_of_experience' => 10,
-                'consultation_fee' => 0,
-                'is_available' => true,
-                'bio' => 'Apotik mitra di Kota Jember yang menyediakan obat resep dan produk kesehatan.',
-            ]
-        );
-
-        PartnerProfile::updateOrCreate(
-            ['user_id' => $pharmacyOwnerTwo->id],
-            [
-                'profession' => 'perawat',
-                'specialization' => 'Apotek Pusat Kota',
-                'license_number' => 'SIA-JBR-002',
-                'work_location' => 'Jl. Sultan Agung No. 45, Kaliwates, Jember',
-                'latitude' => -8.1738000,
-                'longitude' => 113.6881000,
-                'years_of_experience' => 7,
-                'consultation_fee' => 0,
-                'is_available' => true,
-                'bio' => 'Apotik pusat kota dengan layanan pengiriman cepat area Kaliwates dan Patrang.',
-            ]
-        );
-
         $pharmacy = Pharmacy::updateOrCreate(
             ['owner_user_id' => $pharmacyOwner->id],
             [
-                'name' => 'Apotik Sehat Jember',
-                'license_number' => 'SIA-JBR-001',
-                'address' => 'Jl. Karimata No. 20, Sumbersari, Jember',
-                'latitude' => -8.1662000,
-                'longitude' => 113.7171000,
                 'is_active' => true,
-                'description' => 'Apotik mitra di Kota Jember yang menyediakan obat resep dan produk kesehatan.',
             ]
         );
 
         $pharmacyTwo = Pharmacy::updateOrCreate(
             ['owner_user_id' => $pharmacyOwnerTwo->id],
             [
+                'is_active' => true,
+            ]
+        );
+
+        PharmacyProfile::updateOrCreate(
+            ['pharmacy_id' => $pharmacy->id],
+            [
+                'name' => 'Apotik Sehat Jember',
+                'license_number' => 'SIA-JBR-001',
+                'address' => 'Jl. Karimata No. 20, Sumbersari, Jember',
+                'latitude' => -8.1662000,
+                'longitude' => 113.7171000,
+                'opening_time' => '08:00:00',
+                'closing_time' => '22:00:00',
+                'description' => 'Apotik mitra di Kota Jember yang menyediakan obat resep dan produk kesehatan.',
+            ]
+        );
+
+        PharmacyProfile::updateOrCreate(
+            ['pharmacy_id' => $pharmacyTwo->id],
+            [
                 'name' => 'Apotik Kota Jember',
                 'license_number' => 'SIA-JBR-002',
                 'address' => 'Jl. Sultan Agung No. 45, Kaliwates, Jember',
                 'latitude' => -8.1738000,
                 'longitude' => 113.6881000,
-                'is_active' => true,
+                'opening_time' => '07:30:00',
+                'closing_time' => '21:30:00',
                 'description' => 'Apotik pusat kota dengan layanan pengiriman cepat area Kaliwates dan Patrang.',
             ]
         );
@@ -573,6 +722,30 @@ class JemberMedicSeeder extends Seeder
                 'notes' => 'Perawat rawat luka aktif area Jember.',
             ],
         ];
+
+        foreach ($seededAdditionalNurseUsers as $index => $additionalNurseUser) {
+            $partnerServices[] = [
+                'service_id' => $nurseHomecareService->id,
+                'partner_user_id' => $additionalNurseUser->id,
+                'custom_price' => 180000 + (($index + 1) * 5000),
+                'coverage_radius_km' => 10 + ($index % 4) * 2,
+                'is_active' => true,
+                'is_verified' => true,
+                'notes' => 'Perawat homecare area Jember dan sekitarnya.',
+            ];
+
+            if ($index % 2 === 0) {
+                $partnerServices[] = [
+                    'service_id' => $nurseWoundCareService->id,
+                    'partner_user_id' => $additionalNurseUser->id,
+                    'custom_price' => 205000 + (($index + 1) * 5000),
+                    'coverage_radius_km' => 10 + ($index % 3) * 3,
+                    'is_active' => true,
+                    'is_verified' => true,
+                    'notes' => 'Perawat rawat luka area Jember dan sekitarnya.',
+                ];
+            }
+        }
 
         foreach ($partnerServices as $partnerService) {
             PartnerService::updateOrCreate(

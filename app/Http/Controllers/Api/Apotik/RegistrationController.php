@@ -35,10 +35,12 @@ class RegistrationController extends Controller
 
         $validated = $request->validate([
             'pharmacy_name' => ['required', 'string', 'max:255'],
-            'license_number' => ['nullable', 'string', 'max:255', 'unique:pharmacies,license_number'],
+            'license_number' => ['nullable', 'string', 'max:255', 'unique:pharmacy_profiles,license_number'],
             'work_location' => ['nullable', 'string', 'max:500'],
             'latitude' => ['nullable', 'numeric', 'between:-90,90'],
             'longitude' => ['nullable', 'numeric', 'between:-180,180'],
+            'opening_time' => ['nullable', 'date_format:H:i'],
+            'closing_time' => ['nullable', 'date_format:H:i', 'after:opening_time'],
             'bio' => ['nullable', 'string'],
         ]);
 

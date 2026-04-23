@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('partner_profiles', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->enum('profession', ['dokter', 'apotik']);
-            $table->string('pharmacy_name')->nullable();
+            $table->enum('profession', ['dokter', 'bidan', 'perawat']);
             $table->string('specialization')->nullable();
             $table->string('license_number')->nullable()->unique();
             $table->string('work_location')->nullable();

@@ -24,9 +24,10 @@ class UserController extends Controller
             ->when(
                 $validated['search'] ?? null,
                 fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
-                    $searchQuery->where('name', 'like', "%{$search}%")
+                    $searchQuery->whereHas('profile', fn ($profileQuery) => $profileQuery
+                        ->where('name', 'like', "%{$search}%")
                         ->orWhere('license_number', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%"))
                         ->orWhereHas('owner', fn ($ownerQuery) => $ownerQuery
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%")
@@ -37,7 +38,7 @@ class UserController extends Controller
                 array_key_exists('is_active', $validated),
                 fn ($query) => $query->where('is_active', $validated['is_active'])
             )
-            ->with(['owner.partnerProfile'])
+            ->with(['owner', 'profile'])
             ->withCount(['products', 'orders'])
             ->latest()
             ->get();
@@ -60,8 +61,9 @@ class UserController extends Controller
             ->when(
                 $validated['search'] ?? null,
                 fn ($query, $search) => $query->where(function ($searchQuery) use ($search) {
-                    $searchQuery->where('name', 'like', "%{$search}%")
-                        ->orWhere('address', 'like', "%{$search}%")
+                    $searchQuery->whereHas('profile', fn ($profileQuery) => $profileQuery
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('address', 'like', "%{$search}%"))
                         ->orWhereHas('owner', fn ($ownerQuery) => $ownerQuery->where('name', 'like', "%{$search}%"));
                 })
             )
@@ -69,7 +71,7 @@ class UserController extends Controller
                 array_key_exists('is_available', $validated),
                 fn ($query) => $query->where('is_active', $validated['is_available'])
             )
-            ->with(['owner.partnerProfile'])
+            ->with(['owner', 'profile'])
             ->latest()
             ->get();
 

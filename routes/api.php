@@ -4,8 +4,10 @@ use App\Http\Controllers\Api\Apotik\RegistrationController as ApotikRegistration
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ConsultationController;
+use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\Doctor\RegistrationController as DoctorRegistrationController;
 use App\Http\Controllers\Api\Mitra\RegistrationController as MitraRegistrationController;
+use App\Http\Controllers\Api\NurseController;
 use App\Http\Controllers\Api\Patient\RegistrationController as PatientRegistrationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PartnerServiceController;
@@ -65,6 +67,8 @@ Route::middleware('auth:sanctum')->group(function () {
     */
     Route::prefix('patient')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
+        Route::get('/doctors', [DoctorController::class, 'index']);
+        Route::get('/nurses', [NurseController::class, 'index']);
         Route::get('/apotiks', [UserController::class, 'apotiks']);
 
         Route::prefix('services')->controller(ServiceController::class)->group(function () {

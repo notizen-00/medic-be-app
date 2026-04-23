@@ -17,7 +17,7 @@ class PharmacySelectionService
 
         $products = Product::query()
             ->where('is_active', true)
-            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
+            ->with(['pharmacy.profile', 'pharmacy.owner'])
             ->when(
                 $filters['type'] ?? null,
                 fn ($query, $type) => $query->where('type', $type)
@@ -92,7 +92,7 @@ class PharmacySelectionService
 
         $products = Product::query()
             ->where('is_active', true)
-            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
+            ->with(['pharmacy.profile', 'pharmacy.owner'])
             ->when(
                 $filters['type'] ?? null,
                 fn ($query, $type) => $query->where('type', $type)
@@ -124,7 +124,7 @@ class PharmacySelectionService
 
                 return [
                     'pharmacy' => $pharmacy,
-                    'partner_profile' => $pharmacy?->owner?->partnerProfile,
+                    'pharmacy_profile' => $pharmacy?->profile,
                     'owner' => $pharmacy?->owner,
                     'distance_km' => $this->distanceForAddressAndPharmacy($address, $pharmacy),
                     'products' => $groupedProducts->values(),
@@ -143,7 +143,7 @@ class PharmacySelectionService
         $products = Product::query()
             ->whereIn('sku', $skus)
             ->where('is_active', true)
-            ->with(['pharmacy.owner.partnerProfile', 'pharmacy.owner'])
+            ->with(['pharmacy.profile', 'pharmacy.owner'])
             ->orderBy('name')
             ->get();
 
@@ -175,7 +175,7 @@ class PharmacySelectionService
                 return [
                     'pharmacy_id' => (int) $pharmacyId,
                     'pharmacy' => $sampleProduct->pharmacy,
-                    'partner_profile' => $sampleProduct->pharmacy?->owner?->partnerProfile,
+                    'pharmacy_profile' => $sampleProduct->pharmacy?->profile,
                     'owner' => $sampleProduct->pharmacy?->owner,
                     'distance_km' => $this->distanceForAddressAndPharmacy($address, $sampleProduct->pharmacy),
                     'products' => $pharmacyProducts,

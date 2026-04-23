@@ -80,7 +80,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
+        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy.profile']);
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -101,7 +101,7 @@ class AuthController extends Controller
         ]);
 
         $user = User::query()
-            ->with(['partnerProfile', 'pharmacy'])
+            ->with(['partnerProfile', 'pharmacy.profile'])
             ->where('email', $validated['email'])
             ->where('role', 'mitra')
             ->first();
@@ -112,7 +112,7 @@ class AuthController extends Controller
             ], 422);
         }
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
+        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy.profile']);
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -124,7 +124,7 @@ class AuthController extends Controller
     private function resolveProfileUser(User $user): mixed
     {
         if ($user->pharmacy) {
-            return $user->pharmacy;
+            return $user->pharmacy->loadMissing('profile');
         }
 
         if ($user->partnerProfile) {
