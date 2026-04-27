@@ -16,6 +16,7 @@ class DoctorController extends Controller
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
+            'view' => ['nullable', 'in:list,specializations'],
             'search' => ['nullable', 'string', 'max:100'],
             'specialization' => ['nullable', 'string', 'max:100'],
             'is_available' => ['nullable', 'boolean'],
@@ -25,6 +26,13 @@ class DoctorController extends Controller
             'max_distance_km' => ['nullable', 'numeric', 'min:0'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        if (($validated['view'] ?? 'list') === 'specializations') {
+            return response()->json([
+                'message' => 'Daftar spesialisasi dokter berhasil diambil.',
+                'data' => $this->doctorDirectoryService->getDoctorSpecializations(),
+            ]);
+        }
 
         $doctors = $this->doctorDirectoryService->getDoctorList($validated);
 

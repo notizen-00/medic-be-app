@@ -1,16 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\Consultation;
 use App\Models\ConsultationMessage;
 use App\Models\Payment;
 use App\Models\PartnerProfile;
+use App\Models\User;
 use App\Services\MidtransService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 use Illuminate\Validation\ValidationException;
 
 class ConsultationController extends Controller
@@ -22,18 +25,16 @@ class ConsultationController extends Controller
 
     public function index(Request $request): JsonResponse
     {
+        $user = $this->ensureAuthenticatedPatient($request);
+
         $validated = $request->validate([
-            'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
-            'partner_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', 'in:pending,confirmed,ongoing,completed,cancelled'],
+            'partner_user_id' => ['nullable', 'integer', 'exists:users,id'],
         ]);
 
         $consultations = Consultation::query()
             ->with(['patient', 'partner.partnerProfile', 'messages.sender', 'prescription.items', 'payment'])
-            ->when(
-                $validated['patient_user_id'] ?? null,
-                fn ($query, $patientId) => $query->where('patient_user_id', $patientId)
-            )
+            ->where('patient_user_id', $user->id)
             ->when(
                 $validated['partner_user_id'] ?? null,
                 fn ($query, $partnerId) => $query->where('partner_user_id', $partnerId)
@@ -46,15 +47,16 @@ class ConsultationController extends Controller
             ->get();
 
         return response()->json([
-            'message' => 'Daftar konsultasi berhasil diambil.',
+            'message' => 'Daftar konsultasi pasien berhasil diambil.',
             'data' => $consultations,
         ]);
     }
 
     public function store(Request $request): JsonResponse
     {
+        $user = $this->ensureAuthenticatedPatient($request);
+
         $validated = $request->validate([
-            'patient_user_id' => ['required', 'integer', 'exists:users,id'],
             'partner_user_id' => ['required', 'integer', 'exists:users,id'],
             'service_type' => ['required', 'in:chat,voice_call,video_call,visit'],
             'scheduled_at' => ['nullable', 'date'],
@@ -70,22 +72,22 @@ class ConsultationController extends Controller
             ]);
         }
 
-        $consultation = DB::transaction(function () use ($validated, $partnerProfile) {
+        $consultation = DB::transaction(function () use ($validated, $partnerProfile, $user) {
             $consultation = Consultation::create([
                 'consultation_code' => 'KONS-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
-                'patient_user_id' => $validated['patient_user_id'],
+                'patient_user_id' => $user->id,
                 'partner_user_id' => $validated['partner_user_id'],
                 'service_type' => $validated['service_type'],
                 'status' => 'pending',
                 'scheduled_at' => $validated['scheduled_at'] ?? null,
                 'complaint' => $validated['complaint'] ?? null,
                 'notes' => $validated['notes'] ?? null,
-                'consultation_fee' => $partnerProfile?->consultation_fee ?? 0,
+                'consultation_fee' => $partnerProfile->consultation_fee ?? 0,
             ]);
 
             Payment::create([
                 'consultation_id' => $consultation->id,
-                'patient_user_id' => $validated['patient_user_id'],
+                'patient_user_id' => $user->id,
                 'payment_code' => 'PAY-KONS-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
                 'status' => 'pending',
                 'amount' => $consultation->consultation_fee,
@@ -103,8 +105,9 @@ class ConsultationController extends Controller
         ], 201);
     }
 
-    public function show(Consultation $consultation): JsonResponse
+    public function show(Request $request, Consultation $consultation): JsonResponse
     {
+        $this->authorizePatientConsultation($request, $consultation);
         $this->ensureConsultationPaymentCompleted($consultation);
 
         $consultation->load(['patient', 'partner.partnerProfile', 'messages.sender', 'prescription.items', 'payment']);
@@ -117,6 +120,8 @@ class ConsultationController extends Controller
 
     public function pay(Request $request, Consultation $consultation): JsonResponse
     {
+        $this->authorizePatientConsultation($request, $consultation);
+
         $validated = $request->validate([
             'notes' => ['nullable', 'string'],
         ]);
@@ -144,7 +149,21 @@ class ConsultationController extends Controller
 
         $consultation->load(['patient', 'partner.partnerProfile', 'payment']);
         $payment = $payment->fresh(['patient', 'consultation']);
-        $snap = $this->midtransService->getOrCreateSnapTransaction($payment);
+
+        try {
+            $snap = $this->midtransService->getOrCreateSnapTransaction($payment);
+        } catch (Throwable $exception) {
+            Log::error('Gagal membuat Snap token Midtrans untuk consultation payment.', [
+                'consultation_id' => $consultation->id,
+                'payment_id' => $payment->id,
+                'payment_code' => $payment->payment_code,
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'payment' => [$exception->getMessage()],
+            ]);
+        }
 
         return response()->json([
             'message' => $snap['is_reused']
@@ -160,6 +179,8 @@ class ConsultationController extends Controller
 
     public function updateStatus(Request $request, Consultation $consultation): JsonResponse
     {
+        $this->authorizePatientConsultation($request, $consultation);
+
         $validated = $request->validate([
             'status' => ['required', 'in:pending,confirmed,ongoing,completed,cancelled'],
             'diagnosis' => ['nullable', 'string'],
@@ -195,8 +216,9 @@ class ConsultationController extends Controller
 
     public function addMessage(Request $request, Consultation $consultation): JsonResponse
     {
+        $user = $this->authorizePatientConsultation($request, $consultation);
+
         $validated = $request->validate([
-            'sender_user_id' => ['required', 'integer', 'exists:users,id'],
             'message_type' => ['required', 'in:text,image,file,system'],
             'message' => ['nullable', 'string'],
             'attachment_path' => ['nullable', 'string', 'max:255'],
@@ -204,14 +226,9 @@ class ConsultationController extends Controller
 
         $this->ensureConsultationPaymentCompleted($consultation);
 
-        if (! in_array($validated['sender_user_id'], [$consultation->patient_user_id, $consultation->partner_user_id], true)) {
-            throw ValidationException::withMessages([
-                'sender_user_id' => ['Pengirim pesan tidak terdaftar pada konsultasi ini.'],
-            ]);
-        }
-
         $message = ConsultationMessage::create($validated + [
             'consultation_id' => $consultation->id,
+            'sender_user_id' => $user->id,
         ]);
 
         $message->load('sender');
@@ -220,6 +237,39 @@ class ConsultationController extends Controller
             'message' => 'Pesan konsultasi berhasil dikirim.',
             'data' => $message,
         ], 201);
+    }
+
+    private function authorizePatientConsultation(Request $request, Consultation $consultation): User
+    {
+        $user = $this->ensureAuthenticatedPatient($request);
+
+        if ($consultation->patient_user_id !== $user->id) {
+            throw ValidationException::withMessages([
+                'consultation' => ['Konsultasi ini tidak berada dalam akses pasien yang sedang login.'],
+            ]);
+        }
+
+        return $user;
+    }
+
+    private function ensureAuthenticatedPatient(Request $request): User
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'user' => ['User login tidak ditemukan.'],
+            ]);
+        }
+
+        if ($user->role !== 'pasien') {
+            throw ValidationException::withMessages([
+                'user' => ['Endpoint ini hanya dapat diakses oleh pasien.'],
+            ]);
+        }
+
+        return $user;
     }
 
     private function ensureConsultationPaymentCompleted(Consultation $consultation): void

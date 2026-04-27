@@ -10,6 +10,9 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'consultation_id',
     'patient_user_id',
     'payment_code',
+    'snap_token',
+    'snap_redirect_url',
+    'snap_token_created_at',
     'payment_method',
     'status',
     'amount',
@@ -23,6 +26,7 @@ class Payment extends Model
         return [
             'amount' => 'decimal:2',
             'paid_at' => 'datetime',
+            'snap_token_created_at' => 'datetime',
         ];
     }
 

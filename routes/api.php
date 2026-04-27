@@ -3,11 +3,12 @@
 use App\Http\Controllers\Api\Apotik\RegistrationController as ApotikRegistrationController;
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
 use App\Http\Controllers\Api\AuthController;
-use App\Http\Controllers\Api\ConsultationController;
 use App\Http\Controllers\Api\DoctorController;
 use App\Http\Controllers\Api\Doctor\RegistrationController as DoctorRegistrationController;
+use App\Http\Controllers\Api\MidtransCallbackController;
 use App\Http\Controllers\Api\Mitra\RegistrationController as MitraRegistrationController;
 use App\Http\Controllers\Api\NurseController;
+use App\Http\Controllers\Api\Patient\ConsultationController as PatientConsultationController;
 use App\Http\Controllers\Api\Patient\RegistrationController as PatientRegistrationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PartnerServiceController;
@@ -41,6 +42,8 @@ Route::prefix('mitra')->group(function () {
         Route::post('/login', 'loginApotik');
     });
 });
+
+Route::post('/midtrans/callback', MidtransCallbackController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
     /*
@@ -89,13 +92,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{product}', 'show');
         });
 
-        Route::prefix('consultations')->controller(ConsultationController::class)->group(function () {
-            Route::get('/', 'index');
-            Route::post('/', 'store');
-            Route::get('/{consultation}', 'show');
-            Route::patch('/{consultation}/pay', 'pay');
-            Route::patch('/{consultation}/status', 'updateStatus');
-            Route::post('/{consultation}/messages', 'addMessage');
+        Route::prefix('consultations')->group(function () {
+            Route::get('/', [PatientConsultationController::class, 'index']);
+            Route::post('/', [PatientConsultationController::class, 'store']);
+            Route::get('/{consultation}', [PatientConsultationController::class, 'show']);
+            Route::patch('/{consultation}/pay', [PatientConsultationController::class, 'pay']);
+            Route::patch('/{consultation}/status', [PatientConsultationController::class, 'updateStatus']);
+            Route::post('/{consultation}/messages', [PatientConsultationController::class, 'addMessage']);
         });
 
         Route::prefix('orders')->controller(OrderController::class)->group(function () {

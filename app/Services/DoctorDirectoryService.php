@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\PatientAddress;
+use App\Models\PartnerProfile;
 use App\Models\User;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class DoctorDirectoryService
 {
@@ -77,6 +79,26 @@ class DoctorDirectoryService
     public function getDoctorList(array $filters = []): Collection
     {
         return $this->getPartnerList('dokter', $filters);
+    }
+
+    public function getDoctorSpecializations(): Collection
+    {
+        return PartnerProfile::query()
+            ->where('profession', 'dokter')
+            ->whereNotNull('specialization')
+            ->where('specialization', '!=', '')
+            ->select('specialization')
+            ->selectRaw('COUNT(*) as doctor_count')
+            ->groupBy('specialization')
+            ->orderBy('specialization')
+            ->get()
+            ->map(fn(PartnerProfile $profile) => [
+                'key' => Str::slug($profile->specialization),
+                'name' => $profile->specialization,
+                'specialization' => $profile->specialization,
+                'doctor_count' => (int) $profile->doctor_count,
+            ])
+            ->values();
     }
 
     public function getNurseList(array $filters = []): Collection
