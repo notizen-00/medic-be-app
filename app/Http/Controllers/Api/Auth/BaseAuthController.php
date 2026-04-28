@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Api\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
@@ -8,61 +8,9 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
-class AuthController extends Controller
+class BaseAuthController extends Controller
 {
-    public function loginPatient(Request $request): JsonResponse
-    {
-        return $this->loginByRole($request, 'pasien', 'patient');
-    }
-
-    public function loginDoctor(Request $request): JsonResponse
-    {
-        return $this->loginMitraByCapability(
-            $request,
-            'doctor',
-            fn (User $user) => $user->partnerProfile?->profession === 'dokter',
-            'Email atau password tidak valid untuk akun dokter.'
-        );
-    }
-
-    public function loginMitra(Request $request): JsonResponse
-    {
-        return $this->loginByRole($request, 'mitra', 'mitra');
-    }
-
-    public function loginApotik(Request $request): JsonResponse
-    {
-        return $this->loginMitraByCapability(
-            $request,
-            'apotik',
-            fn (User $user) => $user->pharmacy !== null,
-            'Email atau password tidak valid untuk akun mitra apotik.'
-        );
-    }
-
-    public function me(Request $request): JsonResponse
-    {
-        $user = $request->user();
-
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
-        $user->setAttribute('profile_user', $this->resolveProfileUser($user));
-
-        return response()->json([
-            'message' => 'Data user login berhasil diambil.',
-            'data' => $user,
-        ]);
-    }
-
-    public function logout(Request $request): JsonResponse
-    {
-        $request->user()->currentAccessToken()?->delete();
-
-        return response()->json([
-            'message' => 'Logout berhasil.',
-        ]);
-    }
-
-    private function loginByRole(Request $request, string $role, string $tokenName): JsonResponse
+    protected function loginByRole(Request $request, string $role, string $tokenName): JsonResponse
     {
         $validated = $request->validate([
             'email' => ['required', 'email'],
@@ -89,7 +37,7 @@ class AuthController extends Controller
         ]);
     }
 
-    private function loginMitraByCapability(
+    protected function loginMitraByCapability(
         Request $request,
         string $tokenName,
         \Closure $capability,
@@ -121,7 +69,7 @@ class AuthController extends Controller
         ]);
     }
 
-    private function resolveProfileUser(User $user): mixed
+    protected function resolveProfileUser(User $user): mixed
     {
         if ($user->pharmacy) {
             return $user->pharmacy->loadMissing('profile');
@@ -142,3 +90,4 @@ class AuthController extends Controller
         return null;
     }
 }
+

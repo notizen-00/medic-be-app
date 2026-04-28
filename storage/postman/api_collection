@@ -1200,6 +1200,81 @@
                     ]
                 },
                 {
+                    "name": "nurse",
+                    "item": [
+                        {
+                            "name": "register",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/nurse/register",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/nurse/register",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "nurse",
+                                                "register"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "login",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/nurse/login",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/nurse/login",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "nurse",
+                                                "login"
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
                     "name": "apotik",
                     "item": [
                         {
@@ -1964,6 +2039,824 @@
             ]
         },
         {
+            "name": "admin",
+            "item": [
+                {
+                    "name": "login",
+                    "item": [
+                        {
+                            "name": "[POST] api/admin/login",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/login",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "login"
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "orders",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/orders",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/orders",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "orders"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/admin/orders/{order}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/orders/:order",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "orders",
+                                        ":order"
+                                    ],
+                                    "variable": []
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "consultations",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/consultations",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/consultations",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "consultations"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/admin/consultations/{consultation}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/consultations/:consultation",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "consultations",
+                                        ":consultation"
+                                    ],
+                                    "variable": []
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "registrations",
+                    "item": [
+                        {
+                            "name": "mitra",
+                            "item": [
+                                {
+                                    "name": "[GET] api/admin/registrations/mitra",
+                                    "request": {
+                                        "method": "GET",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/registrations/mitra",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "registrations",
+                                                "mitra"
+                                            ]
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "partners",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/partners",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/partners",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "partners"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "doctors",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/doctors",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/doctors",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "doctors"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "nurses",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/nurses",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/nurses",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "nurses"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "midwives",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/midwives",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/midwives",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "midwives"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "apotiks",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/apotiks",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/apotiks",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "apotiks"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "payments",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/payments",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/payments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "payments"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "transactions",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/transactions",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/transactions",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "transactions"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "service-bookings",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/service-bookings",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/service-bookings",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "service-bookings"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "partner-services",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/partner-services",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/partner-services",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "partner-services"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "shipments",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/shipments",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/shipments",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "shipments"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "services",
+                    "item": [
+                        {
+                            "name": "[POST] api/admin/services",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/services",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "services"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[PATCH] api/admin/services/{service}",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/services/:service",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "services",
+                                        ":service"
+                                    ],
+                                    "variable": []
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
+                    "name": "service-applications",
+                    "item": [
+                        {
+                            "name": "verify",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/admin/service-applications/{partnerService}/verify",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/service-applications/:partnerService/verify",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "service-applications",
+                                                ":partnerService",
+                                                "verify"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "midtrans",
             "item": [
                 {
@@ -2171,188 +3064,6 @@
                                     ]
                                 }
                             }
-                        }
-                    ]
-                }
-            ]
-        },
-        {
-            "name": "admin",
-            "item": [
-                {
-                    "name": "apotiks",
-                    "item": [
-                        {
-                            "name": "[GET] api/admin/apotiks",
-                            "request": {
-                                "method": "GET",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/apotiks",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "apotiks"
-                                    ]
-                                },
-                                "auth": {
-                                    "type": "bearer",
-                                    "bearer": [
-                                        {
-                                            "key": "token",
-                                            "value": "{{auth_token}}"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "services",
-                    "item": [
-                        {
-                            "name": "[POST] api/admin/services",
-                            "request": {
-                                "method": "POST",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/services",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "services"
-                                    ]
-                                },
-                                "auth": {
-                                    "type": "bearer",
-                                    "bearer": [
-                                        {
-                                            "key": "token",
-                                            "value": "{{auth_token}}"
-                                        }
-                                    ]
-                                }
-                            }
-                        },
-                        {
-                            "name": "[PATCH] api/admin/services/{service}",
-                            "request": {
-                                "method": "PATCH",
-                                "header": [
-                                    {
-                                        "key": "Accept",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    },
-                                    {
-                                        "key": "Content-Type",
-                                        "value": "application/json",
-                                        "type": "text"
-                                    }
-                                ],
-                                "url": {
-                                    "raw": "{{base_url}}/api/admin/services/:service",
-                                    "host": [
-                                        "{{base_url}}"
-                                    ],
-                                    "path": [
-                                        "api",
-                                        "admin",
-                                        "services",
-                                        ":service"
-                                    ],
-                                    "variable": []
-                                },
-                                "auth": {
-                                    "type": "bearer",
-                                    "bearer": [
-                                        {
-                                            "key": "token",
-                                            "value": "{{auth_token}}"
-                                        }
-                                    ]
-                                }
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "service-applications",
-                    "item": [
-                        {
-                            "name": "verify",
-                            "item": [
-                                {
-                                    "name": "[PATCH] api/admin/service-applications/{partnerService}/verify",
-                                    "request": {
-                                        "method": "PATCH",
-                                        "header": [
-                                            {
-                                                "key": "Accept",
-                                                "value": "application/json",
-                                                "type": "text"
-                                            },
-                                            {
-                                                "key": "Content-Type",
-                                                "value": "application/json",
-                                                "type": "text"
-                                            }
-                                        ],
-                                        "url": {
-                                            "raw": "{{base_url}}/api/admin/service-applications/:partnerService/verify",
-                                            "host": [
-                                                "{{base_url}}"
-                                            ],
-                                            "path": [
-                                                "api",
-                                                "admin",
-                                                "service-applications",
-                                                ":partnerService",
-                                                "verify"
-                                            ],
-                                            "variable": []
-                                        },
-                                        "auth": {
-                                            "type": "bearer",
-                                            "bearer": [
-                                                {
-                                                    "key": "token",
-                                                    "value": "{{auth_token}}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                }
-                            ]
                         }
                     ]
                 }

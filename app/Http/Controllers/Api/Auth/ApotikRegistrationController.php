@@ -1,22 +1,21 @@
 <?php
 
-namespace App\Http\Controllers\Api\Apotik;
+namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\PartnerRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
-class RegistrationController extends Controller
+class ApotikRegistrationController extends BaseAuthController
 {
     public function __construct(
         private readonly PartnerRegistrationService $partnerRegistrationService
     ) {
     }
 
-    public function store(Request $request): JsonResponse
+    public function register(Request $request): JsonResponse
     {
         /** @var User|null $user */
         $user = $request->user();
@@ -52,3 +51,4 @@ class RegistrationController extends Controller
         ], 201);
     }
 }
+

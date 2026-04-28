@@ -1,15 +1,28 @@
 <?php
 
-use App\Http\Controllers\Api\Apotik\RegistrationController as ApotikRegistrationController;
+use App\Http\Controllers\Api\Admin\ConsultationsController as AdminConsultationsController;
+use App\Http\Controllers\Api\Admin\OrdersController as AdminOrdersController;
+use App\Http\Controllers\Api\Admin\PartnerServicesController as AdminPartnerServicesController;
+use App\Http\Controllers\Api\Admin\PartnersController as AdminPartnersController;
+use App\Http\Controllers\Api\Admin\PaymentsController as AdminPaymentsController;
+use App\Http\Controllers\Api\Admin\PharmaciesController as AdminPharmaciesController;
+use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
+use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
+use App\Http\Controllers\Api\Admin\ShipmentsController as AdminShipmentsController;
+use App\Http\Controllers\Api\Admin\TransactionsController as AdminTransactionsController;
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\Auth\AdminAuthController;
+use App\Http\Controllers\Api\Auth\ApotikAuthController;
+use App\Http\Controllers\Api\Auth\ApotikRegistrationController;
+use App\Http\Controllers\Api\Auth\DoctorAuthController;
+use App\Http\Controllers\Api\Auth\MitraAuthController;
+use App\Http\Controllers\Api\Auth\NurseAuthController;
+use App\Http\Controllers\Api\Auth\PatientAuthController;
+use App\Http\Controllers\Api\Auth\SessionController;
 use App\Http\Controllers\Api\DoctorController;
-use App\Http\Controllers\Api\Doctor\RegistrationController as DoctorRegistrationController;
 use App\Http\Controllers\Api\MidtransCallbackController;
-use App\Http\Controllers\Api\Mitra\RegistrationController as MitraRegistrationController;
 use App\Http\Controllers\Api\NurseController;
 use App\Http\Controllers\Api\Patient\ConsultationController as PatientConsultationController;
-use App\Http\Controllers\Api\Patient\RegistrationController as PatientRegistrationController;
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PartnerServiceController;
 use App\Http\Controllers\Api\ProductController;
@@ -25,22 +38,31 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 Route::prefix('patient')->group(function () {
-    Route::post('/register', [PatientRegistrationController::class, 'store']);
-    Route::post('/login', [AuthController::class, 'loginPatient']);
+    Route::post('/register', [PatientAuthController::class, 'register']);
+    Route::post('/login', [PatientAuthController::class, 'login']);
 });
 
 Route::prefix('mitra')->group(function () {
-    Route::post('/register', [MitraRegistrationController::class, 'store']);
-    Route::post('/login', [AuthController::class, 'loginMitra']);
+    Route::post('/register', [MitraAuthController::class, 'register']);
+    Route::post('/login', [MitraAuthController::class, 'login']);
 
-    Route::prefix('doctor')->controller(AuthController::class)->group(function () {
-        Route::post('/register', [DoctorRegistrationController::class, 'store']);
-        Route::post('/login', 'loginDoctor');
+    Route::prefix('doctor')->controller(DoctorAuthController::class)->group(function () {
+        Route::post('/register', 'register');
+        Route::post('/login', 'login');
     });
 
-    Route::prefix('apotik')->controller(AuthController::class)->group(function () {
-        Route::post('/login', 'loginApotik');
+    Route::prefix('nurse')->controller(NurseAuthController::class)->group(function () {
+        Route::post('/register', 'register');
+        Route::post('/login', 'login');
     });
+
+    Route::prefix('apotik')->controller(ApotikAuthController::class)->group(function () {
+        Route::post('/login', 'login');
+    });
+});
+
+Route::prefix('admin')->controller(AdminAuthController::class)->group(function () {
+    Route::post('/login', 'login');
 });
 
 Route::post('/midtrans/callback', MidtransCallbackController::class);
@@ -52,7 +74,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('shared')->group(function () {
-        Route::controller(AuthController::class)->group(function () {
+        Route::controller(SessionController::class)->group(function () {
             Route::get('/me', 'me');
             Route::post('/logout', 'logout');
         });
@@ -69,7 +91,7 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('patient')->group(function () {
-        Route::post('/logout', [AuthController::class, 'logout']);
+        Route::post('/logout', [SessionController::class, 'logout']);
         Route::get('/doctors', [DoctorController::class, 'index']);
         Route::get('/nurses', [NurseController::class, 'index']);
         Route::get('/apotiks', [UserController::class, 'apotiks']);
@@ -128,7 +150,7 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::prefix('apotik')->group(function () {
-            Route::post('/register', [ApotikRegistrationController::class, 'store']);
+            Route::post('/register', [ApotikRegistrationController::class, 'register']);
 
             Route::prefix('products')->controller(ApotikProductController::class)->group(function () {
                 Route::get('/', 'index');
@@ -153,8 +175,34 @@ Route::middleware('auth:sanctum')->group(function () {
     | Internal Admin Routes
     |--------------------------------------------------------------------------
     */
-    Route::prefix('admin')->controller(UserController::class)->group(function () {
-        Route::get('/apotiks', 'adminApotiks');
+    Route::prefix('admin')->middleware('admin')->group(function () {
+        Route::prefix('orders')->controller(AdminOrdersController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{order}', 'show');
+        });
+
+        Route::prefix('consultations')->controller(AdminConsultationsController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{consultation}', 'show');
+        });
+
+        Route::prefix('registrations')->controller(AdminRegistrationsController::class)->group(function () {
+            Route::get('/mitra', 'partnerRegistrations');
+        });
+
+        Route::controller(AdminPartnersController::class)->group(function () {
+            Route::get('/partners', 'index');
+            Route::get('/doctors', 'doctors');
+            Route::get('/nurses', 'nurses');
+            Route::get('/midwives', 'midwives');
+        });
+
+        Route::get('/apotiks', [AdminPharmaciesController::class, 'index']);
+        Route::get('/payments', [AdminPaymentsController::class, 'index']);
+        Route::get('/transactions', [AdminTransactionsController::class, 'index']);
+        Route::get('/service-bookings', [AdminServiceBookingsController::class, 'index']);
+        Route::get('/partner-services', [AdminPartnerServicesController::class, 'index']);
+        Route::get('/shipments', [AdminShipmentsController::class, 'index']);
     });
 
     Route::prefix('admin/services')->controller(ServiceController::class)->group(function () {

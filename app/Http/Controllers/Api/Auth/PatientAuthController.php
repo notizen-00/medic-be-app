@@ -1,19 +1,18 @@
 <?php
 
-namespace App\Http\Controllers\Api\Patient;
+namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Services\PatientRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class RegistrationController extends Controller
+class PatientAuthController extends BaseAuthController
 {
     public function __construct(
         private readonly PatientRegistrationService $patientRegistrationService
     ) {}
 
-    public function store(Request $request): JsonResponse
+    public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -38,4 +37,10 @@ class RegistrationController extends Controller
             'user_api_token' => $patient->issueApiToken('patient_api_token'),
         ], 201);
     }
+
+    public function login(Request $request): JsonResponse
+    {
+        return $this->loginByRole($request, 'pasien', 'patient');
+    }
 }
+

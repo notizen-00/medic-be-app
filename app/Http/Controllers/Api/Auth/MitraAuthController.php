@@ -1,20 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Api\Mitra;
+namespace App\Http\Controllers\Api\Auth;
 
-use App\Http\Controllers\Controller;
 use App\Services\PartnerRegistrationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-class RegistrationController extends Controller
+class MitraAuthController extends BaseAuthController
 {
     public function __construct(
         private readonly PartnerRegistrationService $partnerRegistrationService
     ) {
     }
 
-    public function store(Request $request): JsonResponse
+    public function register(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
@@ -40,4 +39,10 @@ class RegistrationController extends Controller
             'user_api_token' => $mitra->issueApiToken(),
         ], 201);
     }
+
+    public function login(Request $request): JsonResponse
+    {
+        return $this->loginByRole($request, 'mitra', 'mitra');
+    }
 }
+
