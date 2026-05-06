@@ -388,7 +388,7 @@ return [
             'password' => 'password',              // For basic auth
             'key_name' => 'X-API-KEY',             // For api_key auth
             'key_value' => 'your-api-key-here',    // For api_key auth
-        ], 
+        ],
 
         // Middleware that indicate protected routes
         'protected_middleware' => ['auth:api', 'auth:sanctum'],

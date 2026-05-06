@@ -6,6 +6,7 @@ use App\Models\Pharmacy;
 use App\Models\PharmacyProfile;
 use App\Models\PartnerProfile;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -33,6 +34,27 @@ class PartnerRegistrationService
                 'password' => Hash::make($payload['password']),
             ]);
 
+            $strPhotoPath = $payload['str_photo_path'] ?? null;
+            $ktpPhotoPath = $payload['ktp_photo_path'] ?? null;
+
+            if (($payload['str_photo'] ?? null) instanceof UploadedFile) {
+                $strFile = $payload['str_photo'];
+                $strPhotoPath = $strFile->storeAs(
+                    "partners/{$user->id}",
+                    'str.'.strtolower($strFile->getClientOriginalExtension() ?: 'jpg'),
+                    'public'
+                );
+            }
+
+            if (($payload['ktp_photo'] ?? null) instanceof UploadedFile) {
+                $ktpFile = $payload['ktp_photo'];
+                $ktpPhotoPath = $ktpFile->storeAs(
+                    "partners/{$user->id}",
+                    'ktp.'.strtolower($ktpFile->getClientOriginalExtension() ?: 'jpg'),
+                    'public'
+                );
+            }
+
             PartnerProfile::create([
                 'user_id' => $user->id,
                 'profession' => $profession,
@@ -45,6 +67,9 @@ class PartnerRegistrationService
                 'consultation_fee' => $payload['consultation_fee'] ?? 0,
                 'is_available' => false,
                 'bio' => $payload['bio'] ?? null,
+                'verification_status' => $payload['verification_status'] ?? 'pending',
+                'str_photo_path' => $strPhotoPath,
+                'ktp_photo_path' => $ktpPhotoPath,
             ]);
 
             return $user->load('partnerProfile');

@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ServiceBookingController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ShipmentController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -137,6 +138,11 @@ Route::middleware('auth:sanctum')->group(function () {
     |--------------------------------------------------------------------------
     */
     Route::prefix('mitra')->group(function () {
+        Route::prefix('profile')->controller(MitraProfileController::class)->group(function () {
+            Route::get('/', 'show');
+            Route::patch('/', 'update');
+        });
+
         Route::prefix('service-applications')->controller(PartnerServiceController::class)->group(function () {
             Route::get('/', 'index');
             Route::post('/', 'store');
@@ -195,6 +201,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/doctors', 'doctors');
             Route::get('/nurses', 'nurses');
             Route::get('/midwives', 'midwives');
+            Route::patch('/partners/{user}/verify', 'verify');
         });
 
         Route::get('/apotiks', [AdminPharmaciesController::class, 'index']);

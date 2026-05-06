@@ -23,6 +23,7 @@ class DoctorDirectoryService
         return User::query()
             ->whereHas('partnerProfile', function ($query) use ($profession, $filters) {
                 $query->where('profession', $profession)
+                    ->where('verification_status', 'verified')
                     ->when(
                         $filters['specialization'] ?? null,
                         fn($profileQuery, $specialization) => $profileQuery->where('specialization', 'like', "%{$specialization}%")
@@ -85,6 +86,7 @@ class DoctorDirectoryService
     {
         return PartnerProfile::query()
             ->where('profession', 'dokter')
+            ->where('verification_status', 'verified')
             ->whereNotNull('specialization')
             ->where('specialization', '!=', '')
             ->select('specialization')
@@ -106,7 +108,13 @@ class DoctorDirectoryService
         return $this->getPartnerList('perawat', $filters);
     }
 
-    private function resolveReferencePoint(?int $patientAddressId, ?float $latitude, ?float $longitude): ?array
+    private function resolveReferencePoint(
+        ?int $patientAddressId,
+        ?float $latitude,
+        ?float $longitude,
+        ?float $maxDistanceKm = null,
+        ?int $limit = null
+    ): ?array
     {
         if ($latitude !== null && $longitude !== null) {
             return [

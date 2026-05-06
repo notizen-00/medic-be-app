@@ -79,7 +79,7 @@ class ServicePartnerSelectionService
 
                 $partnerProfile = $partnerService->partner?->partnerProfile;
 
-                if (! $partnerProfile || ! $partnerProfile->is_available) {
+                if (! $partnerProfile || $partnerProfile->verification_status !== 'verified' || ! $partnerProfile->is_available) {
                     return false;
                 }
 

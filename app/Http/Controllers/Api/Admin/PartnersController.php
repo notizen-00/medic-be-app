@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\PartnerProfile;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 
 class PartnersController extends Controller
 {
@@ -71,5 +73,43 @@ class PartnersController extends Controller
         $request->merge(['profession' => 'bidan']);
 
         return $this->index($request);
+    }
+
+    public function verify(Request $request, User $user): JsonResponse
+    {
+        /** @var User|null $admin */
+        $admin = $request->user();
+
+        if (! $admin || $admin->role !== 'admin') {
+            throw ValidationException::withMessages([
+                'user' => ['Hanya akun admin yang dapat memverifikasi mitra.'],
+            ]);
+        }
+
+        if ($user->role !== 'mitra') {
+            throw ValidationException::withMessages([
+                'partner_user_id' => ['User bukan akun mitra.'],
+            ]);
+        }
+
+        /** @var PartnerProfile|null $partnerProfile */
+        $partnerProfile = $user->partnerProfile;
+
+        if (! $partnerProfile) {
+            throw ValidationException::withMessages([
+                'partner_profile' => ['Profil mitra tidak ditemukan.'],
+            ]);
+        }
+
+        $partnerProfile->update([
+            'verification_status' => 'verified',
+            'verified_at' => now(),
+            'verified_by_user_id' => $admin->id,
+        ]);
+
+        return response()->json([
+            'message' => 'Mitra berhasil diverifikasi.',
+            'data' => $user->load('partnerProfile'),
+        ]);
     }
 }

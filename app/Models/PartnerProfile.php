@@ -18,6 +18,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'consultation_fee',
     'is_available',
     'bio',
+    'verification_status',
+    'verified_at',
+    'verified_by_user_id',
+    'str_photo_path',
+    'ktp_photo_path',
 ])]
 class PartnerProfile extends Model
 {
@@ -28,6 +33,7 @@ class PartnerProfile extends Model
             'longitude' => 'decimal:7',
             'consultation_fee' => 'decimal:2',
             'is_available' => 'boolean',
+            'verified_at' => 'datetime',
         ];
     }
 

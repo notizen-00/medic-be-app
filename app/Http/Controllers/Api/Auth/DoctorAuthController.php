@@ -30,6 +30,8 @@ class DoctorAuthController extends BaseAuthController
             'years_of_experience' => ['nullable', 'integer', 'min:0'],
             'consultation_fee' => ['nullable', 'numeric', 'min:0'],
             'bio' => ['nullable', 'string'],
+            'str_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
+            'ktp_photo' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
         $doctor = $this->partnerRegistrationService->registerDoctor($validated);
@@ -51,4 +53,3 @@ class DoctorAuthController extends BaseAuthController
         );
     }
 }
-
