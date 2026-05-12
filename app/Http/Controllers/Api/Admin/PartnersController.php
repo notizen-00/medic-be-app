@@ -17,7 +17,10 @@ class PartnersController extends Controller
             'profession' => ['nullable', 'in:dokter,perawat,bidan'],
             'search' => ['nullable', 'string', 'max:100'],
             'is_available' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $partners = User::query()
             ->where('role', 'mitra')
@@ -46,7 +49,8 @@ class PartnersController extends Controller
             ->with(['partnerProfile'])
             ->withCount(['partnerConsultations', 'partnerServices', 'partnerServiceBookings'])
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua mitra medis admin berhasil diambil.',

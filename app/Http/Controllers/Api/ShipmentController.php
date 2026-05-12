@@ -17,7 +17,10 @@ class ShipmentController extends Controller
         $validated = $request->validate([
             'courier_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', 'in:waiting_courier,picked_up,on_delivery,delivered,failed,cancelled'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $shipments = Shipment::query()
             ->with(['order.patient', 'order.address', 'courier.courierProfile', 'histories'])
@@ -30,7 +33,8 @@ class ShipmentController extends Controller
                 fn ($query, $status) => $query->where('status', $status)
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar shipment berhasil diambil.',

@@ -18,7 +18,10 @@ class UserController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $apotiks = Pharmacy::query()
             ->when(
@@ -41,7 +44,8 @@ class UserController extends Controller
             ->with(['owner', 'profile'])
             ->withCount(['products', 'orders'])
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua apotik berhasil diambil.',
@@ -54,7 +58,10 @@ class UserController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'is_available' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $apotiks = Pharmacy::query()
             ->whereHas('owner', fn ($query) => $query->where('role', 'mitra'))
@@ -73,7 +80,8 @@ class UserController extends Controller
             )
             ->with(['owner', 'profile'])
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar apotik berhasil diambil.',
@@ -86,7 +94,10 @@ class UserController extends Controller
         $validated = $request->validate([
             'role' => ['nullable', 'in:pasien,mitra'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $users = User::query()
             ->when(
@@ -99,7 +110,8 @@ class UserController extends Controller
             )
             ->with(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy'])
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar user berhasil diambil.',

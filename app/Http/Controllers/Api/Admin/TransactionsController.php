@@ -16,7 +16,10 @@ class TransactionsController extends Controller
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $search = $validated['search'] ?? null;
 
@@ -30,7 +33,8 @@ class TransactionsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage, ['*'], 'payments_page')
+            ->withQueryString();
 
         $orders = Order::query()
             ->with(['patient', 'pharmacy.profile', 'shipment'])
@@ -42,7 +46,8 @@ class TransactionsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage, ['*'], 'orders_page')
+            ->withQueryString();
 
         $serviceBookings = ServiceBooking::query()
             ->with(['service', 'patient', 'assignedPartner'])
@@ -54,7 +59,8 @@ class TransactionsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage, ['*'], 'service_bookings_page')
+            ->withQueryString();
 
         $shipments = Shipment::query()
             ->with(['order', 'courier'])
@@ -66,7 +72,8 @@ class TransactionsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage, ['*'], 'shipments_page')
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua transaksi admin berhasil diambil.',

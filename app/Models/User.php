@@ -159,4 +159,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(PartnerService::class, 'partner_user_id');
     }
+
+    public function balance(): HasOne
+    {
+        return $this->hasOne(UserBalance::class);
+    }
 }

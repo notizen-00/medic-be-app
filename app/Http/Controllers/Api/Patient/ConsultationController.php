@@ -20,8 +20,7 @@ class ConsultationController extends Controller
 {
     public function __construct(
         private readonly MidtransService $midtransService
-    ) {
-    }
+    ) {}
 
     public function index(Request $request): JsonResponse
     {
@@ -30,21 +29,25 @@ class ConsultationController extends Controller
         $validated = $request->validate([
             'status' => ['nullable', 'in:pending,confirmed,ongoing,completed,cancelled'],
             'partner_user_id' => ['nullable', 'integer', 'exists:users,id'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $consultations = Consultation::query()
             ->with(['patient', 'partner.partnerProfile', 'messages.sender', 'prescription.items', 'payment'])
             ->where('patient_user_id', $user->id)
             ->when(
                 $validated['partner_user_id'] ?? null,
-                fn ($query, $partnerId) => $query->where('partner_user_id', $partnerId)
+                fn($query, $partnerId) => $query->where('partner_user_id', $partnerId)
             )
             ->when(
                 $validated['status'] ?? null,
-                fn ($query, $status) => $query->where('status', $status)
+                fn($query, $status) => $query->where('status', $status)
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar konsultasi pasien berhasil diambil.',

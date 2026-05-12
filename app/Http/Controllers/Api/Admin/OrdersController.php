@@ -17,7 +17,10 @@ class OrdersController extends Controller
             'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'pharmacy_id' => ['nullable', 'integer', 'exists:pharmacies,id'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $orders = Order::query()
             ->with(['patient', 'pharmacy.profile', 'pharmacy.owner', 'address', 'prescription', 'items.product', 'shipment.courier'])
@@ -52,7 +55,8 @@ class OrdersController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua order admin berhasil diambil.',

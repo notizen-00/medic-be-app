@@ -25,7 +25,10 @@ class ProductController extends Controller
             'pharmacy_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'requires_prescription' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         if (! isset($validated['pharmacy_id']) && isset($validated['pharmacy_user_id'])) {
             $validated['pharmacy_id'] = Pharmacy::query()
@@ -33,7 +36,11 @@ class ProductController extends Controller
                 ->value('id');
         }
 
-        $products = $this->pharmacySelectionService->getProductListGroupedByPharmacy($validated);
+        $products = $this->paginateCollection(
+            $this->pharmacySelectionService->getProductListGroupedByPharmacy($validated),
+            $request,
+            $perPage
+        );
 
         return response()->json([
             'message' => 'Daftar produk per apotik berhasil diambil.',
@@ -48,9 +55,16 @@ class ProductController extends Controller
             'patient_address_id' => ['nullable', 'integer', 'exists:patient_addresses,id'],
             'requires_prescription' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $products = $this->pharmacySelectionService->getGlobalProductCatalog($validated);
+        $perPage = $this->resolvePerPage($request);
+
+        $products = $this->paginateCollection(
+            $this->pharmacySelectionService->getGlobalProductCatalog($validated),
+            $request,
+            $perPage
+        );
 
         return response()->json([
             'message' => 'Daftar produk global berhasil diambil.',

@@ -1612,6 +1612,87 @@
                     ]
                 },
                 {
+                    "name": "profile",
+                    "item": [
+                        {
+                            "name": "[GET] api/mitra/profile",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/profile",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "profile"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[PATCH] api/mitra/profile",
+                            "request": {
+                                "method": "PATCH",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/profile",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "profile"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "service-applications",
                     "item": [
                         {
@@ -1843,6 +1924,181 @@
                                                 "service-bookings",
                                                 ":serviceBooking",
                                                 "status"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "name": "consultations",
+                    "item": [
+                        {
+                            "name": "[GET] api/mitra/consultations",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/consultations",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "consultations"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/mitra/consultations/{consultation}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/mitra/consultations/:consultation",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "mitra",
+                                        "consultations",
+                                        ":consultation"
+                                    ],
+                                    "variable": []
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "status",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/consultations/{consultation}/status",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/consultations/:consultation/status",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "consultations",
+                                                ":consultation",
+                                                "status"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "messages",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/consultations/{consultation}/messages",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/consultations/:consultation/messages",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "consultations",
+                                                ":consultation",
+                                                "messages"
                                             ],
                                             "variable": []
                                         },
@@ -2242,6 +2498,89 @@
                     ]
                 },
                 {
+                    "name": "patients",
+                    "item": [
+                        {
+                            "name": "[GET] api/admin/patients",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/patients",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "patients"
+                                    ]
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "name": "[GET] api/admin/patients/{user}",
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Accept",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    },
+                                    {
+                                        "key": "Content-Type",
+                                        "value": "application/json",
+                                        "type": "text"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{base_url}}/api/admin/patients/:user",
+                                    "host": [
+                                        "{{base_url}}"
+                                    ],
+                                    "path": [
+                                        "api",
+                                        "admin",
+                                        "patients",
+                                        ":user"
+                                    ],
+                                    "variable": []
+                                },
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "{{auth_token}}"
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    ]
+                },
+                {
                     "name": "registrations",
                     "item": [
                         {
@@ -2330,6 +2669,52 @@
                                     ]
                                 }
                             }
+                        },
+                        {
+                            "name": "verify",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/admin/partners/{user}/verify",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/admin/partners/:user/verify",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "admin",
+                                                "partners",
+                                                ":user",
+                                                "verify"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     ]
                 },
@@ -3064,6 +3449,69 @@
                                     ]
                                 }
                             }
+                        }
+                    ]
+                },
+                {
+                    "name": "secure-image",
+                    "item": [
+                        {
+                            "name": "partners",
+                            "item": [
+                                {
+                                    "name": "documents",
+                                    "item": [
+                                        {
+                                            "name": "[GET] api/shared/secure-image/partners/{user}/documents/{type}",
+                                            "request": {
+                                                "method": "GET",
+                                                "header": [
+                                                    {
+                                                        "key": "Accept",
+                                                        "value": "application/json",
+                                                        "type": "text"
+                                                    },
+                                                    {
+                                                        "key": "Content-Type",
+                                                        "value": "application/json",
+                                                        "type": "text"
+                                                    }
+                                                ],
+                                                "url": {
+                                                    "raw": "{{base_url}}/api/shared/secure-image/partners/:user/documents/:type",
+                                                    "host": [
+                                                        "{{base_url}}"
+                                                    ],
+                                                    "path": [
+                                                        "api",
+                                                        "shared",
+                                                        "secure-image",
+                                                        "partners",
+                                                        ":user",
+                                                        "documents",
+                                                        ":type"
+                                                    ],
+                                                    "variable": [
+                                                        {
+                                                            "key": "type",
+                                                            "value": "obat"
+                                                        }
+                                                    ]
+                                                },
+                                                "auth": {
+                                                    "type": "bearer",
+                                                    "bearer": [
+                                                        {
+                                                            "key": "token",
+                                                            "value": "{{auth_token}}"
+                                                        }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
                         }
                     ]
                 }

@@ -15,7 +15,10 @@ class PaymentsController extends Controller
             'status' => ['nullable', 'in:pending,paid,failed,expired,cancelled'],
             'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $payments = Payment::query()
             ->with(['patient', 'consultation.patient', 'consultation.partner.partnerProfile'])
@@ -41,7 +44,8 @@ class PaymentsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua pembayaran admin berhasil diambil.',

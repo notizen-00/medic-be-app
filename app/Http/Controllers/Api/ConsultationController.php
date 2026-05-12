@@ -26,7 +26,10 @@ class ConsultationController extends Controller
             'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'partner_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', 'in:pending,confirmed,ongoing,completed,cancelled'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $consultations = Consultation::query()
             ->with(['patient', 'partner.partnerProfile', 'messages.sender', 'prescription.items', 'payment'])
@@ -43,7 +46,8 @@ class ConsultationController extends Controller
                 fn ($query, $status) => $query->where('status', $status)
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar konsultasi berhasil diambil.',

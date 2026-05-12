@@ -1,15 +1,18 @@
 <?php
 
+use App\Http\Controllers\Api\Admin\BalanceController as AdminBalanceController;
 use App\Http\Controllers\Api\Admin\ConsultationsController as AdminConsultationsController;
 use App\Http\Controllers\Api\Admin\OrdersController as AdminOrdersController;
 use App\Http\Controllers\Api\Admin\PartnerServicesController as AdminPartnerServicesController;
 use App\Http\Controllers\Api\Admin\PartnersController as AdminPartnersController;
+use App\Http\Controllers\Api\Admin\PatientController as AdminPatientController;
 use App\Http\Controllers\Api\Admin\PaymentsController as AdminPaymentsController;
 use App\Http\Controllers\Api\Admin\PharmaciesController as AdminPharmaciesController;
 use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
 use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
 use App\Http\Controllers\Api\Admin\ShipmentsController as AdminShipmentsController;
 use App\Http\Controllers\Api\Admin\TransactionsController as AdminTransactionsController;
+use App\Http\Controllers\Api\Patient\BalanceController as PatientBalanceController;
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
 use App\Http\Controllers\Api\Auth\AdminAuthController;
 use App\Http\Controllers\Api\Auth\ApotikAuthController;
@@ -31,6 +34,8 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ShipmentController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
+use App\Http\Controllers\Api\Mitra\ConsultationsController as MitraConsultationsController;
+use App\Http\Controllers\Api\Shared\PartnerDocumentController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -38,6 +43,7 @@ use Illuminate\Support\Facades\Route;
 | Public Authentication Routes
 |--------------------------------------------------------------------------
 */
+
 Route::prefix('patient')->group(function () {
     Route::post('/register', [PatientAuthController::class, 'register']);
     Route::post('/login', [PatientAuthController::class, 'login']);
@@ -84,6 +90,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::get('/{user}', 'show');
         });
+
+        Route::get('/secure-image/partners/{user}/documents/{type}', [PartnerDocumentController::class, 'show']);
     });
 
     /*
@@ -130,6 +138,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{order}', 'show');
             Route::patch('/{order}/status', 'updateStatus');
         });
+
+        Route::prefix('balance')->group(function () {
+            Route::get('/', [PatientBalanceController::class, 'show']);
+            Route::get('/history', [PatientBalanceController::class, 'history']);
+            Route::post('/topup', [PatientBalanceController::class, 'topup']);
+            Route::patch('/topup/confirm', [PatientBalanceController::class, 'confirmTopup']);
+        });
     });
 
     /*
@@ -153,6 +168,13 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::get('/{serviceBooking}', 'show');
             Route::patch('/{serviceBooking}/status', 'updateStatus');
+        });
+
+        Route::prefix('consultations')->group(function () {
+            Route::get('/', [MitraConsultationsController::class, 'index']);
+            Route::get('/{consultation}', [MitraConsultationsController::class, 'show']);
+            Route::patch('/{consultation}/status', [MitraConsultationsController::class, 'updateStatus']);
+            Route::post('/{consultation}/messages', [MitraConsultationsController::class, 'addMessage']);
         });
 
         Route::prefix('apotik')->group(function () {
@@ -192,6 +214,11 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{consultation}', 'show');
         });
 
+        Route::prefix('patients')->controller(AdminPatientController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{user}', 'show');
+        });
+
         Route::prefix('registrations')->controller(AdminRegistrationsController::class)->group(function () {
             Route::get('/mitra', 'partnerRegistrations');
         });
@@ -210,6 +237,16 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/service-bookings', [AdminServiceBookingsController::class, 'index']);
         Route::get('/partner-services', [AdminPartnerServicesController::class, 'index']);
         Route::get('/shipments', [AdminShipmentsController::class, 'index']);
+
+        // Balance routes untuk admin
+        Route::prefix('balance')->group(function () {
+            Route::get('/', [AdminBalanceController::class, 'index']);
+            Route::get('/transactions', [AdminBalanceController::class, 'allTransactions']);
+            Route::get('/users/{user}', [AdminBalanceController::class, 'show']);
+            Route::get('/users/{user}/history', [AdminBalanceController::class, 'history']);
+            Route::post('/users/{user}/refund', [AdminBalanceController::class, 'refund']);
+            Route::post('/users/{user}/adjust', [AdminBalanceController::class, 'adjust']);
+        });
     });
 
     Route::prefix('admin/services')->controller(ServiceController::class)->group(function () {

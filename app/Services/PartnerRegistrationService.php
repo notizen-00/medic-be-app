@@ -42,7 +42,7 @@ class PartnerRegistrationService
                 $strPhotoPath = $strFile->storeAs(
                     "partners/{$user->id}",
                     'str.'.strtolower($strFile->getClientOriginalExtension() ?: 'jpg'),
-                    'public'
+                    'private'
                 );
             }
 
@@ -51,7 +51,7 @@ class PartnerRegistrationService
                 $ktpPhotoPath = $ktpFile->storeAs(
                     "partners/{$user->id}",
                     'ktp.'.strtolower($ktpFile->getClientOriginalExtension() ?: 'jpg'),
-                    'public'
+                    'private'
                 );
             }
 

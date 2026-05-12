@@ -23,7 +23,10 @@ class ProductController extends Controller
             'requires_prescription' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $products = Product::query()
             ->where('pharmacy_id', $pharmacy->id)
@@ -45,7 +48,8 @@ class ProductController extends Controller
             )
             ->with(['pharmacy.profile', 'pharmacy.owner'])
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar produk apotik berhasil diambil.',

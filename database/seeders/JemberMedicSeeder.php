@@ -25,6 +25,8 @@ use App\Models\ShipmentHistory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class JemberMedicSeeder extends Seeder
 {
@@ -396,6 +398,8 @@ class JemberMedicSeeder extends Seeder
                 ]
             );
 
+            $documentPaths = $this->seedPartnerDocuments($user->id, $user->name, $doctorData['license_number']);
+
             PartnerProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -409,6 +413,10 @@ class JemberMedicSeeder extends Seeder
                     'consultation_fee' => $doctorData['consultation_fee'],
                     'is_available' => true,
                     'bio' => $doctorData['bio'],
+                    'verification_status' => 'verified',
+                    'verified_at' => now(),
+                    'str_photo_path' => $documentPaths['str_photo_path'],
+                    'ktp_photo_path' => $documentPaths['ktp_photo_path'],
                 ]
             );
 
@@ -563,6 +571,8 @@ class JemberMedicSeeder extends Seeder
                 ]
             );
 
+            $documentPaths = $this->seedPartnerDocuments($user->id, $user->name, $nurseData['license_number']);
+
             PartnerProfile::updateOrCreate(
                 ['user_id' => $user->id],
                 [
@@ -576,6 +586,10 @@ class JemberMedicSeeder extends Seeder
                     'consultation_fee' => $nurseData['consultation_fee'],
                     'is_available' => true,
                     'bio' => $nurseData['bio'],
+                    'verification_status' => 'verified',
+                    'verified_at' => now(),
+                    'str_photo_path' => $documentPaths['str_photo_path'],
+                    'ktp_photo_path' => $documentPaths['ktp_photo_path'],
                 ]
             );
 
@@ -623,6 +637,9 @@ class JemberMedicSeeder extends Seeder
                 'consultation_fee' => 75000,
                 'is_available' => true,
                 'bio' => 'Dokter umum yang melayani konsultasi online dan kunjungan area Kota Jember.',
+                'verification_status' => 'verified',
+                'verified_at' => now(),
+                ...$this->seedPartnerDocuments($doctor->id, $doctor->name, 'SIP-DOK-JBR-001'),
             ]
         );
 
@@ -639,6 +656,9 @@ class JemberMedicSeeder extends Seeder
                 'consultation_fee' => 50000,
                 'is_available' => true,
                 'bio' => 'Perawat homecare untuk rawat luka, pemasangan infus, dan pendampingan pasien di rumah.',
+                'verification_status' => 'verified',
+                'verified_at' => now(),
+                ...$this->seedPartnerDocuments($nurse->id, $nurse->name, 'SIPP-JBR-003'),
             ]
         );
 
@@ -1409,5 +1429,379 @@ class JemberMedicSeeder extends Seeder
         );
 
     }
-}
 
+    private function seedPartnerDocuments(int $userId, string $partnerName, string $licenseNumber): array
+    {
+        $disk = Storage::disk('private');
+
+        $basePath = "partners/{$userId}";
+        $nameSlug = Str::slug($partnerName);
+        $strPath = "{$basePath}/str-{$nameSlug}.png";
+        $ktpPath = "{$basePath}/ktp-{$nameSlug}.png";
+
+        $nik = $this->seedDocumentNikForUser($userId);
+
+        if (! $disk->exists($ktpPath)) {
+            $disk->put($ktpPath, $this->renderSeedKtpPng($partnerName, $nik));
+        }
+
+        if (! $disk->exists($strPath)) {
+            $disk->put($strPath, $this->renderSeedStrPng($partnerName, $licenseNumber));
+        }
+
+        return [
+            'str_photo_path' => $strPath,
+            'ktp_photo_path' => $ktpPath,
+        ];
+    }
+
+    private function seedDocumentNikForUser(int $userId): string
+    {
+        $prefix = '3509';
+        $body = str_pad((string) ($userId % 1000000000000), 12, '0', STR_PAD_LEFT);
+
+        return $prefix . substr($body, -12);
+    }
+
+    private function renderSeedKtpPng(string $name, string $nik): string
+    {
+        if (! $this->canRenderPng()) {
+            return $this->renderFallbackTinyPng();
+        }
+
+        $width = 1400;
+        $height = 880;
+
+        $image = imagecreatetruecolor($width, $height);
+        imagealphablending($image, true);
+        imagesavealpha($image, true);
+
+        $bg1 = imagecolorallocate($image, 16, 185, 129);   // emerald
+        $bg2 = imagecolorallocate($image, 59, 130, 246);   // blue
+        $paper = imagecolorallocate($image, 255, 255, 255);
+        $paperBorder = imagecolorallocate($image, 226, 232, 240);
+        $ink = imagecolorallocate($image, 15, 23, 42);
+        $muted = imagecolorallocate($image, 51, 65, 85);
+        $muted2 = imagecolorallocate($image, 100, 116, 139);
+        $photoBg = imagecolorallocate($image, 226, 232, 240);
+        $photoInk = imagecolorallocate($image, 71, 85, 105);
+        $danger = imagecolorallocate($image, 239, 68, 68);
+
+        $this->drawDiagonalGradient($image, 0, 0, $width, $height, $bg1, $bg2);
+        $this->drawNoise($image, 2200, 25);
+
+        // Card
+        $this->drawRoundedRect($image, 70, 70, $width - 70, $height - 70, 32, $paper);
+        $this->drawRoundedRectOutline($image, 70, 70, $width - 70, $height - 70, 32, $paperBorder);
+
+        // Header band
+        $headerColor = imagecolorallocate($image, 15, 118, 110);
+        $this->drawRoundedRect($image, 95, 95, $width - 95, 200, 22, $headerColor);
+        imagestring($image, 5, 130, 125, 'KARTU TANDA PENDUDUK', $paper);
+        imagestring($image, 3, 130, 160, 'Contoh dokumen (seed only)', $paper);
+
+        // Fake emblem
+        $emblemX = $width - 220;
+        $emblemY = 115;
+        imagefilledellipse($image, $emblemX, $emblemY, 80, 80, $paper);
+        imageellipse($image, $emblemX, $emblemY, 80, 80, $paperBorder);
+        imagestring($image, 2, $emblemX - 22, $emblemY - 6, 'RI', $ink);
+
+        // Photo area with silhouette
+        $photoLeft = $width - 370;
+        $photoTop = 240;
+        $photoRight = $width - 130;
+        $photoBottom = 520;
+        $this->drawRoundedRect($image, $photoLeft, $photoTop, $photoRight, $photoBottom, 18, $photoBg);
+        $this->drawRoundedRectOutline($image, $photoLeft, $photoTop, $photoRight, $photoBottom, 18, $paperBorder);
+        imagefilledellipse($image, (int) (($photoLeft + $photoRight) / 2), $photoTop + 90, 90, 90, $photoInk);
+        imagefilledellipse($image, (int) (($photoLeft + $photoRight) / 2), $photoTop + 200, 160, 160, $photoInk);
+        imagestring($image, 2, $photoLeft + 18, $photoBottom - 26, 'FOTO', $muted2);
+
+        // Data fields
+        $xLabel = 130;
+        $xValue = 360;
+        $y = 260;
+        $row = 58;
+
+        imagestring($image, 4, $xLabel, $y, 'NIK', $muted);
+        imagestring($image, 4, $xValue, $y, ': ' . $nik, $ink);
+        $y += $row;
+
+        imagestring($image, 4, $xLabel, $y, 'Nama', $muted);
+        imagestring($image, 4, $xValue, $y, ': ' . $name, $ink);
+        $y += $row;
+
+        imagestring($image, 4, $xLabel, $y, 'Alamat', $muted);
+        imagestring($image, 4, $xValue, $y, ': Jember, Jawa Timur', $ink);
+        $y += $row;
+
+        imagestring($image, 4, $xLabel, $y, 'Berlaku', $muted);
+        imagestring($image, 4, $xValue, $y, ': SEUMUR HIDUP', $danger);
+        $y += (int) ($row * 1.2);
+
+        // QR + barcode
+        $this->drawQrLike($image, 130, 520, 190);
+        $this->drawBarcodeLike($image, 360, 560, 640, 110);
+
+        // Signature scribble
+        $this->drawSignatureLike($image, 1020, 635, 270, 70, $photoInk);
+        imagestring($image, 2, 980, 710, 'seed-doc:ktp', $muted2);
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        return $png ?: $this->renderFallbackTinyPng();
+    }
+
+    private function renderSeedStrPng(string $name, string $licenseNumber): string
+    {
+        if (! $this->canRenderPng()) {
+            return $this->renderFallbackTinyPng();
+        }
+
+        $width = 1400;
+        $height = 990;
+
+        $image = imagecreatetruecolor($width, $height);
+        imagealphablending($image, true);
+        imagesavealpha($image, true);
+
+        $bg = imagecolorallocate($image, 241, 245, 249);
+        $paper = imagecolorallocate($image, 255, 255, 255);
+        $border = imagecolorallocate($image, 226, 232, 240);
+        $ink = imagecolorallocate($image, 15, 23, 42);
+        $muted = imagecolorallocate($image, 51, 65, 85);
+        $muted2 = imagecolorallocate($image, 100, 116, 139);
+        $navy = imagecolorallocate($image, 15, 23, 42);
+        $seal = imagecolorallocate($image, 14, 165, 233);
+
+        imagefilledrectangle($image, 0, 0, $width, $height, $bg);
+        $this->drawNoise($image, 2500, 18);
+
+        $this->drawRoundedRect($image, 80, 70, $width - 80, $height - 70, 28, $paper);
+        $this->drawRoundedRectOutline($image, 80, 70, $width - 80, $height - 70, 28, $border);
+
+        // Header
+        $this->drawRoundedRect($image, 110, 100, $width - 110, 240, 20, $navy);
+        imagestring($image, 5, 150, 140, 'SURAT TANDA REGISTRASI', $paper);
+        imagestring($image, 3, 150, 180, 'Contoh dokumen (seed only)', $paper);
+
+        // Watermark band
+        $wm = imagecolorallocatealpha($image, 148, 163, 184, 85);
+        for ($i = -300; $i < $width; $i += 220) {
+            imagestring($image, 5, $i, 420, 'SEED-ONLY', $wm);
+        }
+
+        // Main fields
+        $xLabel = 150;
+        $xValue = 390;
+        $y = 310;
+        $row = 62;
+
+        imagestring($image, 4, $xLabel, $y, 'Nama', $muted);
+        imagestring($image, 4, $xValue, $y, ': ' . $name, $ink);
+        $y += $row;
+
+        imagestring($image, 4, $xLabel, $y, 'Nomor', $muted);
+        imagestring($image, 4, $xValue, $y, ': ' . $licenseNumber, $ink);
+        $y += $row;
+
+        imagestring($image, 4, $xLabel, $y, 'Status', $muted);
+        imagestring($image, 4, $xValue, $y, ': TERDAFTAR', $ink);
+        $y += $row;
+
+        imagestring($image, 4, $xLabel, $y, 'Diterbitkan', $muted);
+        imagestring($image, 4, $xValue, $y, ': Seeder Generator', $ink);
+
+        // QR and barcode
+        $this->drawQrLike($image, $width - 360, 300, 200);
+        $this->drawBarcodeLike($image, 150, 700, 760, 120);
+
+        // Stamp + signature
+        imagefilledellipse($image, $width - 300, 700, 220, 220, $seal);
+        imageellipse($image, $width - 300, 700, 220, 220, $border);
+        imagestring($image, 4, $width - 358, 690, 'STEMPEL', $paper);
+        $this->drawSignatureLike($image, $width - 560, 760, 360, 80, $muted);
+        imagestring($image, 2, 140, $height - 120, 'seed-doc:str', $muted2);
+
+        ob_start();
+        imagepng($image);
+        $png = ob_get_clean();
+        imagedestroy($image);
+
+        return $png ?: $this->renderFallbackTinyPng();
+    }
+
+    private function canRenderPng(): bool
+    {
+        return function_exists('imagecreatetruecolor')
+            && function_exists('imagepng')
+            && function_exists('imagecolorallocate')
+            && function_exists('imagestring');
+    }
+
+    private function renderFallbackTinyPng(): string
+    {
+        return base64_decode(
+            'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO2GZ6kAAAAASUVORK5CYII=',
+            true
+        ) ?: '';
+    }
+
+    private function drawDiagonalGradient($image, int $x1, int $y1, int $x2, int $y2, int $c1, int $c2): void
+    {
+        $w = max(1, $x2 - $x1);
+        $h = max(1, $y2 - $y1);
+
+        $r1 = ($c1 >> 16) & 0xFF;
+        $g1 = ($c1 >> 8) & 0xFF;
+        $b1 = $c1 & 0xFF;
+
+        $r2 = ($c2 >> 16) & 0xFF;
+        $g2 = ($c2 >> 8) & 0xFF;
+        $b2 = $c2 & 0xFF;
+
+        $steps = $w + $h;
+        for ($i = 0; $i <= $steps; $i++) {
+            $t = $steps === 0 ? 0 : $i / $steps;
+            $r = (int) round($r1 + ($r2 - $r1) * $t);
+            $g = (int) round($g1 + ($g2 - $g1) * $t);
+            $b = (int) round($b1 + ($b2 - $b1) * $t);
+            $color = imagecolorallocate($image, $r, $g, $b);
+            imageline($image, $x1, $y1 + $i, $x1 + $i, $y1, $color);
+        }
+    }
+
+    private function drawNoise($image, int $dots, int $alpha = 30): void
+    {
+        $w = imagesx($image);
+        $h = imagesy($image);
+
+        for ($i = 0; $i < $dots; $i++) {
+            $x = random_int(0, $w - 1);
+            $y = random_int(0, $h - 1);
+            $c = imagecolorallocatealpha(
+                $image,
+                random_int(0, 255),
+                random_int(0, 255),
+                random_int(0, 255),
+                max(0, min(127, $alpha))
+            );
+            imagesetpixel($image, $x, $y, $c);
+        }
+    }
+
+    private function drawRoundedRect($image, int $x1, int $y1, int $x2, int $y2, int $r, int $color): void
+    {
+        $r = max(0, min($r, (int) floor(min(($x2 - $x1), ($y2 - $y1)) / 2)));
+
+        imagefilledrectangle($image, $x1 + $r, $y1, $x2 - $r, $y2, $color);
+        imagefilledrectangle($image, $x1, $y1 + $r, $x2, $y2 - $r, $color);
+
+        imagefilledellipse($image, $x1 + $r, $y1 + $r, $r * 2, $r * 2, $color);
+        imagefilledellipse($image, $x2 - $r, $y1 + $r, $r * 2, $r * 2, $color);
+        imagefilledellipse($image, $x1 + $r, $y2 - $r, $r * 2, $r * 2, $color);
+        imagefilledellipse($image, $x2 - $r, $y2 - $r, $r * 2, $r * 2, $color);
+    }
+
+    private function drawRoundedRectOutline($image, int $x1, int $y1, int $x2, int $y2, int $r, int $color): void
+    {
+        $r = max(0, min($r, (int) floor(min(($x2 - $x1), ($y2 - $y1)) / 2)));
+
+        imageline($image, $x1 + $r, $y1, $x2 - $r, $y1, $color);
+        imageline($image, $x1 + $r, $y2, $x2 - $r, $y2, $color);
+        imageline($image, $x1, $y1 + $r, $x1, $y2 - $r, $color);
+        imageline($image, $x2, $y1 + $r, $x2, $y2 - $r, $color);
+
+        imagearc($image, $x1 + $r, $y1 + $r, $r * 2, $r * 2, 180, 270, $color);
+        imagearc($image, $x2 - $r, $y1 + $r, $r * 2, $r * 2, 270, 360, $color);
+        imagearc($image, $x1 + $r, $y2 - $r, $r * 2, $r * 2, 90, 180, $color);
+        imagearc($image, $x2 - $r, $y2 - $r, $r * 2, $r * 2, 0, 90, $color);
+    }
+
+    private function drawQrLike($image, int $x, int $y, int $size): void
+    {
+        $bg = imagecolorallocate($image, 255, 255, 255);
+        $fg = imagecolorallocate($image, 15, 23, 42);
+        $border = imagecolorallocate($image, 226, 232, 240);
+
+        $this->drawRoundedRect($image, $x, $y, $x + $size, $y + $size, 14, $bg);
+        $this->drawRoundedRectOutline($image, $x, $y, $x + $size, $y + $size, 14, $border);
+
+        $cell = max(4, (int) floor($size / 29));
+        $grid = (int) floor($size / $cell);
+
+        for ($gy = 0; $gy < $grid; $gy++) {
+            for ($gx = 0; $gx < $grid; $gx++) {
+                // Keep finder patterns clear-ish
+                $inFinder = ($gx < 7 && $gy < 7) || ($gx > $grid - 8 && $gy < 7) || ($gx < 7 && $gy > $grid - 8);
+                if ($inFinder) {
+                    continue;
+                }
+
+                if (random_int(0, 100) < 45) {
+                    imagefilledrectangle(
+                        $image,
+                        $x + 10 + $gx * $cell,
+                        $y + 10 + $gy * $cell,
+                        $x + 10 + ($gx + 1) * $cell - 1,
+                        $y + 10 + ($gy + 1) * $cell - 1,
+                        $fg
+                    );
+                }
+            }
+        }
+
+        $this->drawQrFinder($image, $x + 14, $y + 14, $cell, $fg, $bg);
+        $this->drawQrFinder($image, $x + $size - 14 - 7 * $cell, $y + 14, $cell, $fg, $bg);
+        $this->drawQrFinder($image, $x + 14, $y + $size - 14 - 7 * $cell, $cell, $fg, $bg);
+    }
+
+    private function drawQrFinder($image, int $x, int $y, int $cell, int $fg, int $bg): void
+    {
+        imagefilledrectangle($image, $x, $y, $x + 7 * $cell, $y + 7 * $cell, $fg);
+        imagefilledrectangle($image, $x + $cell, $y + $cell, $x + 6 * $cell, $y + 6 * $cell, $bg);
+        imagefilledrectangle($image, $x + 2 * $cell, $y + 2 * $cell, $x + 5 * $cell, $y + 5 * $cell, $fg);
+    }
+
+    private function drawBarcodeLike($image, int $x, int $y, int $width, int $height): void
+    {
+        $bg = imagecolorallocate($image, 255, 255, 255);
+        $fg = imagecolorallocate($image, 15, 23, 42);
+        $border = imagecolorallocate($image, 226, 232, 240);
+
+        $this->drawRoundedRect($image, $x, $y, $x + $width, $y + $height, 12, $bg);
+        $this->drawRoundedRectOutline($image, $x, $y, $x + $width, $y + $height, 12, $border);
+
+        $cursor = $x + 12;
+        $maxX = $x + $width - 12;
+        while ($cursor < $maxX) {
+            $barWidth = random_int(1, 4);
+            $barHeight = $height - random_int(18, 34);
+            imagefilledrectangle($image, $cursor, $y + 10, min($cursor + $barWidth, $maxX), $y + 10 + $barHeight, $fg);
+            $cursor += $barWidth + random_int(1, 3);
+        }
+    }
+
+    private function drawSignatureLike($image, int $x, int $y, int $width, int $height, int $color): void
+    {
+        $points = [];
+        $segments = 18;
+        $baseY = $y + (int) ($height / 2);
+
+        for ($i = 0; $i <= $segments; $i++) {
+            $px = $x + (int) round(($width / $segments) * $i);
+            $py = $baseY + random_int(-(int) ($height / 3), (int) ($height / 3));
+            $points[] = [$px, $py];
+        }
+
+        imagesetthickness($image, 3);
+        for ($i = 0; $i < count($points) - 1; $i++) {
+            imageline($image, $points[$i][0], $points[$i][1], $points[$i + 1][0], $points[$i + 1][1], $color);
+        }
+        imagesetthickness($image, 1);
+    }
+}

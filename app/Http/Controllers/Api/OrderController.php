@@ -22,7 +22,10 @@ class OrderController extends Controller
         $validated = $request->validate([
             'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'status' => ['nullable', 'in:pending,confirmed,processed,shipped,delivered,cancelled'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $orders = Order::query()
             ->with(['patient', 'pharmacy.profile', 'pharmacy.owner', 'address', 'prescription', 'items.product', 'shipment.courier'])
@@ -35,7 +38,8 @@ class OrderController extends Controller
                 fn ($query, $status) => $query->where('status', $status)
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar order berhasil diambil.',

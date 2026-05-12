@@ -25,13 +25,28 @@ class NurseController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'max_distance_km' => ['nullable', 'numeric', 'min:0'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $nurses = $this->doctorDirectoryService->getNurseList($validated);
+        $perPage = $this->resolvePerPage($request);
+        $filters = $validated;
+        unset($filters['limit']);
+
+        $nurses = $this->paginateCollection(
+            $this->doctorDirectoryService->getNurseList($filters),
+            $request,
+            $perPage
+        );
 
         return response()->json([
             'message' => 'Daftar perawat berhasil diambil.',
-            'data' => $nurses,
+            'data' => $nurses->items(),
+            'meta' => [
+                'current_page' => $nurses->currentPage(),
+                'last_page' => $nurses->lastPage(),
+                'per_page' => $nurses->perPage(),
+                'total' => $nurses->total(),
+            ],
         ]);
     }
 }

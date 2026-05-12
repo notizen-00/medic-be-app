@@ -17,7 +17,10 @@ class PartnerServicesController extends Controller
             'is_active' => ['nullable', 'boolean'],
             'is_verified' => ['nullable', 'boolean'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $partnerServices = PartnerService::query()
             ->with(['service', 'partner.partnerProfile'])
@@ -49,7 +52,8 @@ class PartnerServicesController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua layanan mitra admin berhasil diambil.',

@@ -23,11 +23,18 @@ class ServiceController extends Controller
             'patient_address_id' => ['nullable', 'integer', 'exists:patient_addresses,id'],
             'service_type' => ['nullable', 'in:dokter_homecare,perawat_homecare,bidan_homecare,konsultasi_tindakan'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         return response()->json([
             'message' => 'Katalog layanan berhasil diambil.',
-            'data' => $this->servicePartnerSelectionService->getServiceCatalog($validated),
+            'data' => $this->paginateCollection(
+                $this->servicePartnerSelectionService->getServiceCatalog($validated),
+                $request,
+                $perPage
+            ),
         ]);
     }
 

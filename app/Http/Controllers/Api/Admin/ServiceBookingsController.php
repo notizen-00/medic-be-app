@@ -17,7 +17,10 @@ class ServiceBookingsController extends Controller
             'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'assigned_partner_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $bookings = ServiceBooking::query()
             ->with(['service', 'patient', 'assignedPartner.partnerProfile', 'address'])
@@ -53,7 +56,8 @@ class ServiceBookingsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua booking layanan admin berhasil diambil.',

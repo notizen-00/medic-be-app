@@ -17,11 +17,18 @@ class PartnerServiceController extends Controller
     {
         $partner = $this->resolveAuthenticatedMedicalPartner($request);
 
+        $request->validate([
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+        ]);
+
+        $perPage = $this->resolvePerPage($request);
+
         $applications = PartnerService::query()
             ->with(['service', 'partner.partnerProfile'])
             ->where('partner_user_id', $partner->id)
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar layanan mitra berhasil diambil.',

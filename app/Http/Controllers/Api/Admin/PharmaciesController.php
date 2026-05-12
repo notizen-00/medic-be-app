@@ -14,7 +14,10 @@ class PharmaciesController extends Controller
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:100'],
             'is_active' => ['nullable', 'boolean'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $pharmacies = Pharmacy::query()
             ->when(
@@ -37,7 +40,8 @@ class PharmaciesController extends Controller
             ->with(['owner', 'profile'])
             ->withCount(['products', 'orders'])
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua apotek admin berhasil diambil.',

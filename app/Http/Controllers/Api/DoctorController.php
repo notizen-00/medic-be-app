@@ -25,6 +25,7 @@ class DoctorController extends Controller
             'longitude' => ['nullable', 'numeric', 'between:-180,180', 'required_with:latitude'],
             'max_distance_km' => ['nullable', 'numeric', 'min:0'],
             'limit' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
         if (($validated['view'] ?? 'list') === 'specializations') {
@@ -34,11 +35,29 @@ class DoctorController extends Controller
             ]);
         }
 
-        $doctors = $this->doctorDirectoryService->getDoctorList($validated);
+        if (! $request->has('per_page') && isset($validated['limit'])) {
+            $request->merge(['per_page' => $validated['limit']]);
+        }
+
+        $perPage = $this->resolvePerPage($request);
+        $filters = $validated;
+        unset($filters['limit']);
+
+        $doctors = $this->paginateCollection(
+            $this->doctorDirectoryService->getDoctorList($filters),
+            $request,
+            $perPage
+        );
 
         return response()->json([
             'message' => 'Daftar dokter berhasil diambil.',
-            'data' => $doctors,
+            'data' => $doctors->items(),
+            'meta' => [
+                'current_page' => $doctors->currentPage(),
+                'last_page' => $doctors->lastPage(),
+                'per_page' => $doctors->perPage(),
+                'total' => $doctors->total(),
+            ],
         ]);
     }
 }

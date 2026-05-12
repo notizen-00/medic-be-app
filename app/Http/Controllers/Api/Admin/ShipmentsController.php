@@ -15,7 +15,10 @@ class ShipmentsController extends Controller
             'status' => ['nullable', 'in:waiting_courier,picked_up,on_delivery,delivered,failed,cancelled'],
             'courier_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'search' => ['nullable', 'string', 'max:100'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
+
+        $perPage = $this->resolvePerPage($request);
 
         $shipments = Shipment::query()
             ->with(['order.patient', 'order.pharmacy.profile', 'courier', 'histories'])
@@ -39,7 +42,8 @@ class ShipmentsController extends Controller
                 })
             )
             ->latest()
-            ->get();
+            ->paginate($perPage)
+            ->withQueryString();
 
         return response()->json([
             'message' => 'Daftar semua pengiriman admin berhasil diambil.',
