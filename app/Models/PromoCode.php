@@ -37,6 +37,41 @@ class PromoCode extends Model
         'valid_until' => 'datetime',
     ];
 
+    /**
+     * Format currency untuk display
+     */
+    public function getFormattedDiscountValueAttribute(): string
+    {
+        if ($this->discount_type === 'percentage') {
+            return $this->discount_value . '%';
+        }
+        return 'Rp ' . number_format($this->discount_value, 0, ',', '.');
+    }
+
+    public function getFormattedMinPurchaseAttribute(): string
+    {
+        return 'Rp ' . number_format($this->min_purchase, 0, ',', '.');
+    }
+
+    public function getFormattedMaxDiscountAttribute(): string
+    {
+        if (!$this->max_discount) {
+            return 'Tidak ada batasan';
+        }
+        return 'Rp ' . number_format($this->max_discount, 0, ',', '.');
+    }
+
+    /**
+     * Get discount display text
+     */
+    public function getDiscountDisplayAttribute(): string
+    {
+        if ($this->discount_type === 'percentage') {
+            return "Diskon {$this->discount_value}%";
+        }
+        return "Diskon Rp " . number_format($this->discount_value, 0, ',', '.');
+    }
+
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);

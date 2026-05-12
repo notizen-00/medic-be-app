@@ -54,6 +54,12 @@ class PromoCodeController extends Controller
             'remaining_uses' => $promoCode->max_uses ? ($promoCode->max_uses - $promoCode->usesCount()) : null,
         ];
 
+        // Tambahkan formatted values
+        $promoCode->formatted_discount_value = $promoCode->formatted_discount_value;
+        $promoCode->formatted_min_purchase = $promoCode->formatted_min_purchase;
+        $promoCode->formatted_max_discount = $promoCode->formatted_max_discount;
+        $promoCode->discount_display = $promoCode->discount_display;
+
         return response()->json([
             'success' => true,
             'data' => $promoCode,
