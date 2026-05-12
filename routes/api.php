@@ -8,11 +8,14 @@ use App\Http\Controllers\Api\Admin\PartnersController as AdminPartnersController
 use App\Http\Controllers\Api\Admin\PatientController as AdminPatientController;
 use App\Http\Controllers\Api\Admin\PaymentsController as AdminPaymentsController;
 use App\Http\Controllers\Api\Admin\PharmaciesController as AdminPharmaciesController;
+use App\Http\Controllers\Api\Admin\PromoCodeController as AdminPromoCodeController;
 use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
 use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
+use App\Http\Controllers\Api\Admin\ServiceMarkupController as AdminServiceMarkupController;
 use App\Http\Controllers\Api\Admin\ShipmentsController as AdminShipmentsController;
 use App\Http\Controllers\Api\Admin\TransactionsController as AdminTransactionsController;
 use App\Http\Controllers\Api\Patient\BalanceController as PatientBalanceController;
+use App\Http\Controllers\Api\Patient\ServiceBookingController as PatientServiceBookingController;
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
 use App\Http\Controllers\Api\Auth\AdminAuthController;
 use App\Http\Controllers\Api\Auth\ApotikAuthController;
@@ -37,18 +40,6 @@ use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
 use App\Http\Controllers\Api\Mitra\ConsultationsController as MitraConsultationsController;
 use App\Http\Controllers\Api\Shared\PartnerDocumentController;
 use Illuminate\Support\Facades\Route;
-
-/*
-|--------------------------------------------------------------------------
-| Broadcasting Routes
-|--------------------------------------------------------------------------
-*/
-
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/broadcasting/auth', function (\Illuminate\Http\Request $request) {
-        return \Illuminate\Support\Facades\Broadcast::auth($request);
-    });
-});
 
 /*
 |--------------------------------------------------------------------------
@@ -157,6 +148,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/topup', [PatientBalanceController::class, 'topup']);
             Route::patch('/topup/confirm', [PatientBalanceController::class, 'confirmTopup']);
         });
+
+        // Service booking dengan discount dan markup
+        Route::prefix('service-bookings')->controller(PatientServiceBookingController::class)->group(function () {
+            Route::get('/services', 'index');
+            Route::get('/services/{service}', 'show');
+            Route::post('/check-promo-code', 'checkPromoCode');
+            Route::post('/', 'store');
+            Route::get('/', 'indexBookings');
+            Route::get('/{serviceBooking}', 'showBooking');
+        });
+
+        // Promo codes yang tersedia untuk patient
+        Route::prefix('promo-codes')->group(function () {
+            Route::get('/available', [AdminPromoCodeController::class, 'availableCodes']);
+        });
     });
 
     /*
@@ -258,6 +264,26 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/users/{user}/history', [AdminBalanceController::class, 'history']);
             Route::post('/users/{user}/refund', [AdminBalanceController::class, 'refund']);
             Route::post('/users/{user}/adjust', [AdminBalanceController::class, 'adjust']);
+        });
+
+        // Service markup settings untuk admin
+        Route::prefix('service-markup')->controller(AdminServiceMarkupController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{serviceMarkupSetting}', 'show');
+            Route::post('/', 'store');
+            Route::patch('/{serviceMarkupSetting}', 'update');
+            Route::delete('/{serviceMarkupSetting}', 'destroy');
+            Route::patch('/{serviceMarkupSetting}/toggle-status', 'toggleStatus');
+        });
+
+        // Promo codes untuk admin
+        Route::prefix('promo-codes')->controller(AdminPromoCodeController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::get('/{promoCode}', 'show');
+            Route::post('/', 'store');
+            Route::patch('/{promoCode}', 'update');
+            Route::delete('/{promoCode}', 'destroy');
+            Route::patch('/{promoCode}/toggle-status', 'toggleStatus');
         });
     });
 

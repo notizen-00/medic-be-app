@@ -18,6 +18,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'completed_at',
     'total_amount',
     'notes',
+    'promo_code',
+    'discount_amount',
+    'discount_type',
+    'subtotal',
+    'markup_amount',
 ])]
 class ServiceBooking extends Model
 {
@@ -28,6 +33,9 @@ class ServiceBooking extends Model
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
             'total_amount' => 'decimal:2',
+            'discount_amount' => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'markup_amount' => 'decimal:2',
         ];
     }
 
@@ -49,5 +57,98 @@ class ServiceBooking extends Model
     public function address(): BelongsTo
     {
         return $this->belongsTo(PatientAddress::class, 'patient_address_id');
+    }
+
+    /**
+     * Calculate final price with markup and discount
+     */
+    public function calculateFinalPrice(): array
+    {
+        $basePrice = $this->service->price ?? 0;
+
+        // Get active markup setting
+        $markupSetting = ServiceMarkupSetting::getActiveSetting($this->service_id);
+        $markupAmount = 0;
+
+        if ($markupSetting && $markupSetting->is_active) {
+            $markupAmount = $markupSetting->calculateMarkup($basePrice);
+        }
+
+        // Subtotal = base price + markup
+        $subtotal = $basePrice + $markupAmount;
+
+        // Calculate discount if promo code is used
+        $discountAmount = 0;
+        if ($this->promo_code) {
+            $promoCode = PromoCode::where('code', $this->promo_code)
+                ->where('is_active', true)
+                ->first();
+
+            if ($promoCode && $promoCode->isValid()) {
+                // Check min purchase
+                if ($subtotal >= $promoCode->min_purchase) {
+                    $discountAmount = $promoCode->calculateDiscount($subtotal);
+                }
+            }
+        }
+
+        // Final price = subtotal - discount
+        $finalPrice = $subtotal - $discountAmount;
+
+        return [
+            'base_price' => $basePrice,
+            'markup_amount' => $markupAmount,
+            'subtotal' => $subtotal,
+            'discount_amount' => $discountAmount,
+            'final_price' => $finalPrice,
+        ];
+    }
+
+    /**
+     * Validate and apply promo code
+     */
+    public function applyPromoCode(string $code, int $userId): array
+    {
+        $promoCode = PromoCode::where('code', $code)->first();
+
+        if (!$promoCode) {
+            return ['success' => false, 'message' => 'Promo code tidak ditemukan'];
+        }
+
+        if (!$promoCode->isValid()) {
+            return ['success' => false, 'message' => 'Promo code tidak valid'];
+        }
+
+        if (!$promoCode->canUserUse($userId)) {
+            return ['success' => false, 'message' => 'Promo code sudah digunakan'];
+        }
+
+        // Check service restriction
+        if ($promoCode->service_id && $promoCode->service_id !== $this->service_id) {
+            return ['success' => false, 'message' => 'Promo code tidak berlaku untuk service ini'];
+        }
+
+        $pricing = $this->calculateFinalPrice();
+
+        if ($pricing['subtotal'] < $promoCode->min_purchase) {
+            return [
+                'success' => false,
+                'message' => 'Minimum pembelian belum tercapai',
+                'required' => $promoCode->min_purchase,
+                'current' => $pricing['subtotal'],
+            ];
+        }
+
+        $discountAmount = $promoCode->calculateDiscount($pricing['subtotal']);
+
+        return [
+            'success' => true,
+            'promo_code' => $promoCode->code,
+            'discount_type' => $promoCode->discount_type,
+            'discount_value' => $promoCode->discount_value,
+            'discount_amount' => $discountAmount,
+            'original_price' => $pricing['subtotal'],
+            'final_price' => $pricing['subtotal'] - $discountAmount,
+        ];
     }
 }
