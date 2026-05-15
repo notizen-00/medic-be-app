@@ -69,6 +69,8 @@ class BalanceService
                 'balance_before' => $balanceBefore,
                 'balance_after' => $newBalance,
                 'reference_number' => $referenceNumber,
+                'reference_type' => $meta['reference_type'] ?? null,
+                'reference_id' => $meta['reference_id'] ?? null,
                 'meta' => $meta,
                 'description' => $meta['description'] ?? 'Topup saldo',
             ]);

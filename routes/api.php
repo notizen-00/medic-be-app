@@ -185,6 +185,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('service-bookings')->controller(ServiceBookingController::class)->group(function () {
             Route::get('/', 'index');
             Route::get('/{serviceBooking}', 'show');
+            Route::patch('/{serviceBooking}/accept', 'accept');
+            Route::patch('/{serviceBooking}/start-journey', 'startJourney');
+            Route::post('/{serviceBooking}/histories', 'addTreatmentHistory');
+            Route::patch('/{serviceBooking}/complete', 'complete');
             Route::patch('/{serviceBooking}/status', 'updateStatus');
         });
 

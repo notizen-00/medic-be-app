@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[Fillable([
     'booking_code',
@@ -14,8 +15,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'patient_address_id',
     'status',
     'scheduled_at',
+    'accepted_at',
     'started_at',
     'completed_at',
+    'partner_paid_at',
+    'partner_balance_transaction_id',
     'total_amount',
     'notes',
     'promo_code',
@@ -30,8 +34,10 @@ class ServiceBooking extends Model
     {
         return [
             'scheduled_at' => 'datetime',
+            'accepted_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
+            'partner_paid_at' => 'datetime',
             'total_amount' => 'decimal:2',
             'discount_amount' => 'decimal:2',
             'subtotal' => 'decimal:2',
@@ -54,9 +60,19 @@ class ServiceBooking extends Model
         return $this->belongsTo(User::class, 'assigned_partner_user_id');
     }
 
+    public function partnerBalanceTransaction(): BelongsTo
+    {
+        return $this->belongsTo(BalanceTransaction::class, 'partner_balance_transaction_id');
+    }
+
     public function address(): BelongsTo
     {
         return $this->belongsTo(PatientAddress::class, 'patient_address_id');
+    }
+
+    public function histories(): HasMany
+    {
+        return $this->hasMany(ServiceBookingHistory::class)->latest('handled_at')->latest();
     }
 
     /**

@@ -1,6 +1,6 @@
 {
     "info": {
-        "name": "Medic-App",
+        "name": "medic-app",
         "description": "API Documentation",
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
     },
@@ -37,6 +37,15 @@
                                         "patient",
                                         "register"
                                     ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Budi Santoso\",\n    \"email\": \"pasien.baru@medic-app.test\",\n    \"phone\": \"081234567899\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"date_of_birth\": \"1998-08-17\",\n    \"gender\": \"laki-laki\",\n    \"address\": \"Jl. Mawar No. 12, Jember\",\n    \"blood_type\": \"O\",\n    \"emergency_contact_name\": \"Siti Santoso\",\n    \"emergency_contact_phone\": \"081234567800\",\n    \"allergies\": \"Debu dan udang.\",\n    \"medical_notes\": \"Riwayat asma ringan.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -71,6 +80,15 @@
                                         "patient",
                                         "login"
                                     ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"email\": \"pasien@medic-app.test\",\n    \"password\": \"password123\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -399,6 +417,15 @@
                                         "service-bookings"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"service_id\": 1,\n    \"patient_user_id\": 2,\n    \"patient_address_id\": 1,\n    \"scheduled_at\": \"2026-05-16 14:58:21\",\n    \"notes\": \"Mohon datang sore hari.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -482,6 +509,15 @@
                                                 "status"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"scheduled_at\": \"2026-05-16 14:58:21\",\n    \"notes\": \"Jadwal sudah dikonfirmasi.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -611,6 +647,15 @@
                                                 "service-bookings",
                                                 "check-promo-code"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"code\": \"SEHAT10\",\n    \"service_id\": 1\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -822,6 +867,15 @@
                                         "consultations"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"patient_user_id\": 2,\n    \"partner_user_id\": 3,\n    \"service_type\": \"chat\",\n    \"scheduled_at\": \"2026-05-15 16:58:21\",\n    \"complaint\": \"Batuk dan pilek sejak 3 hari.\",\n    \"notes\": \"Mohon konsultasi cepat.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -906,6 +960,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"notes\": \"Pembayaran melalui Midtrans Snap.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -952,6 +1015,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"diagnosis\": \"Perlu observasi lebih lanjut.\",\n    \"notes\": \"Pasien dijadwalkan konsultasi lanjutan.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -997,6 +1069,15 @@
                                                 "messages"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"sender_user_id\": 2,\n    \"message_type\": \"text\",\n    \"message\": \"Dok, apakah obat ini diminum setelah makan?\",\n    \"attachment_path\": null\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -1081,6 +1162,15 @@
                                         "orders"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"patient_user_id\": 2,\n    \"patient_address_id\": 1,\n    \"prescription_id\": null,\n    \"order_type\": \"non_resep\",\n    \"notes\": \"Tolong kirim secepatnya.\",\n    \"items\": [\n        {\n            \"product_id\": 1,\n            \"sku\": \"OBT-PAR-500\",\n            \"quantity\": 2\n        }\n    ]\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -1164,6 +1254,15 @@
                                                 "status"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"status\": \"confirmed\",\n    \"notes\": \"Order sudah diproses apotik.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -1296,6 +1395,15 @@
                                                 "topup"
                                             ]
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"amount\": 100000,\n    \"payment_method\": \"midtrans\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -1338,6 +1446,15 @@
                                                         "topup",
                                                         "confirm"
                                                     ]
+                                                },
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n    \"transaction_uuid\": \"topup-transaction-uuid\",\n    \"status\": \"success\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "language": "json"
+                                                        }
+                                                    }
                                                 },
                                                 "auth": {
                                                     "type": "bearer",
@@ -1439,6 +1556,15 @@
                                         "mitra",
                                         "register"
                                     ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"dr. Andi Pratama\",\n    \"email\": \"mitra@medic-app.test\",\n    \"phone\": \"081234567891\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"profession\": \"dokter\",\n    \"specialization\": \"Dokter Umum\",\n    \"license_number\": \"SIP-MITRA-2026-0001\",\n    \"work_location\": \"Jember, Jawa Timur\",\n    \"latitude\": -8.1724,\n    \"longitude\": 113.7008,\n    \"years_of_experience\": 5,\n    \"consultation_fee\": 75000,\n    \"bio\": \"Melayani konsultasi dan homecare.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1473,6 +1599,15 @@
                                         "mitra",
                                         "login"
                                     ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"email\": \"mitra@medic-app.test\",\n    \"password\": \"password123\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -1511,6 +1646,15 @@
                                                 "doctor",
                                                 "register"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"name\": \"dr. Sinta Maharani\",\n    \"email\": \"doctor@medic-app.test\",\n    \"phone\": \"081234567892\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"profession\": \"dokter\",\n    \"specialization\": \"Dokter Anak\",\n    \"license_number\": \"SIP-DOC-2026-0001\",\n    \"work_location\": \"Klinik Tegal Besar, Jember\",\n    \"latitude\": -8.1861,\n    \"longitude\": 113.7178,\n    \"years_of_experience\": 7,\n    \"consultation_fee\": 100000,\n    \"bio\": \"Dokter anak untuk konsultasi online dan kunjungan.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1546,6 +1690,15 @@
                                                 "doctor",
                                                 "login"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"email\": \"doctor@medic-app.test\",\n    \"password\": \"password123\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1586,6 +1739,15 @@
                                                 "nurse",
                                                 "register"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"name\": \"Ns. Rina Lestari\",\n    \"email\": \"nurse@medic-app.test\",\n    \"phone\": \"081234567893\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\",\n    \"specialization\": \"Perawat Homecare\",\n    \"license_number\": \"SIP-NRS-2026-0001\",\n    \"work_location\": \"Patrang, Jember\",\n    \"latitude\": -8.1592,\n    \"longitude\": 113.7151,\n    \"years_of_experience\": 4,\n    \"consultation_fee\": 65000,\n    \"bio\": \"Perawat homecare untuk rawat luka dan observasi pasien.\",\n    \"str_photo\": null,\n    \"ktp_photo\": null\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1621,6 +1783,15 @@
                                                 "nurse",
                                                 "login"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"email\": \"nurse@medic-app.test\",\n    \"password\": \"password123\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1661,6 +1832,15 @@
                                                 "apotik",
                                                 "login"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"email\": \"apotik@medic-app.test\",\n    \"password\": \"password123\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -1696,6 +1876,15 @@
                                                 "apotik",
                                                 "register"
                                             ]
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"pharmacy_name\": \"Apotik Sehat Sentosa\",\n    \"license_number\": \"APTK-2026-0001\",\n    \"work_location\": \"Jl. Gajah Mada No. 10, Jember\",\n    \"latitude\": -8.1702,\n    \"longitude\": 113.7024,\n    \"opening_time\": \"08:00\",\n    \"closing_time\": \"21:00\",\n    \"bio\": \"Melayani resep dan obat non resep.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -1780,6 +1969,15 @@
                                                 "products"
                                             ]
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"sku\": \"OBT-PAR-500\",\n    \"name\": \"Paracetamol 500mg\",\n    \"type\": \"obat\",\n    \"category\": \"Analgesik\",\n    \"description\": \"Obat penurun demam dan pereda nyeri.\",\n    \"price\": 15000,\n    \"stock\": 25,\n    \"minimum_stock_alert\": 5,\n    \"track_stock\": true,\n    \"requires_prescription\": false,\n    \"is_active\": true,\n    \"image\": \"products/paracetamol-500.jpg\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -1862,6 +2060,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"name\": \"Paracetamol 500mg Strip\",\n    \"type\": \"obat\",\n    \"category\": \"Analgesik\",\n    \"description\": \"Update nama dan deskripsi produk.\",\n    \"price\": 17000,\n    \"minimum_stock_alert\": 7,\n    \"track_stock\": true,\n    \"requires_prescription\": false,\n    \"is_active\": true,\n    \"image\": \"products/paracetamol-500-new.jpg\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -1906,6 +2113,15 @@
                                                         "stock"
                                                     ],
                                                     "variable": []
+                                                },
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n    \"stock\": 40,\n    \"minimum_stock_alert\": 5,\n    \"track_stock\": true,\n    \"is_active\": true\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "language": "json"
+                                                        }
+                                                    }
                                                 },
                                                 "auth": {
                                                     "type": "bearer",
@@ -2033,6 +2249,15 @@
                                         "profile"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"specialization\": \"Dokter Umum\",\n    \"license_number\": \"SIP-MITRA-2026-0002\",\n    \"work_location\": \"Jember, Jawa Timur\",\n    \"latitude\": -8.1724,\n    \"longitude\": 113.7008,\n    \"years_of_experience\": 6,\n    \"consultation_fee\": 80000,\n    \"bio\": \"Update profil mitra aktif.\",\n    \"is_available\": true,\n    \"str_photo\": null,\n    \"ktp_photo\": null\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -2114,6 +2339,15 @@
                                         "service-applications"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"service_id\": 1,\n    \"custom_price\": 120000,\n    \"coverage_radius_km\": 10,\n    \"notes\": \"Siap melayani area kota Jember.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -2153,6 +2387,15 @@
                                         ":partnerService"
                                     ],
                                     "variable": []
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"custom_price\": 135000,\n    \"coverage_radius_km\": 12,\n    \"is_active\": true,\n    \"notes\": \"Update tarif layanan terbaru.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 },
                                 "auth": {
                                     "type": "bearer",
@@ -2249,6 +2492,226 @@
                             }
                         },
                         {
+                            "name": "accept",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/service-bookings/{serviceBooking}/accept",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/service-bookings/:serviceBooking/accept",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "service-bookings",
+                                                ":serviceBooking",
+                                                "accept"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"notes\": \"Pesanan diterima dan mitra siap menangani pasien.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "start-journey",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/service-bookings/{serviceBooking}/start-journey",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/service-bookings/:serviceBooking/start-journey",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "service-bookings",
+                                                ":serviceBooking",
+                                                "start-journey"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"notes\": \"Mitra berangkat dari lokasi praktik menuju rumah pasien.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "histories",
+                            "item": [
+                                {
+                                    "name": "[POST] api/mitra/service-bookings/{serviceBooking}/histories",
+                                    "request": {
+                                        "method": "POST",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/service-bookings/:serviceBooking/histories",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "service-bookings",
+                                                ":serviceBooking",
+                                                "histories"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"title\": \"Pemasangan infus\",\n    \"description\": \"Perawat melakukan pemasangan infus dan monitoring awal kondisi pasien.\",\n    \"handled_at\": \"2026-05-15 14:58:21\",\n    \"meta\": {\n        \"vital_signs\": {\n            \"blood_pressure\": \"120/80\",\n            \"temperature\": 36.8\n        },\n        \"materials\": [\n            \"infus set\",\n            \"cairan NaCl\"\n        ]\n    }\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "name": "complete",
+                            "item": [
+                                {
+                                    "name": "[PATCH] api/mitra/service-bookings/{serviceBooking}/complete",
+                                    "request": {
+                                        "method": "PATCH",
+                                        "header": [
+                                            {
+                                                "key": "Accept",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            },
+                                            {
+                                                "key": "Content-Type",
+                                                "value": "application/json",
+                                                "type": "text"
+                                            }
+                                        ],
+                                        "url": {
+                                            "raw": "{{base_url}}/api/mitra/service-bookings/:serviceBooking/complete",
+                                            "host": [
+                                                "{{base_url}}"
+                                            ],
+                                            "path": [
+                                                "api",
+                                                "mitra",
+                                                "service-bookings",
+                                                ":serviceBooking",
+                                                "complete"
+                                            ],
+                                            "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"notes\": \"Layanan homecare telah selesai.\",\n    \"summary\": \"Infus terpasang dengan baik, pasien stabil, keluarga sudah diberi edukasi perawatan.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
+                                        "auth": {
+                                            "type": "bearer",
+                                            "bearer": [
+                                                {
+                                                    "key": "token",
+                                                    "value": "{{auth_token}}"
+                                                }
+                                            ]
+                                        }
+                                    }
+                                }
+                            ]
+                        },
+                        {
                             "name": "status",
                             "item": [
                                 {
@@ -2280,6 +2743,15 @@
                                                 "status"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"status\": \"on_the_way\",\n    \"scheduled_at\": \"2026-05-16 14:58:21\",\n    \"notes\": \"Mitra sedang menuju lokasi pasien.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -2410,6 +2882,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"status\": \"ongoing\",\n    \"diagnosis\": \"Pasien perlu istirahat dan minum obat teratur.\",\n    \"notes\": \"Kontrol kembali bila gejala berlanjut.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -2455,6 +2936,15 @@
                                                 "messages"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"message_type\": \"text\",\n    \"message\": \"Baik, silakan minum obat sesuai aturan.\",\n    \"attachment_path\": null\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -2585,6 +3075,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"courier_user_id\": 4\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -2630,6 +3129,15 @@
                                                 "status"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"status\": \"on_delivery\",\n    \"title\": \"Pesanan sedang diantar\",\n    \"description\": \"Kurir sedang menuju alamat pasien.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -2680,6 +3188,15 @@
                                         "admin",
                                         "login"
                                     ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"email\": \"admin@medic-app.test\",\n    \"password\": \"password123\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -3669,6 +4186,15 @@
                                                     ],
                                                     "variable": []
                                                 },
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n    \"amount\": 50000,\n    \"reference_type\": \"order\",\n    \"reference_id\": 1,\n    \"description\": \"Refund pembayaran order.\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "language": "json"
+                                                        }
+                                                    }
+                                                },
                                                 "auth": {
                                                     "type": "bearer",
                                                     "bearer": [
@@ -3715,6 +4241,15 @@
                                                         "adjust"
                                                     ],
                                                     "variable": []
+                                                },
+                                                "body": {
+                                                    "mode": "raw",
+                                                    "raw": "{\n    \"amount\": 25000,\n    \"description\": \"Penyesuaian saldo oleh admin.\"\n}",
+                                                    "options": {
+                                                        "raw": {
+                                                            "language": "json"
+                                                        }
+                                                    }
                                                 },
                                                 "auth": {
                                                     "type": "bearer",
@@ -3841,6 +4376,15 @@
                                         "service-markup"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"service_id\": 1,\n    \"markup_type\": \"percentage\",\n    \"markup_value\": 10,\n    \"min_final_price\": 50000,\n    \"priority\": 1,\n    \"notes\": \"Markup layanan aktif.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -3880,6 +4424,15 @@
                                         ":serviceMarkupSetting"
                                     ],
                                     "variable": []
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"markup_type\": \"fixed\",\n    \"markup_value\": 15000,\n    \"min_final_price\": 50000,\n    \"is_active\": true,\n    \"priority\": 2,\n    \"notes\": \"Update markup layanan.\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 },
                                 "auth": {
                                     "type": "bearer",
@@ -3964,6 +4517,15 @@
                                                 "toggle-status"
                                             ],
                                             "variable": []
+                                        },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"is_active\": true\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
                                         },
                                         "auth": {
                                             "type": "bearer",
@@ -4088,6 +4650,15 @@
                                         "promo-codes"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": \"SEHAT10\",\n    \"name\": \"Diskon Sehat 10%\",\n    \"description\": \"Promo layanan kesehatan.\",\n    \"discount_type\": \"percentage\",\n    \"discount_value\": 10,\n    \"min_purchase\": 50000,\n    \"max_discount\": 25000,\n    \"max_uses\": 100,\n    \"max_uses_per_user\": 1,\n    \"valid_from\": \"2026-05-15\",\n    \"valid_until\": \"2026-06-15\",\n    \"service_id\": 1\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -4127,6 +4698,15 @@
                                         ":promoCode"
                                     ],
                                     "variable": []
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"code\": \"SEHAT15\",\n    \"name\": \"Diskon Sehat 15%\",\n    \"description\": \"Update promo layanan kesehatan.\",\n    \"discount_type\": \"percentage\",\n    \"discount_value\": 15,\n    \"min_purchase\": 75000,\n    \"max_discount\": 30000,\n    \"max_uses\": 100,\n    \"max_uses_per_user\": 1,\n    \"valid_from\": \"2026-05-15\",\n    \"valid_until\": \"2026-06-15\",\n    \"service_id\": 1,\n    \"is_active\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 },
                                 "auth": {
                                     "type": "bearer",
@@ -4212,6 +4792,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"is_active\": true\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -4257,6 +4846,15 @@
                                         "services"
                                     ]
                                 },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Homecare Dokter Umum\",\n    \"service_type\": \"dokter_homecare\",\n    \"category\": \"Homecare\",\n    \"description\": \"Layanan kunjungan dokter ke rumah.\",\n    \"base_price\": 150000,\n    \"duration_minutes\": 60,\n    \"is_active\": true,\n    \"is_homecare\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
                                 "auth": {
                                     "type": "bearer",
                                     "bearer": [
@@ -4296,6 +4894,15 @@
                                         ":service"
                                     ],
                                     "variable": []
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"name\": \"Homecare Dokter Umum Premium\",\n    \"service_type\": \"dokter_homecare\",\n    \"category\": \"Homecare\",\n    \"description\": \"Update layanan homecare dokter.\",\n    \"base_price\": 175000,\n    \"duration_minutes\": 75,\n    \"is_active\": true,\n    \"is_homecare\": true\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 },
                                 "auth": {
                                     "type": "bearer",
@@ -4346,6 +4953,15 @@
                                             ],
                                             "variable": []
                                         },
+                                        "body": {
+                                            "mode": "raw",
+                                            "raw": "{\n    \"is_verified\": true,\n    \"is_active\": true,\n    \"notes\": \"Layanan mitra disetujui admin.\"\n}",
+                                            "options": {
+                                                "raw": {
+                                                    "language": "json"
+                                                }
+                                            }
+                                        },
                                         "auth": {
                                             "type": "bearer",
                                             "bearer": [
@@ -4395,6 +5011,15 @@
                                         "midtrans",
                                         "callback"
                                     ]
+                                },
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"order_id\": \"PAY-KONS-202605150001\",\n    \"status_code\": \"200\",\n    \"gross_amount\": \"100000.00\",\n    \"signature_key\": \"generated-midtrans-signature\",\n    \"transaction_status\": \"settlement\",\n    \"fraud_status\": \"accept\",\n    \"payment_type\": \"bank_transfer\",\n    \"settlement_time\": \"2026-05-15 14:58:21\",\n    \"transaction_time\": \"2026-05-15 14:58:21\"\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -4643,7 +5268,7 @@
     "variable": [
         {
             "key": "base_url",
-            "value": "http://medic-app.test"
+            "value": "http://medic-be-app.test"
         },
         {
             "key": "auth_token",

@@ -23,7 +23,7 @@ class ServiceBookingsController extends Controller
         $perPage = $this->resolvePerPage($request);
 
         $bookings = ServiceBooking::query()
-            ->with(['service', 'patient', 'assignedPartner.partnerProfile', 'address'])
+            ->with(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction'])
             ->when(
                 $validated['status'] ?? null,
                 fn ($query, $status) => $query->where('status', $status)

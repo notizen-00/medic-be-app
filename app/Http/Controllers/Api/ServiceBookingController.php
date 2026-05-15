@@ -4,18 +4,24 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\PatientAddress;
+use App\Models\PartnerService;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Models\ServiceBookingHistory;
 use App\Models\User;
+use App\Services\BalanceService;
 use App\Services\ServicePartnerSelectionService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ServiceBookingController extends Controller
 {
     public function __construct(
-        private readonly ServicePartnerSelectionService $servicePartnerSelectionService
+        private readonly ServicePartnerSelectionService $servicePartnerSelectionService,
+        private readonly BalanceService $balanceService
     ) {
     }
 
@@ -32,7 +38,7 @@ class ServiceBookingController extends Controller
         $perPage = $this->resolvePerPage($request);
 
         $bookings = ServiceBooking::query()
-            ->with(['service', 'patient', 'assignedPartner.partnerProfile', 'address'])
+            ->with(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor'])
             ->when(
                 $validated['patient_user_id'] ?? null,
                 fn ($query, $patientId) => $query->where('patient_user_id', $patientId)
@@ -106,7 +112,7 @@ class ServiceBookingController extends Controller
             'notes' => $validated['notes'] ?? null,
         ]);
 
-        $booking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address']);
+        $booking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
 
         return response()->json([
             'message' => 'Booking layanan berhasil dibuat.',
@@ -116,7 +122,7 @@ class ServiceBookingController extends Controller
 
     public function show(ServiceBooking $serviceBooking): JsonResponse
     {
-        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address']);
+        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction']);
 
         return response()->json([
             'message' => 'Detail booking layanan berhasil diambil.',
@@ -149,10 +155,198 @@ class ServiceBookingController extends Controller
         }
 
         $serviceBooking->update($payload);
-        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address']);
+        $this->recordHistory(
+            $serviceBooking,
+            $request->user(),
+            'status',
+            'Status booking diperbarui',
+            $validated['notes'] ?? null,
+            ['status' => $validated['status']]
+        );
+
+        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
 
         return response()->json([
             'message' => 'Status booking layanan berhasil diperbarui.',
+            'data' => $serviceBooking,
+        ]);
+    }
+
+    public function accept(Request $request, ServiceBooking $serviceBooking): JsonResponse
+    {
+        $partner = $this->resolveAuthenticatedMedicalPartner($request);
+        $this->ensurePartnerCanHandleBooking($partner, $serviceBooking);
+
+        if (! in_array($serviceBooking->status, ['pending', 'scheduled'], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Booking hanya dapat diterima saat status pending atau scheduled.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $serviceBooking->update([
+            'assigned_partner_user_id' => $serviceBooking->assigned_partner_user_id ?? $partner->id,
+            'status' => 'confirmed',
+            'accepted_at' => $serviceBooking->accepted_at ?? now(),
+            'notes' => $validated['notes'] ?? $serviceBooking->notes,
+        ]);
+
+        $this->recordHistory(
+            $serviceBooking,
+            $partner,
+            'status',
+            'Pesanan diterima mitra',
+            $validated['notes'] ?? 'Mitra menerima pesanan layanan pasien.',
+            ['status' => 'confirmed']
+        );
+
+        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
+
+        return response()->json([
+            'message' => 'Pesanan layanan berhasil diterima.',
+            'data' => $serviceBooking,
+        ]);
+    }
+
+    public function startJourney(Request $request, ServiceBooking $serviceBooking): JsonResponse
+    {
+        $partner = $this->resolveAuthenticatedMedicalPartner($request);
+        $this->ensureAssignedPartner($partner, $serviceBooking);
+
+        if (! in_array($serviceBooking->status, ['confirmed', 'scheduled'], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Mitra hanya dapat berangkat setelah pesanan diterima.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $serviceBooking->update([
+            'status' => 'on_the_way',
+            'started_at' => $serviceBooking->started_at ?? now(),
+            'notes' => $validated['notes'] ?? $serviceBooking->notes,
+        ]);
+
+        $this->recordHistory(
+            $serviceBooking,
+            $partner,
+            'status',
+            'Mitra menuju lokasi pasien',
+            $validated['notes'] ?? 'Mitra sedang dalam perjalanan ke alamat pasien.',
+            ['status' => 'on_the_way']
+        );
+
+        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
+
+        return response()->json([
+            'message' => 'Status perjalanan mitra berhasil diperbarui.',
+            'data' => $serviceBooking,
+        ]);
+    }
+
+    public function addTreatmentHistory(Request $request, ServiceBooking $serviceBooking): JsonResponse
+    {
+        $partner = $this->resolveAuthenticatedMedicalPartner($request);
+        $this->ensureAssignedPartner($partner, $serviceBooking);
+
+        if (! in_array($serviceBooking->status, ['confirmed', 'on_the_way'], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Catatan penanganan hanya dapat ditambahkan sebelum pesanan selesai.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'handled_at' => ['nullable', 'date'],
+            'meta' => ['nullable', 'array'],
+        ]);
+
+        $history = $this->recordHistory(
+            $serviceBooking,
+            $partner,
+            'treatment',
+            $validated['title'],
+            $validated['description'] ?? null,
+            $validated['meta'] ?? null,
+            isset($validated['handled_at']) ? Carbon::parse($validated['handled_at']) : now()
+        );
+
+        $history->load('actor');
+
+        return response()->json([
+            'message' => 'Catatan penanganan berhasil ditambahkan.',
+            'data' => $history,
+        ], 201);
+    }
+
+    public function complete(Request $request, ServiceBooking $serviceBooking): JsonResponse
+    {
+        $partner = $this->resolveAuthenticatedMedicalPartner($request);
+        $this->ensureAssignedPartner($partner, $serviceBooking);
+
+        if (! in_array($serviceBooking->status, ['confirmed', 'on_the_way'], true)) {
+            throw ValidationException::withMessages([
+                'status' => ['Pesanan hanya dapat diselesaikan setelah diterima atau mitra berangkat.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+            'summary' => ['nullable', 'string'],
+        ]);
+
+        $serviceBooking = DB::transaction(function () use ($serviceBooking, $partner, $validated): ServiceBooking {
+            $lockedBooking = ServiceBooking::lockForUpdate()->findOrFail($serviceBooking->id);
+
+            if ($lockedBooking->status === 'completed') {
+                throw ValidationException::withMessages([
+                    'status' => ['Pesanan layanan sudah selesai.'],
+                ]);
+            }
+
+            $lockedBooking->update([
+                'status' => 'completed',
+                'completed_at' => $lockedBooking->completed_at ?? now(),
+                'notes' => $validated['notes'] ?? $lockedBooking->notes,
+            ]);
+
+            $this->recordHistory(
+                $lockedBooking,
+                $partner,
+                'status',
+                'Pesanan layanan selesai',
+                $validated['summary'] ?? 'Mitra menyelesaikan layanan pasien.',
+                ['status' => 'completed']
+            );
+
+            if ((float) $lockedBooking->total_amount > 0 && $lockedBooking->partner_balance_transaction_id === null) {
+                $balance = $this->balanceService->getOrCreateBalance($partner);
+                $transaction = $this->balanceService->credit($balance, (float) $lockedBooking->total_amount, [
+                    'reference_type' => 'service_booking',
+                    'reference_id' => $lockedBooking->id,
+                    'booking_code' => $lockedBooking->booking_code,
+                    'description' => 'Pendapatan layanan '.$lockedBooking->booking_code,
+                ]);
+
+                $lockedBooking->update([
+                    'partner_paid_at' => now(),
+                    'partner_balance_transaction_id' => $transaction->id,
+                ]);
+            }
+
+            return $lockedBooking;
+        });
+
+        $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction']);
+
+        return response()->json([
+            'message' => 'Pesanan layanan berhasil diselesaikan dan saldo mitra diperbarui.',
             'data' => $serviceBooking,
         ]);
     }
@@ -191,5 +385,93 @@ class ServiceBookingController extends Controller
                 'user' => ['Anda tidak memiliki akses untuk memperbarui booking layanan ini.'],
             ]);
         }
+    }
+
+    private function resolveAuthenticatedMedicalPartner(Request $request): User
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if (! $user) {
+            throw ValidationException::withMessages([
+                'user' => ['User login tidak ditemukan.'],
+            ]);
+        }
+
+        $user->loadMissing('partnerProfile');
+
+        if ($user->role !== 'mitra' || ! $user->partnerProfile) {
+            throw ValidationException::withMessages([
+                'user' => ['Endpoint ini hanya dapat diakses oleh mitra layanan kesehatan.'],
+            ]);
+        }
+
+        return $user;
+    }
+
+    private function ensurePartnerCanHandleBooking(User $partner, ServiceBooking $serviceBooking): void
+    {
+        $serviceBooking->loadMissing('service');
+
+        if ($serviceBooking->assigned_partner_user_id !== null && $serviceBooking->assigned_partner_user_id !== $partner->id) {
+            throw ValidationException::withMessages([
+                'service_booking' => ['Booking ini sudah ditugaskan ke mitra lain.'],
+            ]);
+        }
+
+        $allowedServiceTypes = match ($partner->partnerProfile->profession) {
+            'dokter' => ['dokter_homecare', 'konsultasi_tindakan'],
+            'perawat' => ['perawat_homecare', 'konsultasi_tindakan'],
+            'bidan' => ['bidan_homecare', 'konsultasi_tindakan'],
+            default => [],
+        };
+
+        if (! in_array($serviceBooking->service->service_type, $allowedServiceTypes, true)) {
+            throw ValidationException::withMessages([
+                'service_id' => ['Layanan booking ini tidak sesuai dengan profesi mitra.'],
+            ]);
+        }
+
+        $hasActiveService = PartnerService::query()
+            ->where('partner_user_id', $partner->id)
+            ->where('service_id', $serviceBooking->service_id)
+            ->where('is_active', true)
+            ->where('is_verified', true)
+            ->exists();
+
+        if (! $hasActiveService) {
+            throw ValidationException::withMessages([
+                'service_id' => ['Mitra belum memiliki layanan aktif dan terverifikasi untuk booking ini.'],
+            ]);
+        }
+    }
+
+    private function ensureAssignedPartner(User $partner, ServiceBooking $serviceBooking): void
+    {
+        if ($serviceBooking->assigned_partner_user_id !== $partner->id) {
+            throw ValidationException::withMessages([
+                'service_booking' => ['Booking ini bukan milik mitra yang sedang login.'],
+            ]);
+        }
+    }
+
+    private function recordHistory(
+        ServiceBooking $serviceBooking,
+        ?User $actor,
+        string $type,
+        string $title,
+        ?string $description = null,
+        ?array $meta = null,
+        mixed $handledAt = null
+    ): ServiceBookingHistory {
+        return ServiceBookingHistory::create([
+            'service_booking_id' => $serviceBooking->id,
+            'actor_user_id' => $actor?->id,
+            'type' => $type,
+            'title' => $title,
+            'description' => $description,
+            'meta' => $meta,
+            'handled_at' => $handledAt ?? now(),
+        ]);
     }
 }

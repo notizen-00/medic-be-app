@@ -201,7 +201,7 @@ class ServiceBookingController extends Controller
             ], 403);
         }
 
-        $serviceBooking->load(['service', 'address', 'assignedPartner']);
+        $serviceBooking->load(['service', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'partnerBalanceTransaction']);
 
         return response()->json([
             'success' => true,
@@ -217,7 +217,7 @@ class ServiceBookingController extends Controller
         $user = Auth::user();
 
         $query = ServiceBooking::where('patient_user_id', $user->id)
-            ->with(['service', 'address', 'assignedPartner']);
+            ->with(['service', 'address', 'assignedPartner.partnerProfile', 'histories.actor']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
