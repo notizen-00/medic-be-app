@@ -770,6 +770,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Demam dan Nyeri',
                 'description' => 'Obat penurun demam dan pereda nyeri untuk kebutuhan harian.',
                 'price' => 12000,
+                'cost_price' => 8000,
                 'stock' => 150,
                 'minimum_stock_alert' => 20,
                 'track_stock' => true,
@@ -784,6 +785,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Demam dan Nyeri',
                 'description' => 'Obat penurun demam dan pereda nyeri dari apotik pusat kota.',
                 'price' => 12500,
+                'cost_price' => 8500,
                 'stock' => 200,
                 'minimum_stock_alert' => 25,
                 'track_stock' => true,
@@ -798,6 +800,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Antibiotik',
                 'description' => 'Obat antibiotik yang hanya ditebus menggunakan resep dokter.',
                 'price' => 35000,
+                'cost_price' => 25000,
                 'stock' => 80,
                 'minimum_stock_alert' => 15,
                 'track_stock' => true,
@@ -812,6 +815,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Antibiotik',
                 'description' => 'Obat antibiotik resep dari apotik pusat kota.',
                 'price' => 36000,
+                'cost_price' => 26000,
                 'stock' => 50,
                 'minimum_stock_alert' => 10,
                 'track_stock' => true,
@@ -826,6 +830,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Vitamin',
                 'description' => 'Suplemen vitamin C untuk membantu menjaga daya tahan tubuh.',
                 'price' => 28000,
+                'cost_price' => 18000,
                 'stock' => 120,
                 'minimum_stock_alert' => 10,
                 'track_stock' => true,
@@ -840,6 +845,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Vitamin',
                 'description' => 'Suplemen vitamin C dari apotik pusat kota.',
                 'price' => 29000,
+                'cost_price' => 19000,
                 'stock' => 140,
                 'minimum_stock_alert' => 15,
                 'track_stock' => true,
@@ -854,6 +860,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Alat Kesehatan',
                 'description' => 'Termometer digital untuk kebutuhan rumah tangga.',
                 'price' => 55000,
+                'cost_price' => 40000,
                 'stock' => 40,
                 'minimum_stock_alert' => 5,
                 'track_stock' => true,
@@ -868,6 +875,7 @@ class JemberMedicSeeder extends Seeder
                 'category' => 'Perawatan Luka',
                 'description' => 'Salep antiseptik untuk luka ringan dan lecet.',
                 'price' => 22000,
+                'cost_price' => 15000,
                 'stock' => 60,
                 'minimum_stock_alert' => 10,
                 'track_stock' => true,
@@ -1263,8 +1271,10 @@ class JemberMedicSeeder extends Seeder
             [
                 'product_name' => $paracetamol->name,
                 'unit_price' => $paracetamol->price,
+                'unit_cost' => $paracetamol->cost_price,
                 'quantity' => 1,
                 'total_price' => $paracetamol->price,
+                'total_cost' => $paracetamol->cost_price,
             ]
         );
 
@@ -1273,8 +1283,10 @@ class JemberMedicSeeder extends Seeder
             [
                 'product_name' => $amoxicillin->name,
                 'unit_price' => $amoxicillin->price,
+                'unit_cost' => $amoxicillin->cost_price,
                 'quantity' => 1,
                 'total_price' => $amoxicillin->price,
+                'total_cost' => $amoxicillin->cost_price,
             ]
         );
 
@@ -1300,8 +1312,10 @@ class JemberMedicSeeder extends Seeder
             [
                 'product_name' => $vitaminC->name,
                 'unit_price' => $vitaminC->price,
+                'unit_cost' => $vitaminC->cost_price,
                 'quantity' => 1,
                 'total_price' => $vitaminC->price,
+                'total_cost' => $vitaminC->cost_price,
             ]
         );
 
@@ -1310,8 +1324,10 @@ class JemberMedicSeeder extends Seeder
             [
                 'product_name' => 'Termometer Digital',
                 'unit_price' => 55000,
+                'unit_cost' => 40000,
                 'quantity' => 1,
                 'total_price' => 55000,
+                'total_cost' => 40000,
             ]
         );
 
