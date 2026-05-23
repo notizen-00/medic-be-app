@@ -15,6 +15,8 @@ phpMyAdmin: `http://localhost:8082` (host: `db`, user: `medic`, pass: `medic`, a
 
 Service `node` otomatis jalanin `npm ci|npm install` dan `npm run build` (sekali, kalau `public/build/manifest.json` belum ada) sebelum `npm run dev`.
 
+Kalau browser kamu kebuka ke `http://0.0.0.0:5173/...` itu akan error (`ERR_ADDRESS_INVALID`). Pakai `http://localhost:5173` (sudah diforce via `vite.config.js` + `VITE_DEV_SERVER_URL`).
+
 ## First-time setup
 
 Saat container `app` pertama kali jalan, entrypoint akan otomatis:
