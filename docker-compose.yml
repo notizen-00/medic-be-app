@@ -1,0 +1,107 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: medic-app:local
+    container_name: medic-app
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: medic_app
+      DB_USERNAME: medic
+      DB_PASSWORD: medic
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    volumes:
+      - ./:/var/www/html
+      - app_vendor:/var/www/html/vendor
+      - app_node_modules:/var/www/html/node_modules
+      - app_storage:/var/www/html/storage
+    depends_on:
+      - db
+      - redis
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: medic-nginx
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+
+  db:
+    image: mysql:8.4
+    container_name: medic-db
+    environment:
+      MYSQL_DATABASE: medic_app
+      MYSQL_USER: medic
+      MYSQL_PASSWORD: medic
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "33061:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: medic-redis
+    ports:
+      - "63791:6379"
+    volumes:
+      - redis_data:/data
+
+  reverb:
+    image: medic-app:local
+    container_name: medic-reverb
+    working_dir: /var/www/html
+    command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
+    environment:
+      APP_ENV: local
+      BROADCAST_CONNECTION: reverb
+      REVERB_SERVER_HOST: 0.0.0.0
+      REVERB_SERVER_PORT: 8080
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: medic_app
+      DB_USERNAME: medic
+      DB_PASSWORD: medic
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./:/var/www/html
+      - app_vendor:/var/www/html/vendor
+      - app_node_modules:/var/www/html/node_modules
+      - app_storage:/var/www/html/storage
+    depends_on:
+      - app
+      - db
+      - redis
+
+  node:
+    image: node:20-alpine
+    container_name: medic-node
+    working_dir: /var/www/html
+    command: ["sh", "-lc", "npm ci || npm install; npm run dev -- --host 0.0.0.0 --port 5173"]
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./:/var/www/html
+      - app_node_modules:/var/www/html/node_modules
+    depends_on:
+      - app
+
+volumes:
+  app_vendor:
+  app_node_modules:
+  app_storage:
+  db_data:
+  redis_data:
