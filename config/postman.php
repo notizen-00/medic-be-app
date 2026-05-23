@@ -11,7 +11,7 @@ return [
     */
     'name' => env('APP_NAME', 'Laravel API'),
     'description' => env('API_DESCRIPTION', 'API Documentation'),
-    'base_url' => env('APP_URL', 'http://localhost'),
+    'base_url' => "https://backend.perawatku.tech",
 
     /*
     |--------------------------------------------------------------------------

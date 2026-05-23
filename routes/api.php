@@ -10,10 +10,12 @@ use App\Http\Controllers\Api\Admin\PaymentsController as AdminPaymentsController
 use App\Http\Controllers\Api\Admin\PharmaciesController as AdminPharmaciesController;
 use App\Http\Controllers\Api\Admin\PromoCodeController as AdminPromoCodeController;
 use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
+use App\Http\Controllers\Api\Admin\ReportsController as AdminReportsController;
 use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
 use App\Http\Controllers\Api\Admin\ServiceMarkupController as AdminServiceMarkupController;
 use App\Http\Controllers\Api\Admin\ShipmentsController as AdminShipmentsController;
 use App\Http\Controllers\Api\Admin\TransactionsController as AdminTransactionsController;
+use App\Http\Controllers\Api\Admin\JournalsController as AdminJournalsController;
 use App\Http\Controllers\Api\Patient\BalanceController as PatientBalanceController;
 use App\Http\Controllers\Api\Patient\ServiceBookingController as PatientServiceBookingController;
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
@@ -288,6 +290,21 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{promoCode}', 'update');
             Route::delete('/{promoCode}', 'destroy');
             Route::patch('/{promoCode}/toggle-status', 'toggleStatus');
+        });
+
+        // Reports untuk admin
+        Route::prefix('reports')->controller(AdminReportsController::class)->group(function () {
+            Route::get('/orders', 'orders');
+            Route::get('/customers', 'customers');
+            Route::get('/profit-loss', 'profitLoss');
+        });
+
+        // Journals (operasional keuangan) untuk admin
+        Route::prefix('journals')->controller(AdminJournalsController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('/{journalEntry}', 'show');
+            Route::post('/{journalEntry}/post', 'post');
         });
     });
 
