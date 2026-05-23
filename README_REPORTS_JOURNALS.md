@@ -28,7 +28,7 @@ Query params (opsional): `from`, `to`
 Query params (opsional): `from`, `to`
 
 Catatan:
-- Profit orders belum dihitung karena belum ada HPP/COGS per produk.
+- COGS order dihitung dari snapshot di `order_items` (`unit_cost` / `total_cost`) saat checkout.
 - Untuk service booking, `markup_amount` dianggap revenue platform.
 
 ## Journals (Operasional Keuangan)
@@ -62,4 +62,3 @@ Validasi:
 ### Post entry
 
 `POST /api/admin/journals/{journalEntry}/post`
-

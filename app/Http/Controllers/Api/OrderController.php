@@ -87,13 +87,16 @@ class OrderController extends Controller
             ]);
 
             foreach ($selection['items'] as $item) {
+                $unitCost = (string) ($item['product']->cost_price ?? 0);
                 OrderItem::create([
                     'order_id' => $order->id,
                     'product_id' => $item['product']->id,
                     'product_name' => $item['product']->name,
                     'unit_price' => $item['product']->price,
+                    'unit_cost' => $unitCost,
                     'quantity' => $item['quantity'],
                     'total_price' => $item['total_price'],
+                    'total_cost' => bcmul($unitCost, (string) $item['quantity'], 2),
                 ]);
 
                 if ($item['product']->track_stock) {

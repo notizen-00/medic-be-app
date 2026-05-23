@@ -98,7 +98,7 @@ class ReportsController extends Controller
      * Report: profit & loss (basic)
      *
      * Notes:
-     * - Orders don't have COGS yet, so this report treats orders as "revenue" only.
+     * - Orders COGS is calculated from order_items cost snapshot (unit_cost/total_cost).
      * - Service bookings include markup_amount & discount_amount; we treat markup_amount as "platform revenue".
      */
     public function profitLoss(Request $request)
@@ -125,6 +125,20 @@ class ReportsController extends Controller
         }
 
         $ordersRevenue = (float) ($orders->sum('total_amount') ?? 0);
+        $ordersSubtotal = (float) ($orders->sum('subtotal') ?? 0);
+        $ordersShipping = (float) ($orders->sum('shipping_cost') ?? 0);
+
+        $ordersCogsQuery = DB::table('order_items')
+            ->join('orders', 'orders.id', '=', 'order_items.order_id')
+            ->where('orders.status', 'delivered');
+        if (!empty($validated['from'])) {
+            $ordersCogsQuery->whereDate('orders.ordered_at', '>=', $validated['from']);
+        }
+        if (!empty($validated['to'])) {
+            $ordersCogsQuery->whereDate('orders.ordered_at', '<=', $validated['to']);
+        }
+        $ordersCogs = (float) ($ordersCogsQuery->sum('order_items.total_cost') ?? 0);
+
         $servicesRevenue = (float) ($serviceBookings->sum('total_amount') ?? 0);
         $servicesMarkup = (float) ($serviceBookings->sum('markup_amount') ?? 0);
         $servicesDiscount = (float) ($serviceBookings->sum('discount_amount') ?? 0);
@@ -135,9 +149,17 @@ class ReportsController extends Controller
                 'to' => $validated['to'] ?? null,
             ],
             'revenue' => [
-                'orders' => $ordersRevenue,
+                'orders_total' => $ordersRevenue,
+                'orders_subtotal' => $ordersSubtotal,
+                'orders_shipping' => $ordersShipping,
                 'services' => $servicesRevenue,
                 'total' => $ordersRevenue + $servicesRevenue,
+            ],
+            'cogs' => [
+                'orders' => $ordersCogs,
+            ],
+            'profit' => [
+                'orders_gross_profit' => $ordersRevenue - $ordersCogs,
             ],
             'platform' => [
                 'service_markup_gross' => $servicesMarkup,
@@ -145,9 +167,8 @@ class ReportsController extends Controller
                 'service_markup_net' => $servicesMarkup - $servicesDiscount,
             ],
             'notes' => [
-                'orders_profit' => 'Belum bisa dihitung tanpa HPP/COGS per produk.',
+                'orders_profit' => 'Order gross profit = total_amount - total_cost (biaya real pengiriman belum dicatat).',
             ],
         ]);
     }
 }
-
