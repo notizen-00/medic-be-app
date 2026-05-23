@@ -13,6 +13,8 @@ Vite dev server (optional): `http://localhost:5173`
 
 phpMyAdmin: `http://localhost:8082` (host: `db`, user: `medic`, pass: `medic`, atau root/root)
 
+Service `node` otomatis jalanin `npm ci|npm install` dan `npm run build` (sekali, kalau `public/build/manifest.json` belum ada) sebelum `npm run dev`.
+
 ## First-time setup
 
 Saat container `app` pertama kali jalan, entrypoint akan otomatis:
