@@ -13,10 +13,14 @@ Vite dev server (optional): `http://localhost:5173`
 
 ## First-time setup
 
-```bash
-docker compose exec app php artisan migrate
-docker compose exec app php artisan db:seed
-```
+Saat container `app` pertama kali jalan, entrypoint akan otomatis:
+- `composer install`
+- `php artisan key:generate`
+- `php artisan storage:link`
+- `php artisan migrate:fresh --seed`
+- clear cache (`config/cache/view`)
+
+Kalau kamu tidak mau auto-reset database, set `DOCKER_RUN_MIGRATIONS=false` di service `app` dan `reverb` pada `docker-compose.yml`.
 
 ## Reverb (WebSocket)
 

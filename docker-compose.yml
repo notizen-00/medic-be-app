@@ -7,6 +7,7 @@ services:
     container_name: medic-app
     environment:
       APP_ENV: local
+      DOCKER_RUN_MIGRATIONS: "true"
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: 3306
@@ -57,12 +58,16 @@ services:
       - redis_data:/data
 
   reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: medic-app:local
     container_name: medic-reverb
     working_dir: /var/www/html
     command: ["php", "artisan", "reverb:start", "--host=0.0.0.0", "--port=8080"]
     environment:
       APP_ENV: local
+      DOCKER_RUN_MIGRATIONS: "false"
       BROADCAST_CONNECTION: reverb
       REVERB_SERVER_HOST: 0.0.0.0
       REVERB_SERVER_PORT: 8080
