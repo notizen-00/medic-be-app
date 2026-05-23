@@ -11,6 +11,8 @@ App URL: `http://localhost:8081`
 
 Vite dev server (optional): `http://localhost:5173`
 
+phpMyAdmin: `http://localhost:8082` (host: `db`, user: `medic`, pass: `medic`, atau root/root)
+
 ## First-time setup
 
 Saat container `app` pertama kali jalan, entrypoint akan otomatis:

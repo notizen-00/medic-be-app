@@ -57,6 +57,18 @@ services:
     volumes:
       - redis_data:/data
 
+  phpmyadmin:
+    image: phpmyadmin:5-apache
+    container_name: medic-phpmyadmin
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 3306
+      PMA_ARBITRARY: 1
+    ports:
+      - "8082:80"
+    depends_on:
+      - db
+
   reverb:
     build:
       context: .
