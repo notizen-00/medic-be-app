@@ -205,9 +205,10 @@
                 </select>
             </div>
 
-            <button id="login-button" type="submit">Login dan Listen</button>
+        <button id="login-button" type="submit">Login dan Listen</button>
         </form>
 
+        <button id="raw-test-button" class="secondary" type="button">Test Raw WS</button>
         <button id="disconnect-button" class="secondary" type="button" disabled>Disconnect</button>
     </section>
 
@@ -235,9 +236,11 @@
     const profileEl = document.querySelector('#profile');
     const bookingsEl = document.querySelector('#bookings');
     const logEl = document.querySelector('#log');
+    const rawTestButton = document.querySelector('#raw-test-button');
     const debugWebSocketProbe = new URLSearchParams(window.location.search).get('debug_ws') === '1';
 
     let pusher = null;
+    let rawTestSocket = null;
     let token = null;
     let user = null;
 
@@ -323,6 +326,7 @@
         }
 
         Pusher.logToConsole = debugWebSocketProbe;
+        Pusher.log = (message) => writeLog('Pusher log.', message);
 
         try {
             pusher = new Pusher(reverbKey, {
@@ -331,6 +335,7 @@
                 wsHost: host,
                 wsPort: port,
                 wssPort: port,
+                wsPath: '/app',
                 forceTLS: useTls,
                 enabledTransports: useTls ? ['wss'] : ['ws'],
                 disableStats: true,
@@ -359,6 +364,7 @@
             setStatus('connected', true);
             writeLog('Reverb connected.', {
                 socket_id: pusher.connection.socket_id,
+                state: pusher.connection.state,
             });
         });
 
@@ -404,6 +410,11 @@
     }
 
     function disconnect() {
+        if (rawTestSocket) {
+            rawTestSocket.close();
+            rawTestSocket = null;
+        }
+
         if (pusher) {
             pusher.disconnect();
             pusher = null;
@@ -411,6 +422,49 @@
 
         disconnectButton.disabled = true;
         setStatus('Idle', false);
+    }
+
+    function rawTestConnect() {
+        const host = document.querySelector('#ws-host').value.trim();
+        const port = Number(document.querySelector('#ws-port').value.trim());
+        const scheme = document.querySelector('#ws-scheme').value;
+        const protocol = scheme === 'https' ? 'wss' : 'ws';
+        const url = `${protocol}://${host}:${port}/app/${reverbKey}?protocol=7&client=raw-test&version=1.0&flash=false`;
+
+        if (rawTestSocket) {
+            rawTestSocket.close();
+            rawTestSocket = null;
+        }
+
+        writeLog('Raw WebSocket test connecting.', { url });
+
+        try {
+            rawTestSocket = new WebSocket(url);
+        } catch (error) {
+            writeLog('Raw WebSocket test failed to start.', error);
+            return;
+        }
+
+        rawTestSocket.addEventListener('open', () => {
+            writeLog('Raw WebSocket test connected.');
+        });
+
+        rawTestSocket.addEventListener('message', (event) => {
+            writeLog('Raw WebSocket test message.', event.data);
+        });
+
+        rawTestSocket.addEventListener('error', () => {
+            writeLog('Raw WebSocket test error.');
+        });
+
+        rawTestSocket.addEventListener('close', (event) => {
+            writeLog('Raw WebSocket test closed.', {
+                code: event.code,
+                reason: event.reason || null,
+                wasClean: event.wasClean,
+            });
+            rawTestSocket = null;
+        });
     }
 
     form.addEventListener('submit', async (event) => {
@@ -452,6 +506,7 @@
     });
 
     disconnectButton.addEventListener('click', disconnect);
+    rawTestButton.addEventListener('click', rawTestConnect);
 </script>
 </body>
 </html>
