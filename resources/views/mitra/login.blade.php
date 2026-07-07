@@ -238,7 +238,6 @@
     const debugWebSocketProbe = new URLSearchParams(window.location.search).get('debug_ws') === '1';
 
     let pusher = null;
-    let probeSocket = null;
     let token = null;
     let user = null;
 
@@ -317,15 +316,13 @@
             scheme: wsProtocol,
         });
 
-        if (debugWebSocketProbe) {
-            probeWebSocket(wsUrl);
-        }
-
         if (typeof Pusher === 'undefined') {
             setStatus('Pusher missing', false);
             writeLog('Pusher JS belum ter-load. Cek koneksi browser ke CDN js.pusher.com.');
             return;
         }
+
+        Pusher.logToConsole = debugWebSocketProbe;
 
         try {
             pusher = new Pusher(reverbKey, {
@@ -358,38 +355,43 @@
             writeLog(`Connection: ${states.previous} -> ${states.current}`);
         });
 
-        pusher.connection.bind('error', (error) => {
-            writeLog('Connection error.', error);
-        });
-
         pusher.connection.bind('connected', () => {
             setStatus('connected', true);
-            writeLog('WebSocket connected.');
+            writeLog('Reverb connected.', {
+                socket_id: pusher.connection.socket_id,
+            });
         });
 
-        pusher.connection.bind('unavailable', () => {
-            setStatus('unavailable', false);
-            writeLog('WebSocket unavailable. Check Reverb server and proxy /app/ upgrade config.');
+        pusher.connection.bind('error', (error) => {
+            setStatus('error', false);
+            writeLog('Connection error.', error);
         });
 
         pusher.connection.bind('failed', () => {
             setStatus('failed', false);
-            writeLog('WebSocket failed. The browser could not establish a connection to Reverb.');
+            writeLog('Connection failed.');
+        });
+
+        pusher.connection.bind('unavailable', () => {
+            setStatus('unavailable', false);
+            writeLog('Connection unavailable.');
         });
 
         pusher.connection.bind('disconnected', () => {
             setStatus('disconnected', false);
-            writeLog('WebSocket disconnected.');
+            writeLog('Reverb disconnected.');
         });
 
         const channelName = `private-partner.${user.id}.service-bookings`;
         const channel = pusher.subscribe(channelName);
 
         channel.bind('pusher:subscription_succeeded', () => {
+            setStatus('subscribed', true);
             writeLog(`Subscribed to ${channelName}.`);
         });
 
         channel.bind('pusher:subscription_error', (error) => {
+            setStatus('auth failed', false);
             writeLog('Subscription failed.', error);
         });
 
@@ -402,48 +404,13 @@
     }
 
     function disconnect() {
-        if (probeSocket) {
-            probeSocket.close();
-            probeSocket = null;
-        }
-
         if (pusher) {
             pusher.disconnect();
             pusher = null;
         }
+
         disconnectButton.disabled = true;
         setStatus('Idle', false);
-    }
-
-    function probeWebSocket(url) {
-        try {
-            probeSocket = new WebSocket(url);
-        } catch (error) {
-            writeLog('Native WebSocket probe could not start.', error);
-            return;
-        }
-
-        probeSocket.addEventListener('open', () => {
-            writeLog('Native WebSocket probe connected. Proxy/TLS path is reachable.');
-            probeSocket.close();
-        });
-
-        probeSocket.addEventListener('message', (event) => {
-            writeLog('Native WebSocket probe received message.', event.data);
-        });
-
-        probeSocket.addEventListener('error', () => {
-            writeLog('Native WebSocket probe error. Check browser Network tab for the ws request and server/proxy logs.');
-        });
-
-        probeSocket.addEventListener('close', (event) => {
-            writeLog('Native WebSocket probe closed.', {
-                code: event.code,
-                reason: event.reason || null,
-                wasClean: event.wasClean,
-            });
-            probeSocket = null;
-        });
     }
 
     form.addEventListener('submit', async (event) => {
