@@ -11,7 +11,10 @@ if [ ! -f "vendor/autoload.php" ]; then
   composer install --no-interaction --prefer-dist
 fi
 
-php artisan key:generate --ansi --force >/dev/null 2>&1 || true
+if [ -z "${APP_KEY:-}" ] && [ -f ".env" ]; then
+  # If .env exists but key is missing, generate it before bootstrapping anything else.
+  php artisan key:generate --ansi --force >/dev/null 2>&1 || true
+fi
 
 mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions || true
 chmod -R 775 storage bootstrap/cache >/dev/null 2>&1 || true

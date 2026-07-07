@@ -11,8 +11,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'product_id',
     'product_name',
     'unit_price',
+    'unit_cost',
     'quantity',
     'total_price',
+    'total_cost',
 ])]
 class OrderItem extends Model
 {
@@ -20,7 +22,9 @@ class OrderItem extends Model
     {
         return [
             'unit_price' => 'decimal:2',
+            'unit_cost' => 'decimal:2',
             'total_price' => 'decimal:2',
+            'total_cost' => 'decimal:2',
         ];
     }
 

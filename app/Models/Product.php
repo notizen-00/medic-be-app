@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'category',
     'description',
     'price',
+    'cost_price',
     'stock',
     'minimum_stock_alert',
     'track_stock',
@@ -28,6 +29,7 @@ class Product extends Model
     {
         return [
             'price' => 'decimal:2',
+            'cost_price' => 'decimal:2',
             'track_stock' => 'boolean',
             'requires_prescription' => 'boolean',
             'is_active' => 'boolean',
