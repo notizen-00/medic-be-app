@@ -348,6 +348,24 @@
                         'X-Requested-With': 'XMLHttpRequest',
                     },
                 },
+                channelAuthorization: {
+                    endpoint: '/api/broadcasting/auth',
+                    transport: 'ajax',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    customHandler: ({ socketId, channelName }, callback) => {
+                        authorizeChannel(socketId, channelName, callback);
+                    },
+                },
+                authorizer: (channel) => ({
+                    authorize: (socketId, callback) => {
+                        authorizeChannel(socketId, channel.name, callback);
+                    },
+                }),
             });
         } catch (error) {
             setStatus('Connect failed', false);
@@ -407,6 +425,42 @@
         });
 
         disconnectButton.disabled = false;
+    }
+
+    async function authorizeChannel(socketId, channelName, callback) {
+        writeLog('Authorizing private channel.', {
+            socket_id: socketId,
+            channel_name: channelName,
+        });
+
+        try {
+            const response = await fetch('/api/broadcasting/auth', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    socket_id: socketId,
+                    channel_name: channelName,
+                }),
+            });
+            const payload = await response.json();
+
+            if (!response.ok) {
+                throw payload;
+            }
+
+            writeLog('Private channel authorized.', payload);
+            callback(null, payload);
+        } catch (error) {
+            setStatus('auth failed', false);
+            writeLog('Private channel authorization failed.', error);
+            callback(error, null);
+        }
     }
 
     function disconnect() {
