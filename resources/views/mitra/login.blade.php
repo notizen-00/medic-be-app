@@ -235,6 +235,7 @@
     const profileEl = document.querySelector('#profile');
     const bookingsEl = document.querySelector('#bookings');
     const logEl = document.querySelector('#log');
+    const debugWebSocketProbe = new URLSearchParams(window.location.search).get('debug_ws') === '1';
 
     let pusher = null;
     let probeSocket = null;
@@ -316,7 +317,9 @@
             scheme: wsProtocol,
         });
 
-        probeWebSocket(wsUrl);
+        if (debugWebSocketProbe) {
+            probeWebSocket(wsUrl);
+        }
 
         if (typeof Pusher === 'undefined') {
             setStatus('Pusher missing', false);
