@@ -9,17 +9,20 @@ use App\Models\Payment;
 use App\Models\PartnerProfile;
 use App\Models\User;
 use App\Services\MidtransService;
+use App\Services\AppNotificationService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 use Illuminate\Validation\ValidationException;
 
 class ConsultationController extends Controller
 {
     public function __construct(
-        private readonly MidtransService $midtransService
+        private readonly MidtransService $midtransService,
+        private readonly AppNotificationService $notifications
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -101,6 +104,22 @@ class ConsultationController extends Controller
         });
 
         $consultation->load(['patient', 'partner.partnerProfile', 'payment']);
+
+        $this->notifications->send($consultation->partner_user_id, [
+            'type' => 'consultation.created',
+            'title' => 'Konsultasi baru',
+            'body' => $user->name.' membuat konsultasi baru.',
+            'action_url' => '/mitra/consultations/'.$consultation->id,
+            'reference_type' => 'consultation',
+            'reference_id' => $consultation->id,
+            'data' => [
+                'consultation_id' => $consultation->id,
+                'consultation_code' => $consultation->consultation_code,
+                'patient_user_id' => $consultation->patient_user_id,
+                'partner_user_id' => $consultation->partner_user_id,
+                'status' => $consultation->status,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Konsultasi berhasil dibuat. Silakan selesaikan pembayaran sebelum membuka sesi chat.',
@@ -211,6 +230,21 @@ class ConsultationController extends Controller
         $consultation->update($payload);
         $consultation->load(['patient', 'partner.partnerProfile']);
 
+        if ($consultation->partner_user_id) {
+            $this->notifications->send($consultation->partner_user_id, [
+                'type' => 'consultation.status_updated',
+                'title' => 'Status konsultasi diperbarui',
+                'body' => 'Pasien memperbarui status konsultasi menjadi '.$consultation->status.'.',
+                'action_url' => '/mitra/consultations/'.$consultation->id,
+                'reference_type' => 'consultation',
+                'reference_id' => $consultation->id,
+                'data' => [
+                    'consultation_id' => $consultation->id,
+                    'status' => $consultation->status,
+                ],
+            ]);
+        }
+
         return response()->json([
             'message' => 'Status konsultasi berhasil diperbarui.',
             'data' => $consultation,
@@ -235,6 +269,20 @@ class ConsultationController extends Controller
         ]);
 
         $message->load('sender');
+
+        $this->notifications->send($consultation->partner_user_id, [
+            'type' => 'consultation.message_created',
+            'title' => 'Pesan konsultasi baru',
+            'body' => $user->name.': '.Str::limit($message->message ?? 'Mengirim lampiran', 120),
+            'action_url' => '/mitra/consultations/'.$consultation->id,
+            'reference_type' => 'consultation',
+            'reference_id' => $consultation->id,
+            'data' => [
+                'consultation_id' => $consultation->id,
+                'message_id' => $message->id,
+                'sender_user_id' => $user->id,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Pesan konsultasi berhasil dikirim.',

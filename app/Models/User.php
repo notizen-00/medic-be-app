@@ -164,4 +164,9 @@ class User extends Authenticatable
     {
         return $this->hasOne(UserBalance::class);
     }
+
+    public function appNotifications(): HasMany
+    {
+        return $this->hasMany(AppNotification::class);
+    }
 }

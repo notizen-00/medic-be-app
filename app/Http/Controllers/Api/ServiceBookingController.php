@@ -11,6 +11,7 @@ use App\Models\ServiceBooking;
 use App\Models\ServiceBookingHistory;
 use App\Models\User;
 use App\Services\BalanceService;
+use App\Services\AppNotificationService;
 use App\Services\ServicePartnerSelectionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -22,7 +23,8 @@ class ServiceBookingController extends Controller
 {
     public function __construct(
         private readonly ServicePartnerSelectionService $servicePartnerSelectionService,
-        private readonly BalanceService $balanceService
+        private readonly BalanceService $balanceService,
+        private readonly AppNotificationService $notifications
     ) {
     }
 
@@ -126,6 +128,22 @@ class ServiceBookingController extends Controller
         ];
 
         ServiceBookingMatched::dispatch($booking, $matchmaking);
+        $this->notifications->send($booking->assigned_partner_user_id, [
+            'type' => 'service_booking.matched',
+            'title' => 'Pesanan layanan baru',
+            'body' => 'Ada pesanan layanan baru yang cocok untuk Anda.',
+            'action_url' => '/mitra/service-bookings/'.$booking->id,
+            'reference_type' => 'service_booking',
+            'reference_id' => $booking->id,
+            'data' => [
+                'service_booking_id' => $booking->id,
+                'booking_code' => $booking->booking_code,
+                'patient_user_id' => $booking->patient_user_id,
+                'assigned_partner_user_id' => $booking->assigned_partner_user_id,
+                'status' => $booking->status,
+                'matchmaking' => $matchmaking,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Booking layanan berhasil dibuat.',
@@ -180,6 +198,29 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
 
+        $actor = $request->user();
+        $notificationTargetId = $actor?->id === $serviceBooking->patient_user_id
+            ? $serviceBooking->assigned_partner_user_id
+            : $serviceBooking->patient_user_id;
+
+        if ($notificationTargetId) {
+            $this->notifications->send($notificationTargetId, [
+                'type' => 'service_booking.status_updated',
+                'title' => 'Status layanan diperbarui',
+                'body' => ($actor?->name ?? 'User').' memperbarui status pesanan layanan menjadi '.$serviceBooking->status.'.',
+                'action_url' => $notificationTargetId === $serviceBooking->patient_user_id
+                    ? '/patient/service-bookings/'.$serviceBooking->id
+                    : '/mitra/service-bookings/'.$serviceBooking->id,
+                'reference_type' => 'service_booking',
+                'reference_id' => $serviceBooking->id,
+                'data' => [
+                    'service_booking_id' => $serviceBooking->id,
+                    'booking_code' => $serviceBooking->booking_code,
+                    'status' => $serviceBooking->status,
+                ],
+            ]);
+        }
+
         return response()->json([
             'message' => 'Status booking layanan berhasil diperbarui.',
             'data' => $serviceBooking,
@@ -219,6 +260,21 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
 
+        $this->notifications->send($serviceBooking->patient_user_id, [
+            'type' => 'service_booking.accepted',
+            'title' => 'Pesanan layanan diterima',
+            'body' => $partner->name.' menerima pesanan layanan Anda.',
+            'action_url' => '/patient/service-bookings/'.$serviceBooking->id,
+            'reference_type' => 'service_booking',
+            'reference_id' => $serviceBooking->id,
+            'data' => [
+                'service_booking_id' => $serviceBooking->id,
+                'booking_code' => $serviceBooking->booking_code,
+                'partner_user_id' => $partner->id,
+                'status' => $serviceBooking->status,
+            ],
+        ]);
+
         return response()->json([
             'message' => 'Pesanan layanan berhasil diterima.',
             'data' => $serviceBooking,
@@ -256,6 +312,21 @@ class ServiceBookingController extends Controller
         );
 
         $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
+
+        $this->notifications->send($serviceBooking->patient_user_id, [
+            'type' => 'service_booking.on_the_way',
+            'title' => 'Mitra menuju lokasi',
+            'body' => $partner->name.' sedang menuju lokasi Anda.',
+            'action_url' => '/patient/service-bookings/'.$serviceBooking->id,
+            'reference_type' => 'service_booking',
+            'reference_id' => $serviceBooking->id,
+            'data' => [
+                'service_booking_id' => $serviceBooking->id,
+                'booking_code' => $serviceBooking->booking_code,
+                'partner_user_id' => $partner->id,
+                'status' => $serviceBooking->status,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Status perjalanan mitra berhasil diperbarui.',
@@ -358,6 +429,21 @@ class ServiceBookingController extends Controller
         });
 
         $serviceBooking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction']);
+
+        $this->notifications->send($serviceBooking->patient_user_id, [
+            'type' => 'service_booking.completed',
+            'title' => 'Pesanan layanan selesai',
+            'body' => 'Pesanan layanan '.$serviceBooking->booking_code.' telah diselesaikan.',
+            'action_url' => '/patient/service-bookings/'.$serviceBooking->id,
+            'reference_type' => 'service_booking',
+            'reference_id' => $serviceBooking->id,
+            'data' => [
+                'service_booking_id' => $serviceBooking->id,
+                'booking_code' => $serviceBooking->booking_code,
+                'partner_user_id' => $partner->id,
+                'status' => $serviceBooking->status,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Pesanan layanan berhasil diselesaikan dan saldo mitra diperbarui.',

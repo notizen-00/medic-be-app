@@ -48,6 +48,15 @@ Broadcast::channel('user.{userId}.chat', function (User $user, int $userId) {
     ] : false;
 });
 
+// Channel private untuk notifikasi realtime per user.
+Broadcast::channel('user.{userId}.notifications', function (User $user, int $userId) {
+    return $user->id === $userId ? [
+        'id' => $user->id,
+        'name' => $user->name,
+        'role' => $user->role,
+    ] : false;
+});
+
 // Channel presence untuk online status
 Broadcast::channel('online-users', function (User $user) {
     return [

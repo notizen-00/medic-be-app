@@ -301,6 +301,110 @@ POST /api/patient/balance/topup
 PATCH /api/patient/balance/topup/confirm
 ```
 
+## Notifikasi
+
+Semua role mobile bisa memakai endpoint notifikasi shared berikut dengan Bearer token.
+
+List notifikasi:
+
+```http
+GET /api/shared/notifications
+```
+
+Query opsional:
+
+```text
+status=unread|read
+type=consultation.message_created
+per_page=20
+```
+
+Contoh:
+
+```http
+GET /api/shared/notifications?status=unread&per_page=20
+```
+
+Unread count:
+
+```http
+GET /api/shared/notifications/unread-count
+```
+
+Tandai satu notifikasi sudah dibaca:
+
+```http
+PATCH /api/shared/notifications/{notification}/read
+```
+
+Tandai semua sudah dibaca:
+
+```http
+PATCH /api/shared/notifications/read-all
+```
+
+Hapus notifikasi:
+
+```http
+DELETE /api/shared/notifications/{notification}
+```
+
+Buat notifikasi test untuk user yang sedang login:
+
+```http
+POST /api/shared/notifications
+```
+
+Body:
+
+```json
+{
+  "type": "test.mobile",
+  "title": "Test notifikasi",
+  "body": "Notifikasi dari mobile berhasil dibuat",
+  "reference_type": "test",
+  "reference_id": 1,
+  "data": {
+    "source": "flutter"
+  }
+}
+```
+
+Response notifikasi:
+
+```json
+{
+  "id": 101,
+  "user_id": 7,
+  "type": "consultation.message_created",
+  "title": "Pesan konsultasi baru",
+  "body": "dr. Andi: Baik, saya cek dulu.",
+  "action_url": "/patient/consultations/1",
+  "reference_type": "consultation",
+  "reference_id": 1,
+  "data": {
+    "consultation_id": 1,
+    "message_id": 99,
+    "sender_user_id": 10
+  },
+  "read_at": null,
+  "created_at": "2026-07-07T05:00:00.000000Z"
+}
+```
+
+Tipe notifikasi yang sudah dibuat otomatis:
+
+```text
+consultation.created
+consultation.status_updated
+consultation.message_created
+service_booking.matched
+service_booking.status_updated
+service_booking.accepted
+service_booking.on_the_way
+service_booking.completed
+```
+
 ## WebSocket Reverb
 
 Backend memakai Laravel Reverb dengan protokol Pusher.
@@ -422,6 +526,56 @@ Data user:
 
 Gunakan channel ini jika Flutter perlu menampilkan siapa saja yang sedang online.
 
+### User Notifications
+
+Laravel channel:
+
+```text
+user.{userId}.notifications
+```
+
+Pusher channel name:
+
+```text
+private-user.{userId}.notifications
+```
+
+Event:
+
+```text
+notification.created
+```
+
+Payload:
+
+```json
+{
+  "id": 101,
+  "user_id": 7,
+  "type": "consultation.message_created",
+  "title": "Pesan konsultasi baru",
+  "body": "dr. Andi: Baik, saya cek dulu.",
+  "action_url": "/patient/consultations/1",
+  "reference_type": "consultation",
+  "reference_id": 1,
+  "data": {
+    "consultation_id": 1,
+    "message_id": 99,
+    "sender_user_id": 10
+  },
+  "read_at": null,
+  "created_at": "2026-07-07T05:00:00.000000Z"
+}
+```
+
+Flutter pasien login dengan user ID `7` harus subscribe:
+
+```text
+private-user.7.notifications
+```
+
+Setelah menerima event realtime, aplikasi tetap bisa memanggil `GET /api/shared/notifications/unread-count` untuk sinkronisasi badge.
+
 ### Booking Matchmaking Mitra
 
 Channel ini untuk aplikasi mitra, bukan aplikasi pasien:
@@ -448,6 +602,8 @@ Saat pasien membuat booking, backend mengirim event ini ke mitra yang dipilih ma
 6. Polling/list detail booking via `GET /api/patient/service-bookings/{id}` jika perlu.
 7. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
 8. Saat mengirim pesan, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+9. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+10. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 

@@ -77,6 +77,11 @@ php artisan serve
     - Hanya akun mitra dengan ID yang sama yang bisa subscribe
     - Digunakan untuk notifikasi matchmaking saat pasien membuat booking layanan
 
+5. **`user.{userId}.notifications`** - Private channel untuk notifikasi realtime user
+    - Hanya user pemilik ID yang bisa subscribe
+    - Event utama: `.notification.created`
+    - Digunakan oleh mobile untuk badge/list notifikasi realtime
+
 ### Events
 
 **`App\Events\ChatMessageCreated`**
@@ -91,6 +96,13 @@ php artisan serve
 - Broadcast ke private channel `partner.{partnerId}.service-bookings`
 - Event name: `.service-booking.matched`
 - Payload berisi ringkasan booking, pasien, layanan, alamat, dan skor matchmaking
+
+**`App\Events\AppNotificationCreated`**
+
+- Dipicu ketika notifikasi aplikasi dibuat
+- Broadcast ke private channel `user.{userId}.notifications`
+- Event name: `.notification.created`
+- Payload berisi judul, isi, tipe, reference, data tambahan, dan timestamp
 
 ### Models
 

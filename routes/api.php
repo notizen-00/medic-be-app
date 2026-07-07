@@ -41,6 +41,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
 use App\Http\Controllers\Api\Mitra\ConsultationsController as MitraConsultationsController;
 use App\Http\Controllers\Api\Shared\PartnerDocumentController;
+use App\Http\Controllers\Api\Shared\NotificationController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -103,6 +104,15 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::get('/secure-image/partners/{user}/documents/{type}', [PartnerDocumentController::class, 'show']);
+
+        Route::prefix('notifications')->controller(NotificationController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('/unread-count', 'unreadCount');
+            Route::patch('/read-all', 'markAllAsRead');
+            Route::patch('/{notification}/read', 'markAsRead');
+            Route::delete('/{notification}', 'destroy');
+        });
     });
 
     /*

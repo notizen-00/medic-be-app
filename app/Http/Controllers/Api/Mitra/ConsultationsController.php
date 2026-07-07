@@ -10,9 +10,16 @@ use illuminate\Support\Facades\Auth;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use App\Models\ConsultationMessage;
+use App\Services\AppNotificationService;
+use Illuminate\Support\Str;
 
 class ConsultationsController extends Controller
 {
+    public function __construct(
+        private readonly AppNotificationService $notifications
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -96,6 +103,19 @@ class ConsultationsController extends Controller
         $consultation->update($payload);
         $consultation->load(['patient', 'partner.partnerProfile']);
 
+        $this->notifications->send($consultation->patient_user_id, [
+            'type' => 'consultation.status_updated',
+            'title' => 'Status konsultasi diperbarui',
+            'body' => 'Mitra memperbarui status konsultasi menjadi '.$consultation->status.'.',
+            'action_url' => '/patient/consultations/'.$consultation->id,
+            'reference_type' => 'consultation',
+            'reference_id' => $consultation->id,
+            'data' => [
+                'consultation_id' => $consultation->id,
+                'status' => $consultation->status,
+            ],
+        ]);
+
         return response()->json([
             'message' => 'Status konsultasi berhasil diperbarui.',
             'data' => $consultation,
@@ -118,6 +138,20 @@ class ConsultationsController extends Controller
         ]);
 
         $message->load('sender');
+
+        $this->notifications->send($consultation->patient_user_id, [
+            'type' => 'consultation.message_created',
+            'title' => 'Pesan konsultasi baru',
+            'body' => $user->name.': '.Str::limit($message->message ?? 'Mengirim lampiran', 120),
+            'action_url' => '/patient/consultations/'.$consultation->id,
+            'reference_type' => 'consultation',
+            'reference_id' => $consultation->id,
+            'data' => [
+                'consultation_id' => $consultation->id,
+                'message_id' => $message->id,
+                'sender_user_id' => $user->id,
+            ],
+        ]);
 
         return response()->json([
             'message' => 'Pesan konsultasi berhasil dikirim.',
