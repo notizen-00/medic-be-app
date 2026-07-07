@@ -158,6 +158,38 @@
             font-size: 13px;
         }
 
+        .online-panel {
+            margin-top: 18px;
+            padding-top: 14px;
+            border-top: 1px solid #dfe5ee;
+        }
+
+        .online-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .online-user {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fbfcfe;
+            font-size: 13px;
+        }
+
+        .online-user b {
+            color: #172033;
+        }
+
+        .online-user span {
+            color: #64748b;
+        }
+
         pre {
             white-space: pre-wrap;
             word-break: break-word;
@@ -210,6 +242,16 @@
 
         <button id="raw-test-button" class="secondary" type="button">Test Raw WS</button>
         <button id="disconnect-button" class="secondary" type="button" disabled>Disconnect</button>
+
+        <div class="online-panel">
+            <div class="row">
+                <h2>Online</h2>
+                <span id="online-count" class="muted">0 user</span>
+            </div>
+            <div id="online-users" class="online-list">
+                <span class="muted">Belum tersambung.</span>
+            </div>
+        </div>
     </section>
 
     <section>
@@ -237,11 +279,14 @@
     const bookingsEl = document.querySelector('#bookings');
     const logEl = document.querySelector('#log');
     const rawTestButton = document.querySelector('#raw-test-button');
+    const onlineCountEl = document.querySelector('#online-count');
+    const onlineUsersEl = document.querySelector('#online-users');
     const debugWebSocketProbe = new URLSearchParams(window.location.search).get('debug_ws') === '1';
 
     let pusher = null;
     let rawTestSocket = null;
     let subscribedChannelName = null;
+    let onlineUsers = new Map();
     let token = null;
     let user = null;
 
@@ -274,6 +319,35 @@
             event.currentTarget.disabled = true;
             await acceptBooking(booking.id);
         });
+    }
+
+    function renderOnlineUsers() {
+        const users = Array.from(onlineUsers.values()).sort((a, b) => {
+            return String(a.name || '').localeCompare(String(b.name || ''));
+        });
+
+        onlineCountEl.textContent = `${users.length} user`;
+
+        if (users.length === 0) {
+            onlineUsersEl.innerHTML = '<span class="muted">Belum ada user online.</span>';
+            return;
+        }
+
+        onlineUsersEl.innerHTML = users.map((onlineUser) => `
+            <div class="online-user">
+                <b>${escapeHtml(onlineUser.name || `User #${onlineUser.id}`)}</b>
+                <span>${escapeHtml(onlineUser.role || '-')}</span>
+            </div>
+        `).join('');
+    }
+
+    function escapeHtml(value) {
+        return String(value)
+            .replaceAll('&', '&amp;')
+            .replaceAll('<', '&lt;')
+            .replaceAll('>', '&gt;')
+            .replaceAll('"', '&quot;')
+            .replaceAll("'", '&#039;');
     }
 
     async function acceptBooking(bookingId) {
@@ -386,6 +460,7 @@
             });
 
             await subscribeWithManualAuth();
+            subscribeOnlineUsers();
         });
 
         pusher.connection.bind('error', (error) => {
@@ -428,6 +503,43 @@
         });
 
         disconnectButton.disabled = false;
+    }
+
+    function subscribeOnlineUsers() {
+        const channel = pusher.subscribe('presence-online-users');
+
+        channel.bind('pusher:subscription_succeeded', (members) => {
+            onlineUsers = new Map();
+
+            members.each((member) => {
+                onlineUsers.set(String(member.id), {
+                    id: member.id,
+                    ...member.info,
+                });
+            });
+
+            renderOnlineUsers();
+            writeLog('Subscribed to online-users presence channel.', {
+                count: onlineUsers.size,
+            });
+        });
+
+        channel.bind('pusher:member_added', (member) => {
+            onlineUsers.set(String(member.id), {
+                id: member.id,
+                ...member.info,
+            });
+            renderOnlineUsers();
+        });
+
+        channel.bind('pusher:member_removed', (member) => {
+            onlineUsers.delete(String(member.id));
+            renderOnlineUsers();
+        });
+
+        channel.bind('pusher:subscription_error', (error) => {
+            writeLog('Online users subscription failed.', error);
+        });
     }
 
     async function subscribeWithManualAuth() {
@@ -533,6 +645,8 @@
             pusher = null;
         }
 
+        onlineUsers = new Map();
+        renderOnlineUsers();
         disconnectButton.disabled = true;
         setStatus('Idle', false);
     }
