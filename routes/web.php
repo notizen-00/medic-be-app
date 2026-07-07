@@ -8,26 +8,28 @@ Route::get('/', function () {
 
 Route::get('/mitra/login', function () {
     $appUrl = config('app.url');
-    $defaultScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: (request()->isSecure() ? 'https' : 'http');
-    $defaultHost = parse_url($appUrl, PHP_URL_HOST) ?: request()->getHost();
+    $defaultScheme = env('REVERB_SCHEME', parse_url($appUrl, PHP_URL_SCHEME) ?: (request()->isSecure() ? 'https' : 'http'));
+    $defaultHost = env('REVERB_HOST', parse_url($appUrl, PHP_URL_HOST) ?: request()->getHost());
+    $defaultPort = env('REVERB_PORT', $defaultScheme === 'https' ? '443' : '8080');
 
     return view('mitra.login', [
         'reverbKey' => env('REVERB_APP_KEY', 'medic-app-key'),
         'reverbHost' => env('VITE_REVERB_HOST', $defaultHost),
-        'reverbPort' => env('VITE_REVERB_PORT', $defaultScheme === 'https' ? '443' : '8080'),
+        'reverbPort' => env('VITE_REVERB_PORT', $defaultPort),
         'reverbScheme' => env('VITE_REVERB_SCHEME', $defaultScheme),
     ]);
 });
 
 Route::get('/mitra/dashboard', function () {
     $appUrl = config('app.url');
-    $defaultScheme = parse_url($appUrl, PHP_URL_SCHEME) ?: (request()->isSecure() ? 'https' : 'http');
-    $defaultHost = parse_url($appUrl, PHP_URL_HOST) ?: request()->getHost();
+    $defaultScheme = env('REVERB_SCHEME', parse_url($appUrl, PHP_URL_SCHEME) ?: (request()->isSecure() ? 'https' : 'http'));
+    $defaultHost = env('REVERB_HOST', parse_url($appUrl, PHP_URL_HOST) ?: request()->getHost());
+    $defaultPort = env('REVERB_PORT', $defaultScheme === 'https' ? '443' : '8080');
 
     return view('mitra.dashboard', [
         'reverbKey' => env('REVERB_APP_KEY', 'medic-app-key'),
         'reverbHost' => env('VITE_REVERB_HOST', $defaultHost),
-        'reverbPort' => env('VITE_REVERB_PORT', $defaultScheme === 'https' ? '443' : '8080'),
+        'reverbPort' => env('VITE_REVERB_PORT', $defaultPort),
         'reverbScheme' => env('VITE_REVERB_SCHEME', $defaultScheme),
     ]);
 });
