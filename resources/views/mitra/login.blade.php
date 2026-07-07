@@ -336,10 +336,9 @@
                 wsHost: host,
                 wsPort: port,
                 wssPort: port,
-                wsPath: '/app',
                 forceTLS: useTls,
-                enabledTransports: useTls ? ['wss'] : ['ws'],
-                disableStats: true,
+                enabledTransports: ['ws', 'wss'],
+                enableStats: false,
                 authEndpoint: '/api/broadcasting/auth',
                 auth: {
                     headers: {
