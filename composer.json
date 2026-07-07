@@ -56,6 +56,50 @@
             "@php artisan config:clear --ansi",
             "@php artisan test"
         ],
+        "test:feature": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature"
+        ],
+        "test:module": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules"
+        ],
+        "test:module:admin": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Admin"
+        ],
+        "test:module:auth": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Auth"
+        ],
+        "test:module:consultation": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Consultation"
+        ],
+        "test:module:mitra": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Mitra"
+        ],
+        "test:module:order": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Order"
+        ],
+        "test:module:patient": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Patient"
+        ],
+        "test:module:pharmacy": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Pharmacy"
+        ],
+        "test:module:service-booking": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/ServiceBooking"
+        ],
+        "test:module:shared": [
+            "@php artisan config:clear --ansi",
+            "@php artisan test tests/Feature/Modules/Shared"
+        ],
         "post-autoload-dump": [
             "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
             "@php artisan package:discover --ansi"

@@ -15,7 +15,7 @@ use Tests\TestCase;
 */
 
 pest()->extend(TestCase::class)
- // ->use(RefreshDatabase::class)
+    ->use(RefreshDatabase::class)
     ->in('Feature');
 
 /*
@@ -44,7 +44,9 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
+function apiHeaders(array $headers = []): array
 {
-    // ..
+    return array_merge([
+        'Accept' => 'application/json',
+    ], $headers);
 }

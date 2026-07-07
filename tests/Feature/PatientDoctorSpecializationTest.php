@@ -35,6 +35,8 @@ it('returns doctor specialization categories for patients', function () {
         'profession' => 'dokter',
         'specialization' => 'Dokter Umum',
         'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
     ]);
 
     PartnerProfile::create([
@@ -42,6 +44,8 @@ it('returns doctor specialization categories for patients', function () {
         'profession' => 'dokter',
         'specialization' => 'Dokter Umum',
         'is_available' => false,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
     ]);
 
     PartnerProfile::create([
@@ -49,6 +53,8 @@ it('returns doctor specialization categories for patients', function () {
         'profession' => 'dokter',
         'specialization' => 'Spesialis Anak',
         'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
     ]);
 
     PartnerProfile::create([
@@ -56,6 +62,8 @@ it('returns doctor specialization categories for patients', function () {
         'profession' => 'perawat',
         'specialization' => 'Perawat Homecare',
         'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
     ]);
 
     $this->getJson('/api/patient/doctors?view=specializations')
@@ -98,6 +106,8 @@ it('filters patient doctor list by specialization', function () {
         'profession' => 'dokter',
         'specialization' => 'Dokter Umum',
         'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
     ]);
 
     PartnerProfile::create([
@@ -105,6 +115,8 @@ it('filters patient doctor list by specialization', function () {
         'profession' => 'dokter',
         'specialization' => 'Spesialis Anak',
         'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
     ]);
 
     $this->getJson('/api/patient/doctors?specialization=Dokter%20Umum')

@@ -36,6 +36,7 @@ return new class extends Migration
             && Schema::hasTable('pharmacies')
             && Schema::hasColumn('users', 'role')
             && Schema::hasColumn('partner_profiles', 'profession')
+            && ! $this->isSqlite()
         ) {
             $pharmacyNameExpression = Schema::hasColumn('partner_profiles', 'pharmacy_name')
                 ? "COALESCE(NULLIF(pp.pharmacy_name, ''), NULLIF(u.name, ''), CONCAT('Apotik #', u.id))"
@@ -72,12 +73,18 @@ return new class extends Migration
 
         if (Schema::hasTable('users') && Schema::hasColumn('users', 'role')) {
             DB::statement("UPDATE users SET role = 'mitra' WHERE role IN ('dokter', 'apotik', 'kurir', 'perawat', 'bidan')");
-            DB::statement("ALTER TABLE users MODIFY role ENUM('pasien', 'mitra') NOT NULL DEFAULT 'pasien'");
+
+            if (! $this->isSqlite()) {
+                DB::statement("ALTER TABLE users MODIFY role ENUM('pasien', 'mitra') NOT NULL DEFAULT 'pasien'");
+            }
         }
 
         if (Schema::hasTable('partner_profiles') && Schema::hasColumn('partner_profiles', 'profession')) {
             DB::statement("UPDATE partner_profiles SET profession = 'perawat' WHERE profession = 'apotik'");
-            DB::statement("ALTER TABLE partner_profiles MODIFY profession ENUM('dokter', 'bidan', 'perawat') NOT NULL");
+
+            if (! $this->isSqlite()) {
+                DB::statement("ALTER TABLE partner_profiles MODIFY profession ENUM('dokter', 'bidan', 'perawat') NOT NULL");
+            }
         }
 
         if (Schema::hasTable('partner_profiles') && Schema::hasColumn('partner_profiles', 'pharmacy_name')) {
@@ -100,14 +107,25 @@ return new class extends Migration
 
         if (Schema::hasTable('partner_profiles') && Schema::hasColumn('partner_profiles', 'profession')) {
             DB::statement("UPDATE partner_profiles SET profession = 'apotik' WHERE profession IN ('bidan', 'perawat')");
-            DB::statement("ALTER TABLE partner_profiles MODIFY profession ENUM('dokter', 'apotik') NOT NULL");
+
+            if (! $this->isSqlite()) {
+                DB::statement("ALTER TABLE partner_profiles MODIFY profession ENUM('dokter', 'apotik') NOT NULL");
+            }
         }
 
         if (Schema::hasTable('users') && Schema::hasColumn('users', 'role')) {
             DB::statement("UPDATE users SET role = 'dokter' WHERE role = 'mitra'");
-            DB::statement("ALTER TABLE users MODIFY role ENUM('pasien', 'dokter', 'apotik', 'kurir') NOT NULL DEFAULT 'pasien'");
+
+            if (! $this->isSqlite()) {
+                DB::statement("ALTER TABLE users MODIFY role ENUM('pasien', 'dokter', 'apotik', 'kurir') NOT NULL DEFAULT 'pasien'");
+            }
         }
 
         Schema::dropIfExists('pharmacies');
+    }
+
+    private function isSqlite(): bool
+    {
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 };

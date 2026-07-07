@@ -10,6 +10,10 @@ return new class extends Migration
      */
     public function up(): void
     {
+        if ($this->isSqlite()) {
+            return;
+        }
+
         DB::statement("ALTER TABLE products MODIFY type ENUM('obat', 'produk_kesehatan', 'layanan', 'sewa_alat_kesehatan') NOT NULL");
     }
 
@@ -18,6 +22,15 @@ return new class extends Migration
      */
     public function down(): void
     {
+        if ($this->isSqlite()) {
+            return;
+        }
+
         DB::statement("ALTER TABLE products MODIFY type ENUM('obat', 'produk_kesehatan') NOT NULL");
+    }
+
+    private function isSqlite(): bool
+    {
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 };

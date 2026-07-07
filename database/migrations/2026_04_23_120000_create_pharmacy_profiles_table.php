@@ -35,6 +35,7 @@ return new class extends Migration
             Schema::hasTable('pharmacies')
             && Schema::hasTable('pharmacy_profiles')
             && Schema::hasColumn('pharmacies', 'name')
+            && ! $this->isSqlite()
         ) {
             DB::statement("
                 INSERT INTO pharmacy_profiles (
@@ -59,7 +60,7 @@ return new class extends Migration
             ");
         }
 
-        if (Schema::hasTable('pharmacies')) {
+        if (! $this->isSqlite() && Schema::hasTable('pharmacies')) {
             Schema::table('pharmacies', function (Blueprint $table) {
                 foreach (['name', 'license_number', 'address', 'latitude', 'longitude', 'description'] as $column) {
                     if (Schema::hasColumn('pharmacies', $column)) {
@@ -90,6 +91,7 @@ return new class extends Migration
             Schema::hasTable('pharmacies')
             && Schema::hasTable('pharmacy_profiles')
             && Schema::hasColumn('pharmacies', 'name')
+            && ! $this->isSqlite()
         ) {
             DB::statement("
                 UPDATE pharmacies ph
@@ -105,5 +107,10 @@ return new class extends Migration
         }
 
         Schema::dropIfExists('pharmacy_profiles');
+    }
+
+    private function isSqlite(): bool
+    {
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 };

@@ -24,7 +24,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('products') && Schema::hasColumn('products', 'pharmacy_user_id') && Schema::hasColumn('products', 'pharmacy_id')) {
+        if (! $this->isSqlite() && Schema::hasTable('products') && Schema::hasColumn('products', 'pharmacy_user_id') && Schema::hasColumn('products', 'pharmacy_id')) {
             DB::statement("
                 UPDATE products p
                 INNER JOIN pharmacies ph ON ph.owner_user_id = p.pharmacy_user_id
@@ -33,7 +33,7 @@ return new class extends Migration
             ");
         }
 
-        if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'pharmacy_user_id') && Schema::hasColumn('orders', 'pharmacy_id')) {
+        if (! $this->isSqlite() && Schema::hasTable('orders') && Schema::hasColumn('orders', 'pharmacy_user_id') && Schema::hasColumn('orders', 'pharmacy_id')) {
             DB::statement("
                 UPDATE orders o
                 INNER JOIN pharmacies ph ON ph.owner_user_id = o.pharmacy_user_id
@@ -64,7 +64,7 @@ return new class extends Migration
             }
         }
 
-        if (Schema::hasTable('products') && Schema::hasColumn('products', 'pharmacy_user_id')) {
+        if (! $this->isSqlite() && Schema::hasTable('products') && Schema::hasColumn('products', 'pharmacy_user_id')) {
             $this->dropForeignKeyByColumn('products', 'pharmacy_user_id');
             $this->dropIndexIfExists('products', 'products_pharmacy_user_id_is_active_index');
             $this->dropIndexIfExists('products', 'products_pharmacy_user_id_sku_unique');
@@ -74,7 +74,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'pharmacy_user_id')) {
+        if (! $this->isSqlite() && Schema::hasTable('orders') && Schema::hasColumn('orders', 'pharmacy_user_id')) {
             $this->dropForeignKeyByColumn('orders', 'pharmacy_user_id');
             $this->dropIndexIfExists('orders', 'orders_pharmacy_user_id_status_index');
 
@@ -101,7 +101,7 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('products') && Schema::hasColumn('products', 'pharmacy_id') && Schema::hasColumn('products', 'pharmacy_user_id')) {
+        if (! $this->isSqlite() && Schema::hasTable('products') && Schema::hasColumn('products', 'pharmacy_id') && Schema::hasColumn('products', 'pharmacy_user_id')) {
             DB::statement("
                 UPDATE products p
                 INNER JOIN pharmacies ph ON ph.id = p.pharmacy_id
@@ -110,7 +110,7 @@ return new class extends Migration
             ");
         }
 
-        if (Schema::hasTable('orders') && Schema::hasColumn('orders', 'pharmacy_id') && Schema::hasColumn('orders', 'pharmacy_user_id')) {
+        if (! $this->isSqlite() && Schema::hasTable('orders') && Schema::hasColumn('orders', 'pharmacy_id') && Schema::hasColumn('orders', 'pharmacy_user_id')) {
             DB::statement("
                 UPDATE orders o
                 INNER JOIN pharmacies ph ON ph.id = o.pharmacy_id
@@ -163,20 +163,24 @@ return new class extends Migration
 
     private function hasIndex(string $table, string $indexName): bool
     {
-        return collect(DB::select("SHOW INDEX FROM `{$table}`"))
-            ->pluck('Key_name')
-            ->contains($indexName);
+        return Schema::hasIndex($table, $indexName);
     }
 
     private function dropIndexIfExists(string $table, string $indexName): void
     {
         if ($this->hasIndex($table, $indexName)) {
-            DB::statement("ALTER TABLE `{$table}` DROP INDEX `{$indexName}`");
+            Schema::table($table, function (Blueprint $table) use ($indexName) {
+                $table->dropIndex($indexName);
+            });
         }
     }
 
     private function dropForeignKeyByColumn(string $table, string $column): void
     {
+        if ($this->isSqlite()) {
+            return;
+        }
+
         $database = DB::getDatabaseName();
         $constraint = DB::table('information_schema.KEY_COLUMN_USAGE')
             ->select('CONSTRAINT_NAME')
@@ -189,5 +193,10 @@ return new class extends Migration
         if ($constraint?->CONSTRAINT_NAME) {
             DB::statement("ALTER TABLE `{$table}` DROP FOREIGN KEY `{$constraint->CONSTRAINT_NAME}`");
         }
+    }
+
+    private function isSqlite(): bool
+    {
+        return DB::connection()->getDriverName() === 'sqlite';
     }
 };
