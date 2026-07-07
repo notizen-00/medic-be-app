@@ -37,6 +37,7 @@ Catatan:
 - `patient_address_id` wajib secara bisnis untuk layanan homecare.
 - Booking dibuat dengan status awal `pending`.
 - Sistem langsung mengisi `assigned_partner_user_id` dari hasil matchmaking.
+- Setelah booking dibuat, event websocket `ServiceBookingMatched` dikirim ke channel private mitra terpilih.
 
 Contoh response ringkas:
 
@@ -155,3 +156,27 @@ php artisan test tests/Feature/ServiceBookingMatchmakingTest.php
 Catatan environment lokal:
 - jika `bootstrap/cache/config.php` aktif, test bisa tetap memakai config lama. Jalankan `php artisan config:clear` sebelum test jika diperlukan.
 - test default memakai sqlite memory sesuai `phpunit.xml`; pastikan extension `pdo_sqlite` aktif.
+
+## Testing Realtime Mitra
+
+Halaman test web untuk mitra tersedia di:
+
+`GET /mitra/login`
+
+Alur manual:
+
+1. Jalankan app dan Reverb.
+2. Buka `/mitra/login`.
+3. Login menggunakan akun mitra.
+4. Buat booking pasien melalui `POST /api/patient/service-bookings`.
+5. Jika sistem memilih mitra tersebut, halaman akan menerima event `.service-booking.matched`.
+6. Klik `Accept` untuk menguji endpoint `PATCH /api/mitra/service-bookings/{serviceBooking}/accept`.
+
+Channel dan event:
+
+```text
+Channel: private-partner.{partnerId}.service-bookings
+Laravel channel: partner.{partnerId}.service-bookings
+Event: .service-booking.matched
+Auth endpoint: POST /api/broadcasting/auth
+```

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Events\ServiceBookingMatched;
 use App\Models\PatientAddress;
 use App\Models\PartnerService;
 use App\Models\Service;
@@ -116,16 +117,20 @@ class ServiceBookingController extends Controller
 
         $booking->load(['service', 'patient', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
 
+        $matchmaking = [
+            'partner_service_id' => $selectedPartnerService->id,
+            'partner_user_id' => $selectedPartnerService->partner_user_id,
+            'distance_km' => $selectedPartnerService->distance_km,
+            'match_score' => $selectedPartnerService->match_score,
+            'quality_score' => $selectedPartnerService->quality_score,
+        ];
+
+        ServiceBookingMatched::dispatch($booking, $matchmaking);
+
         return response()->json([
             'message' => 'Booking layanan berhasil dibuat.',
             'data' => $booking,
-            'matchmaking' => [
-                'partner_service_id' => $selectedPartnerService->id,
-                'partner_user_id' => $selectedPartnerService->partner_user_id,
-                'distance_km' => $selectedPartnerService->distance_km,
-                'match_score' => $selectedPartnerService->match_score,
-                'quality_score' => $selectedPartnerService->quality_score,
-            ],
+            'matchmaking' => $matchmaking,
         ], 201);
     }
 

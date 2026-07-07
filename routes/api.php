@@ -41,6 +41,8 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
 use App\Http\Controllers\Api\Mitra\ConsultationsController as MitraConsultationsController;
 use App\Http\Controllers\Api\Shared\PartnerDocumentController;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -80,6 +82,10 @@ Route::prefix('admin')->controller(AdminAuthController::class)->group(function (
 Route::post('/midtrans/callback', MidtransCallbackController::class);
 
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/broadcasting/auth', function (Request $request) {
+        return Broadcast::auth($request);
+    });
+
     /*
     |--------------------------------------------------------------------------
     | Shared Authenticated Routes

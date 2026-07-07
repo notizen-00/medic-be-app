@@ -56,3 +56,16 @@ Broadcast::channel('online-users', function (User $user) {
         'role' => $user->role,
     ];
 });
+
+// Channel private untuk notifikasi booking layanan yang masuk ke mitra.
+Broadcast::channel('partner.{partnerId}.service-bookings', function (User $user, int $partnerId) {
+    if ($user->id !== $partnerId || $user->role !== 'mitra') {
+        return false;
+    }
+
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'role' => $user->role,
+    ];
+});

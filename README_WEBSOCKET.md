@@ -10,6 +10,7 @@ Implementasi WebSocket untuk fitur chat realtime antara patient dan dokter mengg
 - **Private Channels**: Hanya patient dan dokter terkait yang bisa akses chat consultation tertentu
 - **Online Status**: Tracking status online/offline user
 - **Message Read Status**: Update status baca pesan secara realtime
+- **Matchmaking Mitra**: Notifikasi booking layanan dikirim realtime ke mitra yang terpilih
 - **Secure Authorization**: Setiap user harus diotorisasi sebelum bisa subscribe channel
 
 ## Instalasi
@@ -34,6 +35,11 @@ REVERB_APP_SECRET=medic-app-secret
 REVERB_ALLOWED_ORIGINS=*
 REVERB_SERVER_HOST=0.0.0.0
 REVERB_SERVER_PORT=8080
+
+# Untuk broadcast dari app ke server Reverb
+REVERB_HOST=127.0.0.1
+REVERB_PORT=8080
+REVERB_SCHEME=http
 ```
 
 ### 3. Jalankan Reverb Server
@@ -66,6 +72,10 @@ php artisan serve
 3. **`online-users`** - Presence channel
     - Untuk tracking status online user
 
+4. **`partner.{partnerId}.service-bookings`** - Private channel untuk booking layanan mitra
+    - Hanya akun mitra dengan ID yang sama yang bisa subscribe
+    - Digunakan untuk notifikasi matchmaking saat pasien membuat booking layanan
+
 ### Events
 
 **`App\Events\ChatMessageCreated`**
@@ -73,6 +83,13 @@ php artisan serve
 - Dipicu ketika pesan baru dibuat
 - Broadcast ke private channel `consultation.{id}`
 - Mengirim data pesan lengkap termasuk info pengirim
+
+**`App\Events\ServiceBookingMatched`**
+
+- Dipicu ketika pasien membuat service booking dan sistem memilih mitra
+- Broadcast ke private channel `partner.{partnerId}.service-bookings`
+- Event name: `.service-booking.matched`
+- Payload berisi ringkasan booking, pasien, layanan, alamat, dan skor matchmaking
 
 ### Models
 
@@ -96,6 +113,14 @@ Body: channel, socket_id
 ```
 POST /api/patient/consultations/{consultation}/messages
 POST /api/mitra/consultations/{consultation}/messages
+```
+
+### Accept Service Booking
+
+```
+PATCH /api/mitra/service-bookings/{serviceBooking}/accept
+Headers: Authorization: Bearer {token}
+Body: { "notes": "Accepted from mitra web test." }
 ```
 
 ## Frontend Integration
@@ -147,6 +172,17 @@ Echo.private(`consultation.${consultationId}`)
     .listen(".App\\Events\\ChatMessageCreated", (e) => {
         // Alternative listener dengan nama event lengkap
         console.log("Message created:", e);
+    });
+```
+
+### 3b. Subscribe Channel Booking Mitra
+
+```javascript
+const partnerId = currentUser.id;
+
+Echo.private(`partner.${partnerId}.service-bookings`)
+    .listen(".service-booking.matched", (event) => {
+        console.log("Booking matched:", event.booking, event.matchmaking);
     });
 ```
 
@@ -248,6 +284,19 @@ config/
 ## Testing
 
 ### Manual Testing
+
+#### Test Matchmaking Mitra
+
+1. Jalankan Laravel app dan Reverb.
+2. Buka `http://localhost:8081/mitra/login` atau `https://domain-kamu/mitra/login`.
+3. Login sebagai akun mitra.
+4. Pastikan status koneksi berubah menjadi `connected` dan subscription berhasil.
+5. Login sebagai pasien dari aplikasi/API.
+6. Buat booking melalui `POST /api/patient/service-bookings`.
+7. Jika matchmaking memilih mitra yang sedang login di halaman test, kartu booking akan muncul realtime.
+8. Klik `Accept` untuk memanggil endpoint `PATCH /api/mitra/service-bookings/{id}/accept`.
+
+#### Test Chat Consultation
 
 1. Login sebagai patient
 2. Buat consultation baru
