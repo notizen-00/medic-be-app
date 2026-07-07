@@ -241,6 +241,7 @@
 
     let pusher = null;
     let rawTestSocket = null;
+    let subscribedChannelName = null;
     let token = null;
     let user = null;
 
@@ -378,12 +379,14 @@
             writeLog(`Connection: ${states.previous} -> ${states.current}`);
         });
 
-        pusher.connection.bind('connected', () => {
+        pusher.connection.bind('connected', async () => {
             setStatus('connected', true);
             writeLog('Reverb connected.', {
                 socket_id: pusher.connection.socket_id,
                 state: pusher.connection.state,
             });
+
+            await subscribeWithManualAuth();
         });
 
         pusher.connection.bind('error', (error) => {
@@ -406,25 +409,82 @@
             writeLog('Reverb disconnected.');
         });
 
-        const channelName = `private-partner.${user.id}.service-bookings`;
-        const channel = pusher.subscribe(channelName);
+        pusher.bind_global((eventName, payload) => {
+            if (eventName === 'pusher:subscription_succeeded' || eventName === 'pusher_internal:subscription_succeeded') {
+                setStatus('subscribed', true);
+                writeLog(`Subscribed to ${subscribedChannelName}.`, payload);
+                return;
+            }
 
-        channel.bind('pusher:subscription_succeeded', () => {
-            setStatus('subscribed', true);
-            writeLog(`Subscribed to ${channelName}.`);
-        });
+            if (eventName === 'pusher:error') {
+                setStatus('error', false);
+                writeLog('Pusher protocol error.', payload);
+                return;
+            }
 
-        channel.bind('pusher:subscription_error', (error) => {
-            setStatus('auth failed', false);
-            writeLog('Subscription failed.', error);
-        });
-
-        channel.bind('service-booking.matched', (payload) => {
-            writeLog('New matched booking received.', payload);
-            renderBooking(payload);
+            if (eventName === 'service-booking.matched') {
+                writeLog('New matched booking received.', payload);
+                renderBooking(payload);
+            }
         });
 
         disconnectButton.disabled = false;
+    }
+
+    async function subscribeWithManualAuth() {
+        if (!pusher?.connection?.socket_id || !user) {
+            writeLog('Cannot subscribe yet: missing socket or user.', {
+                socket_id: pusher?.connection?.socket_id ?? null,
+                user_id: user?.id ?? null,
+            });
+            return;
+        }
+
+        subscribedChannelName = `private-partner.${user.id}.service-bookings`;
+        writeLog('Authorizing private channel.', {
+            socket_id: pusher.connection.socket_id,
+            channel_name: subscribedChannelName,
+        });
+
+        try {
+            const response = await fetch('/api/broadcasting/auth', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                    'X-CSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                body: JSON.stringify({
+                    socket_id: pusher.connection.socket_id,
+                    channel_name: subscribedChannelName,
+                }),
+            });
+            const authPayload = await response.json();
+
+            if (!response.ok) {
+                throw authPayload;
+            }
+
+            writeLog('Private channel authorized.', authPayload);
+
+            const subscribePayload = {
+                auth: authPayload.auth,
+                channel: subscribedChannelName,
+            };
+
+            if (typeof pusher.connection.send_event === 'function') {
+                pusher.connection.send_event('pusher:subscribe', subscribePayload);
+            } else {
+                pusher.send_event('pusher:subscribe', subscribePayload);
+            }
+
+            writeLog(`Subscription request sent to ${subscribedChannelName}.`);
+        } catch (error) {
+            setStatus('auth failed', false);
+            writeLog('Private channel authorization failed.', error);
+        }
     }
 
     async function authorizeChannel(socketId, channelName, callback) {
