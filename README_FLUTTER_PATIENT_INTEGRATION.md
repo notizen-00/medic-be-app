@@ -48,9 +48,35 @@ Body:
   "email": "budi@example.com",
   "phone": "08123456789",
   "password": "password123",
-  "password_confirmation": "password123"
+  "password_confirmation": "password123",
+  "date_of_birth": "1995-01-20",
+  "gender": "laki-laki",
+  "address": "Jl. Kalimantan No. 1, Jember",
+  "blood_type": "O",
+  "emergency_contact_name": "Siti",
+  "emergency_contact_phone": "081298765432",
+  "allergies": "Alergi penicillin",
+  "medical_notes": "Riwayat hipertensi"
 }
 ```
+
+Field register:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `name` | Ya | string | max 255 |
+| `email` | Ya | email | max 255, unique |
+| `phone` | Ya | string | max 20, unique |
+| `password` | Ya | string | min 8 |
+| `password_confirmation` | Ya | string | harus sama dengan `password` |
+| `date_of_birth` | Tidak | date | format aman: `YYYY-MM-DD` |
+| `gender` | Tidak | enum | `laki-laki`, `perempuan` |
+| `address` | Tidak | string | alamat profil pasien |
+| `blood_type` | Tidak | string | max 5 |
+| `emergency_contact_name` | Tidak | string | max 255 |
+| `emergency_contact_phone` | Tidak | string | max 20 |
+| `allergies` | Tidak | string | catatan alergi |
+| `medical_notes` | Tidak | string | catatan medis tambahan |
 
 ### Login
 
@@ -66,6 +92,13 @@ Body:
   "password": "password123"
 }
 ```
+
+Field login:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `email` | Ya | email | email akun pasien |
+| `password` | Ya | string | password akun |
 
 Response penting:
 
@@ -118,6 +151,43 @@ GET /api/patient/nurses
 GET /api/patient/apotiks
 ```
 
+Query `GET /api/patient/doctors`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `view` | Tidak | enum | `list`, `specializations`; jika `specializations`, response berisi daftar spesialisasi |
+| `search` | Tidak | string | max 100 |
+| `specialization` | Tidak | string | max 100 |
+| `is_available` | Tidak | boolean | `true`/`false` atau `1`/`0` |
+| `patient_address_id` | Tidak | integer | harus ada di `patient_addresses` |
+| `latitude` | Tidak | numeric | -90 sampai 90, wajib bersama `longitude` |
+| `longitude` | Tidak | numeric | -180 sampai 180, wajib bersama `latitude` |
+| `max_distance_km` | Tidak | numeric | min 0 |
+| `limit` | Tidak | integer | 1-100; dipakai sebagai `per_page` jika `per_page` tidak dikirim |
+| `per_page` | Tidak | integer | 1-100 |
+
+Query `GET /api/patient/nurses`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `search` | Tidak | string | max 100 |
+| `specialization` | Tidak | string | max 100 |
+| `is_available` | Tidak | boolean | `true`/`false` atau `1`/`0` |
+| `patient_address_id` | Tidak | integer | harus ada di `patient_addresses` |
+| `latitude` | Tidak | numeric | -90 sampai 90, wajib bersama `longitude` |
+| `longitude` | Tidak | numeric | -180 sampai 180, wajib bersama `latitude` |
+| `max_distance_km` | Tidak | numeric | min 0 |
+| `limit` | Tidak | integer | 1-100 |
+| `per_page` | Tidak | integer | 1-100 |
+
+Query `GET /api/patient/apotiks`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `search` | Tidak | string | max 100 |
+| `is_available` | Tidak | boolean | filter apotik aktif |
+| `per_page` | Tidak | integer | 1-100 |
+
 ### Layanan
 
 ```http
@@ -125,12 +195,35 @@ GET /api/patient/services
 GET /api/patient/services/{service}
 ```
 
+Query `GET /api/patient/services`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `patient_address_id` | Tidak | integer | dipakai menghitung jarak/matchmaking |
+| `service_type` | Tidak | enum | `dokter_homecare`, `perawat_homecare`, `bidan_homecare`, `konsultasi_tindakan` |
+| `search` | Tidak | string | max 100 |
+| `per_page` | Tidak | integer | 1-100 |
+
+Query `GET /api/patient/services/{service}`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `patient_address_id` | Tidak | integer | dipakai menghitung jarak/matchmaking |
+
 Alternatif catalog pasien:
 
 ```http
 GET /api/patient/service-bookings/services
 GET /api/patient/service-bookings/services/{service}
 ```
+
+Query alternatif catalog:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `category` | Tidak | string | filter kategori layanan |
+| `search` | Tidak | string | cari nama layanan |
+| `per_page` | Tidak | integer | default 20 |
 
 ### Booking Layanan / Matchmaking
 
@@ -149,6 +242,17 @@ Body minimal:
   "notes": "Pasien demam sejak malam"
 }
 ```
+
+Field request `POST /api/patient/service-bookings`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `service_id` | Ya | integer | harus ada di `services` |
+| `patient_address_id` | Tidak | integer | harus ada di `patient_addresses`; wajib secara bisnis untuk layanan homecare |
+| `scheduled_at` | Tidak | datetime | format `YYYY-MM-DD HH:mm:ss`; untuk endpoint alternatif harus setelah waktu sekarang |
+| `notes` | Tidak | string | catatan pasien; max 1000 di endpoint alternatif |
+| `promo_code` | Tidak | string | dipakai endpoint alternatif service booking |
+| `patient_user_id` | Tidak | integer | hanya didukung endpoint umum; normalnya tidak perlu dikirim karena memakai token |
 
 Body dengan jadwal:
 
@@ -219,12 +323,36 @@ Status yang tersedia:
 pending, confirmed, scheduled, on_the_way, completed, cancelled
 ```
 
+Query `GET /api/patient/service-bookings`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `status` | Tidak | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
+| `service_id` | Tidak | integer | didukung endpoint umum |
+| `assigned_partner_user_id` | Tidak | integer | didukung endpoint umum |
+| `per_page` | Tidak | integer | 1-100 atau default 20 tergantung endpoint yang match |
+
+Field `PATCH /api/patient/service-bookings/{serviceBooking}/status`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `status` | Ya | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
+| `scheduled_at` | Tidak | datetime | update jadwal |
+| `notes` | Tidak | string | catatan status |
+
 ### Promo Code
 
 ```http
 POST /api/patient/service-bookings/check-promo-code
 GET /api/patient/promo-codes/available
 ```
+
+Field `POST /api/patient/service-bookings/check-promo-code`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `code` | Ya | string | kode promo |
+| `service_id` | Ya | integer | harus ada di `services` |
 
 ### Konsultasi
 
@@ -239,6 +367,38 @@ Buat konsultasi:
 ```http
 POST /api/patient/consultations
 ```
+
+Field request `POST /api/patient/consultations`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `partner_user_id` | Ya | integer | harus ada di `users`; partner harus punya `partnerProfile` profesi `dokter` |
+| `service_type` | Ya | enum | `chat`, `voice_call`, `video_call`, `visit` |
+| `scheduled_at` | Tidak | datetime | format aman: `YYYY-MM-DD HH:mm:ss` |
+| `complaint` | Tidak | string | keluhan pasien |
+| `notes` | Tidak | string | catatan tambahan |
+
+Response `data` konsultasi berisi field utama:
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID konsultasi |
+| `consultation_code` | string | kode unik konsultasi |
+| `patient_user_id` | integer | user pasien |
+| `partner_user_id` | integer | user mitra/dokter |
+| `service_type` | enum | `chat`, `voice_call`, `video_call`, `visit` |
+| `status` | enum | `pending`, `confirmed`, `ongoing`, `completed`, `cancelled` |
+| `scheduled_at` | datetime/null | jadwal konsultasi |
+| `started_at` | datetime/null | waktu mulai |
+| `ended_at` | datetime/null | waktu selesai |
+| `complaint` | string/null | keluhan |
+| `diagnosis` | string/null | diagnosis dari dokter/mitra |
+| `notes` | string/null | catatan |
+| `consultation_fee` | decimal string | biaya konsultasi |
+| `patient` | object/null | relasi user pasien |
+| `partner` | object/null | relasi user mitra/dokter |
+| `payment` | object/null | tagihan konsultasi |
+| `messages` | array | muncul di detail |
 
 Detail konsultasi:
 
@@ -258,6 +418,14 @@ Update status:
 PATCH /api/patient/consultations/{consultation}/status
 ```
 
+Field `PATCH /api/patient/consultations/{consultation}/status`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `status` | Ya | enum | `pending`, `confirmed`, `ongoing`, `completed`, `cancelled` |
+| `diagnosis` | Tidak | string | biasanya diisi mitra, tapi endpoint pasien menerima field ini |
+| `notes` | Tidak | string | catatan tambahan |
+
 Kirim pesan:
 
 ```http
@@ -273,6 +441,27 @@ Body pesan text:
 }
 ```
 
+Field `POST /api/patient/consultations/{consultation}/messages`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `message_type` | Ya | enum | `text`, `image`, `file`, `system` |
+| `message` | Tidak | string | isi pesan; untuk text sebaiknya wajib di sisi app |
+| `attachment_path` | Tidak | string | max 255; path/url lampiran jika ada |
+
+Response message:
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID pesan |
+| `consultation_id` | integer | ID konsultasi |
+| `sender_user_id` | integer | pengirim |
+| `message_type` | enum | `text`, `image`, `file`, `system` |
+| `message` | string/null | isi pesan |
+| `attachment_path` | string/null | lampiran |
+| `read_at` | datetime/null | waktu dibaca |
+| `sender` | object/null | relasi user pengirim |
+
 ### Produk dan Order Apotik
 
 Produk:
@@ -283,6 +472,28 @@ GET /api/patient/products
 GET /api/patient/products/{product}
 ```
 
+Query `GET /api/patient/products/global`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `type` | Tidak | enum | `obat`, `produk_kesehatan`, `layanan`, `sewa_alat_kesehatan` |
+| `patient_address_id` | Tidak | integer | untuk grouping apotik terdekat |
+| `requires_prescription` | Tidak | boolean | filter butuh resep |
+| `search` | Tidak | string | max 100 |
+| `per_page` | Tidak | integer | 1-100 |
+
+Query `GET /api/patient/products`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `type` | Tidak | enum | `obat`, `produk_kesehatan`, `layanan`, `sewa_alat_kesehatan` |
+| `patient_address_id` | Tidak | integer | untuk grouping apotik terdekat |
+| `pharmacy_id` | Tidak | integer | filter apotik |
+| `pharmacy_user_id` | Tidak | integer | filter owner apotik; backend akan resolve ke `pharmacy_id` |
+| `requires_prescription` | Tidak | boolean | filter butuh resep |
+| `search` | Tidak | string | max 100 |
+| `per_page` | Tidak | integer | 1-100 |
+
 Order:
 
 ```http
@@ -292,6 +503,64 @@ GET /api/patient/orders/{order}
 PATCH /api/patient/orders/{order}/status
 ```
 
+Field `POST /api/patient/orders`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `patient_user_id` | Ya | integer | harus ada di `users`; saat ini masih wajib dikirim |
+| `patient_address_id` | Ya | integer | harus ada di `patient_addresses` |
+| `prescription_id` | Tidak | integer | harus ada di `prescriptions` jika dikirim |
+| `order_type` | Ya | enum | `resep`, `non_resep` |
+| `notes` | Tidak | string | catatan order |
+| `items` | Ya | array | min 1 item |
+| `items.*.product_id` | Tidak | integer | harus ada di `products`; normalnya kirim ini |
+| `items.*.sku` | Tidak | string | max 100; alternatif lookup item |
+| `items.*.quantity` | Ya | integer | min 1 |
+
+Contoh body order:
+
+```json
+{
+  "patient_user_id": 7,
+  "patient_address_id": 10,
+  "prescription_id": null,
+  "order_type": "non_resep",
+  "notes": "Tolong antar sore",
+  "items": [
+    {
+      "product_id": 15,
+      "quantity": 2
+    }
+  ]
+}
+```
+
+Field `PATCH /api/patient/orders/{order}/status`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `status` | Ya | enum | `pending`, `confirmed`, `processed`, `shipped`, `delivered`, `cancelled` |
+| `notes` | Tidak | string | catatan status |
+
+Response `data` order berisi field utama:
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID order |
+| `order_code` | string | kode unik order |
+| `patient_user_id` | integer | user pasien |
+| `pharmacy_id` / `pharmacy_user_id` | integer | tergantung hasil migrasi/refactor, relasi apotik |
+| `patient_address_id` | integer/null | alamat kirim |
+| `prescription_id` | integer/null | resep terkait |
+| `order_type` | enum | `resep`, `non_resep` |
+| `status` | enum | `pending`, `confirmed`, `processed`, `shipped`, `delivered`, `cancelled` |
+| `subtotal` | decimal string | subtotal item |
+| `shipping_cost` | decimal string | ongkir |
+| `total_amount` | decimal string | total bayar |
+| `notes` | string/null | catatan |
+| `ordered_at` | datetime/null | waktu order |
+| `items` | array | item order |
+
 ### Balance
 
 ```http
@@ -300,6 +569,28 @@ GET /api/patient/balance/history
 POST /api/patient/balance/topup
 PATCH /api/patient/balance/topup/confirm
 ```
+
+Query `GET /api/patient/balance/history`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `per_page` | Tidak | integer | default 20 |
+| `type` | Tidak | string | contoh: `topup`, `credit`, `debit` tergantung data transaksi |
+| `status` | Tidak | string | contoh: `pending`, `completed`, `failed` |
+
+Field `POST /api/patient/balance/topup`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `amount` | Ya | numeric | minimal 10000 |
+| `payment_method` | Ya | enum | saat ini hanya `midtrans` |
+
+Field `PATCH /api/patient/balance/topup/confirm`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `transaction_uuid` | Ya | string | UUID transaksi topup |
+| `status` | Ya | enum | `success`, `completed` |
 
 ## Notifikasi
 
