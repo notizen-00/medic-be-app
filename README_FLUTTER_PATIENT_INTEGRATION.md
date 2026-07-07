@@ -362,6 +362,14 @@ List konsultasi:
 GET /api/patient/consultations
 ```
 
+Query `GET /api/patient/consultations`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `status` | Tidak | enum | `pending`, `confirmed`, `ongoing`, `completed`, `cancelled` |
+| `partner_user_id` | Tidak | integer | filter dokter/mitra tertentu |
+| `per_page` | Tidak | integer | 1-100 |
+
 Buat konsultasi:
 
 ```http
@@ -411,6 +419,20 @@ Bayar konsultasi:
 ```http
 PATCH /api/patient/consultations/{consultation}/pay
 ```
+
+Field `PATCH /api/patient/consultations/{consultation}/pay`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `notes` | Tidak | string | catatan pembayaran |
+
+Response pembayaran berisi:
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `consultation` | object | data konsultasi |
+| `payment` | object | data tagihan |
+| `midtrans` | object | Snap token dan info transaksi Midtrans |
 
 Update status:
 
@@ -502,6 +524,14 @@ POST /api/patient/orders
 GET /api/patient/orders/{order}
 PATCH /api/patient/orders/{order}/status
 ```
+
+Query `GET /api/patient/orders`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `patient_user_id` | Tidak | integer | filter pasien; untuk app pasien biasanya isi dengan ID user sendiri jika diperlukan |
+| `status` | Tidak | enum | `pending`, `confirmed`, `processed`, `shipped`, `delivered`, `cancelled` |
+| `per_page` | Tidak | integer | 1-100 |
 
 Field `POST /api/patient/orders`:
 
@@ -660,6 +690,18 @@ Body:
   }
 }
 ```
+
+Field `POST /api/shared/notifications`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `type` | Ya | string | max 100; contoh `test.mobile` |
+| `title` | Ya | string | max 255 |
+| `body` | Tidak | string | isi notifikasi |
+| `action_url` | Tidak | string | max 255; path tujuan ketika notifikasi dibuka |
+| `reference_type` | Tidak | string | max 100; contoh `consultation`, `service_booking` |
+| `reference_id` | Tidak | integer | min 1 |
+| `data` | Tidak | object | metadata bebas untuk mobile |
 
 Response notifikasi:
 
@@ -882,6 +924,229 @@ service-booking.matched
 ```
 
 Saat pasien membuat booking, backend mengirim event ini ke mitra yang dipilih matchmaking. Aplikasi pasien saat ini cukup memakai response HTTP dari `POST /api/patient/service-bookings` untuk mengetahui hasil matchmaking.
+
+## Referensi Field Model
+
+Bagian ini adalah kamus field yang umum muncul di response API. Field relasi seperti `patient`, `partner`, `service`, `items`, dan `messages` hanya muncul jika endpoint memuat relasi tersebut.
+
+### User
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID user |
+| `name` | string | nama user |
+| `email` | string | email login |
+| `phone` | string/null | nomor telepon |
+| `role` | enum | `patient`, `mitra`, `admin`, atau role lain sesuai data |
+| `patient_profile` | object/null | profil pasien |
+| `partner_profile` | object/null | profil dokter/perawat/mitra |
+| `pharmacy` | object/null | data apotik jika user owner apotik |
+
+### Patient Profile
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID profile |
+| `user_id` | integer | ID user pasien |
+| `date_of_birth` | date/null | tanggal lahir |
+| `gender` | enum/null | `laki-laki`, `perempuan` |
+| `address` | string/null | alamat profil |
+| `blood_type` | string/null | golongan darah |
+| `emergency_contact_name` | string/null | nama kontak darurat |
+| `emergency_contact_phone` | string/null | nomor kontak darurat |
+| `allergies` | string/null | alergi |
+| `medical_notes` | string/null | catatan medis |
+
+### Patient Address
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID alamat |
+| `patient_user_id` | integer | user pemilik alamat |
+| `label` | string/null | contoh `Rumah`, `Kantor` |
+| `recipient_name` | string/null | nama penerima |
+| `recipient_phone` | string/null | nomor penerima |
+| `address` | string | alamat lengkap |
+| `province` | string/null | provinsi |
+| `city` | string/null | kota/kabupaten |
+| `district` | string/null | kecamatan |
+| `postal_code` | string/null | kode pos |
+| `latitude` | decimal/null | latitude alamat |
+| `longitude` | decimal/null | longitude alamat |
+| `is_primary` | boolean | alamat utama |
+
+### Partner Profile
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID profile mitra |
+| `user_id` | integer | ID user mitra |
+| `profession` | enum/string | contoh `dokter`, `perawat`, `bidan` |
+| `specialization` | string/null | spesialisasi |
+| `license_number` | string/null | nomor STR/SIP/lisensi |
+| `work_location` | string/null | lokasi kerja |
+| `latitude` | decimal/null | latitude lokasi mitra |
+| `longitude` | decimal/null | longitude lokasi mitra |
+| `years_of_experience` | integer/null | pengalaman |
+| `consultation_fee` | decimal string/null | biaya konsultasi |
+| `is_available` | boolean | status tersedia |
+| `bio` | string/null | bio singkat |
+| `verification_status` | enum/string | status verifikasi |
+
+### Service
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID layanan |
+| `service_code` | string | kode layanan |
+| `name` | string | nama layanan |
+| `service_type` | enum/string | contoh `dokter_homecare`, `perawat_homecare` |
+| `category` | string/null | kategori layanan |
+| `description` | string/null | deskripsi |
+| `base_price` | decimal string | harga dasar |
+| `duration_minutes` | integer/null | estimasi durasi |
+| `is_active` | boolean | layanan aktif |
+| `is_homecare` | boolean | layanan datang ke rumah |
+
+### Service Booking
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID booking |
+| `booking_code` | string | kode booking |
+| `service_id` | integer | ID layanan |
+| `patient_user_id` | integer | ID pasien |
+| `assigned_partner_user_id` | integer/null | ID mitra hasil matchmaking |
+| `patient_address_id` | integer/null | alamat layanan |
+| `status` | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
+| `scheduled_at` | datetime/null | jadwal |
+| `accepted_at` | datetime/null | waktu diterima mitra |
+| `started_at` | datetime/null | waktu mulai/perjalanan |
+| `completed_at` | datetime/null | waktu selesai |
+| `total_amount` | decimal string | total akhir |
+| `notes` | string/null | catatan |
+| `promo_code` | string/null | kode promo |
+| `discount_amount` | decimal string/null | nominal diskon |
+| `discount_type` | string/null | tipe diskon |
+| `subtotal` | decimal string/null | subtotal sebelum diskon |
+| `markup_amount` | decimal string/null | markup layanan |
+| `service` | object/null | data layanan |
+| `patient` | object/null | user pasien |
+| `assigned_partner` | object/null | user mitra |
+| `address` | object/null | alamat pasien |
+| `histories` | array | histori tindakan/status jika dimuat |
+
+### Consultation
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID konsultasi |
+| `consultation_code` | string | kode konsultasi |
+| `patient_user_id` | integer | ID pasien |
+| `partner_user_id` | integer | ID dokter/mitra |
+| `service_type` | enum | `chat`, `voice_call`, `video_call`, `visit` |
+| `status` | enum | `pending`, `confirmed`, `ongoing`, `completed`, `cancelled` |
+| `scheduled_at` | datetime/null | jadwal konsultasi |
+| `started_at` | datetime/null | waktu mulai |
+| `ended_at` | datetime/null | waktu selesai |
+| `complaint` | string/null | keluhan pasien |
+| `diagnosis` | string/null | diagnosis |
+| `notes` | string/null | catatan |
+| `consultation_fee` | decimal string | biaya |
+| `patient` | object/null | user pasien |
+| `partner` | object/null | user dokter/mitra |
+| `messages` | array | pesan konsultasi jika dimuat |
+| `prescription` | object/null | resep jika ada |
+| `payment` | object/null | pembayaran jika ada |
+
+### Consultation Message
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID pesan |
+| `consultation_id` | integer | ID konsultasi |
+| `sender_user_id` | integer | ID pengirim |
+| `message_type` | enum | `text`, `image`, `file`, `system` |
+| `message` | string/null | isi pesan |
+| `attachment_path` | string/null | path/url lampiran |
+| `read_at` | datetime/null | waktu pesan dibaca |
+| `sender` | object/null | user pengirim |
+
+### Product
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID produk |
+| `pharmacy_id` | integer | ID apotik |
+| `sku` | string/null | SKU produk |
+| `name` | string | nama produk |
+| `type` | enum/string | `obat`, `produk_kesehatan`, `layanan`, `sewa_alat_kesehatan` |
+| `category` | string/null | kategori |
+| `description` | string/null | deskripsi |
+| `price` | decimal string | harga jual |
+| `cost_price` | decimal string/null | harga modal |
+| `stock` | integer | stok |
+| `minimum_stock_alert` | integer/null | batas stok minimum |
+| `track_stock` | boolean | apakah stok dilacak |
+| `requires_prescription` | boolean | butuh resep |
+| `is_active` | boolean | produk aktif |
+| `image` | string/null | path gambar |
+| `pharmacy` | object/null | relasi apotik |
+
+### Order
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID order |
+| `order_code` | string | kode order |
+| `patient_user_id` | integer | ID pasien |
+| `pharmacy_id` | integer/null | ID apotik |
+| `patient_address_id` | integer | alamat kirim |
+| `prescription_id` | integer/null | resep |
+| `order_type` | enum | `resep`, `non_resep` |
+| `status` | enum | `pending`, `confirmed`, `processed`, `shipped`, `delivered`, `cancelled` |
+| `subtotal` | decimal string | subtotal |
+| `shipping_cost` | decimal string | ongkir |
+| `total_amount` | decimal string | total |
+| `notes` | string/null | catatan |
+| `ordered_at` | datetime/null | waktu order |
+| `patient` | object/null | user pasien |
+| `pharmacy` | object/null | apotik |
+| `address` | object/null | alamat kirim |
+| `prescription` | object/null | resep |
+| `items` | array | item order |
+| `shipment` | object/null | pengiriman |
+
+### Order Item
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID item |
+| `order_id` | integer | ID order |
+| `product_id` | integer/null | ID produk |
+| `product_name` | string | snapshot nama produk |
+| `unit_price` | decimal string | harga satuan |
+| `unit_cost` | decimal string/null | modal satuan |
+| `quantity` | integer | jumlah |
+| `total_price` | decimal string | total harga item |
+| `total_cost` | decimal string/null | total modal |
+| `product` | object/null | relasi produk |
+
+### App Notification
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID notifikasi |
+| `user_id` | integer | penerima |
+| `type` | string | tipe notifikasi |
+| `title` | string | judul |
+| `body` | string/null | isi |
+| `action_url` | string/null | tujuan ketika dibuka |
+| `reference_type` | string/null | tipe referensi |
+| `reference_id` | integer/null | ID referensi |
+| `data` | object/null | metadata |
+| `read_at` | datetime/null | null berarti belum dibaca |
+| `created_at` | datetime | waktu dibuat |
 
 ## Contoh Flow Flutter Pasien
 
