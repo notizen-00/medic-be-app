@@ -3,15 +3,22 @@
 namespace App\Http\Controllers\Api\Patient;
 
 use App\Http\Controllers\Controller;
+use App\Models\PatientAddress;
 use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\PromoCode;
+use App\Services\ServicePartnerSelectionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 
 class ServiceBookingController extends Controller
 {
+    public function __construct(
+        private readonly ServicePartnerSelectionService $servicePartnerSelectionService
+    ) {
+    }
+
     /**
      * List semua service yang tersedia
      */
@@ -48,17 +55,17 @@ class ServiceBookingController extends Controller
 
         if ($markupSetting && $markupSetting->is_active) {
             $pricing = [
-                'base_price' => $service->price,
+                'base_price' => $this->basePriceFor($service),
                 'markup_type' => $markupSetting->markup_type,
                 'markup_value' => $markupSetting->markup_value,
-                'markup_amount' => $markupSetting->calculateMarkup($service->price),
-                'final_price' => $markupSetting->calculateFinalPrice($service->price),
+                'markup_amount' => $markupSetting->calculateMarkup($this->basePriceFor($service)),
+                'final_price' => $markupSetting->calculateFinalPrice($this->basePriceFor($service)),
             ];
         } else {
             $pricing = [
-                'base_price' => $service->price,
+                'base_price' => $this->basePriceFor($service),
                 'markup_amount' => 0,
-                'final_price' => $service->price,
+                'final_price' => $this->basePriceFor($service),
             ];
         }
 
@@ -118,18 +125,28 @@ class ServiceBookingController extends Controller
         ]);
 
         $user = Auth::user();
-        $service = Service::find($validated['service_id']);
+        $service = Service::query()
+            ->with('partnerServices.partner.partnerProfile')
+            ->findOrFail($validated['service_id']);
+        $basePrice = $this->basePriceFor($service);
+
+        $address = isset($validated['patient_address_id'])
+            ? PatientAddress::find($validated['patient_address_id'])
+            : null;
+
+        $selectedPartnerService = $this->servicePartnerSelectionService
+            ->resolveBestPartnerForQuickBooking($service, $address);
 
         // Get markup setting
         $markupSetting = \App\Models\ServiceMarkupSetting::getActiveSetting($service->id);
         $markupAmount = 0;
 
         if ($markupSetting && $markupSetting->is_active) {
-            $markupAmount = $markupSetting->calculateMarkup($service->price);
+            $markupAmount = $markupSetting->calculateMarkup($basePrice);
         }
 
         // Subtotal = base price + markup
-        $subtotal = $service->price + $markupAmount;
+        $subtotal = $basePrice + $markupAmount;
 
         // Handle promo code
         $discountAmount = 0;
@@ -157,6 +174,7 @@ class ServiceBookingController extends Controller
             'booking_code' => 'SVC-' . strtoupper(Str::random(8)),
             'service_id' => $validated['service_id'],
             'patient_user_id' => $user->id,
+            'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
             'patient_address_id' => $validated['patient_address_id'] ?? null,
             'scheduled_at' => $validated['scheduled_at'] ?? null,
             'notes' => $validated['notes'] ?? null,
@@ -169,7 +187,7 @@ class ServiceBookingController extends Controller
             'total_amount' => $finalPrice,
         ]);
 
-        $booking->load(['service', 'address']);
+        $booking->load(['service', 'address', 'assignedPartner.partnerProfile']);
 
         return response()->json([
             'success' => true,
@@ -182,6 +200,13 @@ class ServiceBookingController extends Controller
                     'subtotal' => $subtotal,
                     'discount_amount' => $discountAmount,
                     'total_amount' => $finalPrice,
+                ],
+                'matchmaking' => [
+                    'partner_service_id' => $selectedPartnerService->id,
+                    'partner_user_id' => $selectedPartnerService->partner_user_id,
+                    'distance_km' => $selectedPartnerService->distance_km,
+                    'match_score' => $selectedPartnerService->match_score,
+                    'quality_score' => $selectedPartnerService->quality_score,
                 ],
             ],
         ]);
@@ -229,5 +254,10 @@ class ServiceBookingController extends Controller
             'success' => true,
             'data' => $bookings,
         ]);
+    }
+
+    private function basePriceFor(Service $service): float
+    {
+        return (float) ($service->base_price ?? $service->price ?? 0);
     }
 }

@@ -80,7 +80,7 @@ class ServiceBooking extends Model
      */
     public function calculateFinalPrice(): array
     {
-        $basePrice = $this->service->price ?? 0;
+        $basePrice = $this->service->base_price ?? $this->service->price ?? 0;
 
         // Get active markup setting
         $markupSetting = ServiceMarkupSetting::getActiveSetting($this->service_id);

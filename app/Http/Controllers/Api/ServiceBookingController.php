@@ -69,13 +69,15 @@ class ServiceBookingController extends Controller
     {
         $validated = $request->validate([
             'service_id' => ['required', 'integer', 'exists:services,id'],
-            'patient_user_id' => ['required', 'integer', 'exists:users,id'],
+            'patient_user_id' => ['nullable', 'integer', 'exists:users,id'],
             'patient_address_id' => ['nullable', 'integer', 'exists:patient_addresses,id'],
             'scheduled_at' => ['nullable', 'date'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $this->ensureBookingCanBeCreatedByAuthenticatedUser($request, (int) $validated['patient_user_id']);
+        $patientUserId = (int) ($validated['patient_user_id'] ?? $request->user()?->id);
+
+        $this->ensureBookingCanBeCreatedByAuthenticatedUser($request, $patientUserId);
 
         $service = Service::query()
             ->with('partnerServices.partner.partnerProfile')
@@ -103,7 +105,7 @@ class ServiceBookingController extends Controller
         $booking = ServiceBooking::create([
             'booking_code' => 'SVB-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
             'service_id' => $service->id,
-            'patient_user_id' => $validated['patient_user_id'],
+            'patient_user_id' => $patientUserId,
             'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
             'patient_address_id' => $validated['patient_address_id'] ?? null,
             'status' => 'pending',
@@ -117,6 +119,13 @@ class ServiceBookingController extends Controller
         return response()->json([
             'message' => 'Booking layanan berhasil dibuat.',
             'data' => $booking,
+            'matchmaking' => [
+                'partner_service_id' => $selectedPartnerService->id,
+                'partner_user_id' => $selectedPartnerService->partner_user_id,
+                'distance_km' => $selectedPartnerService->distance_km,
+                'match_score' => $selectedPartnerService->match_score,
+                'quality_score' => $selectedPartnerService->quality_score,
+            ],
         ], 201);
     }
 
