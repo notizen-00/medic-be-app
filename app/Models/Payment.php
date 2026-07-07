@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 #[Fillable([
     'consultation_id',
+    'service_booking_id',
     'patient_user_id',
     'payment_code',
     'snap_token',
@@ -33,6 +34,11 @@ class Payment extends Model
     public function consultation(): BelongsTo
     {
         return $this->belongsTo(Consultation::class);
+    }
+
+    public function serviceBooking(): BelongsTo
+    {
+        return $this->belongsTo(ServiceBooking::class);
     }
 
     public function patient(): BelongsTo

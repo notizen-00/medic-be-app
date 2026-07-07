@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Services\AppNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,6 +13,11 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 class MidtransCallbackController extends Controller
 {
+    public function __construct(
+        private readonly AppNotificationService $notifications
+    ) {
+    }
+
     public function __invoke(Request $request): JsonResponse
     {
         $payload = $request->validate([
@@ -29,7 +35,7 @@ class MidtransCallbackController extends Controller
         $this->ensureValidSignature($payload);
 
         $payment = Payment::query()
-            ->with('consultation')
+            ->with(['consultation', 'serviceBooking.assignedPartner'])
             ->where('payment_code', $payload['order_id'])
             ->firstOrFail();
 
@@ -55,6 +61,8 @@ class MidtransCallbackController extends Controller
             ]);
 
             if (! $payment->consultation) {
+                $this->handleServiceBookingPayment($payment, $paymentStatus);
+
                 return;
             }
 
@@ -78,6 +86,43 @@ class MidtransCallbackController extends Controller
                 'status' => $paymentStatus,
             ],
         ]);
+    }
+
+    private function handleServiceBookingPayment(Payment $payment, string $paymentStatus): void
+    {
+        $booking = $payment->serviceBooking;
+
+        if (! $booking) {
+            return;
+        }
+
+        if ($paymentStatus === 'paid' && $booking->status === 'pending') {
+            $booking->update([
+                'status' => $booking->scheduled_at ? 'scheduled' : 'pending',
+            ]);
+
+            if ($booking->assigned_partner_user_id) {
+                $this->notifications->send($booking->assigned_partner_user_id, [
+                    'type' => 'service_booking.paid',
+                    'title' => 'Pembayaran layanan diterima',
+                    'body' => 'Pembayaran untuk pesanan '.$booking->booking_code.' sudah diterima.',
+                    'action_url' => '/mitra/service-bookings/'.$booking->id,
+                    'reference_type' => 'service_booking',
+                    'reference_id' => $booking->id,
+                    'data' => [
+                        'service_booking_id' => $booking->id,
+                        'booking_code' => $booking->booking_code,
+                        'status' => $booking->status,
+                    ],
+                ]);
+            }
+        }
+
+        if (in_array($paymentStatus, ['failed', 'expired'], true) && $booking->status === 'pending') {
+            $booking->update([
+                'status' => 'cancelled',
+            ]);
+        }
     }
 
     private function ensureValidSignature(array $payload): void

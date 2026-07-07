@@ -239,6 +239,7 @@ Body minimal:
 {
   "service_id": 1,
   "patient_address_id": 10,
+  "booking_type": "scheduled",
   "notes": "Pasien demam sejak malam"
 }
 ```
@@ -249,7 +250,11 @@ Field request `POST /api/patient/service-bookings`:
 | --- | --- | --- | --- |
 | `service_id` | Ya | integer | harus ada di `services` |
 | `patient_address_id` | Tidak | integer | harus ada di `patient_addresses`; wajib secara bisnis untuk layanan homecare |
-| `scheduled_at` | Tidak | datetime | format `YYYY-MM-DD HH:mm:ss`; untuk endpoint alternatif harus setelah waktu sekarang |
+| `booking_type` | Tidak | enum | `scheduled` untuk sekali jalan, `daily` untuk layanan harian; default `scheduled` |
+| `scheduled_at` | Tidak | datetime | format `YYYY-MM-DD HH:mm:ss`; wajib setelah waktu sekarang jika dikirim |
+| `schedule_start_at` | Tidak | datetime | wajib untuk `booking_type=daily` jika `scheduled_at` tidak dikirim |
+| `schedule_end_at` | Tidak | datetime | tanggal selesai `daily`; harus >= `schedule_start_at` |
+| `duration_days` | Tidak | integer | 1-30; dipakai untuk `daily` jika `schedule_end_at` tidak dikirim |
 | `notes` | Tidak | string | catatan pasien; max 1000 di endpoint alternatif |
 | `promo_code` | Tidak | string | dipakai endpoint alternatif service booking |
 | `patient_user_id` | Tidak | integer | hanya didukung endpoint umum; normalnya tidak perlu dikirim karena memakai token |
@@ -260,9 +265,45 @@ Body dengan jadwal:
 {
   "service_id": 1,
   "patient_address_id": 10,
+  "booking_type": "scheduled",
   "scheduled_at": "2026-07-06 10:00:00",
   "notes": "Datang pagi jika memungkinkan"
 }
+```
+
+Body layanan harian:
+
+```json
+{
+  "service_id": 1,
+  "patient_address_id": 10,
+  "booking_type": "daily",
+  "schedule_start_at": "2026-07-08 09:00:00",
+  "duration_days": 3,
+  "notes": "Perawatan luka selama 3 hari"
+}
+```
+
+Alternatif layanan harian dengan tanggal selesai:
+
+```json
+{
+  "service_id": 1,
+  "patient_address_id": 10,
+  "booking_type": "daily",
+  "schedule_start_at": "2026-07-08 09:00:00",
+  "schedule_end_at": "2026-07-10 09:00:00"
+}
+```
+
+Rule harga harian:
+
+```text
+subtotal harian = harga per hari x duration_days
+markup harian = markup per hari x duration_days
+promo percentage = diskon per hari x duration_days
+promo fixed = dipotong satu kali
+total_amount = subtotal - discount_amount
 ```
 
 Response penting:
@@ -277,8 +318,16 @@ Response penting:
     "patient_user_id": 7,
     "assigned_partner_user_id": 12,
     "patient_address_id": 10,
+    "booking_type": "scheduled",
     "status": "pending",
-    "total_amount": "100000.00"
+    "duration_days": 1,
+    "total_amount": "100000.00",
+    "payment": {
+      "id": 50,
+      "payment_code": "PAY-SVC-20260707120000-123",
+      "status": "pending",
+      "amount": "100000.00"
+    }
   },
   "matchmaking": {
     "partner_service_id": 4,
@@ -301,6 +350,60 @@ Detail booking:
 ```http
 GET /api/patient/service-bookings/{serviceBooking}
 ```
+
+Bayar booking layanan:
+
+```http
+PATCH /api/patient/service-bookings/{serviceBooking}/pay
+```
+
+Field `PATCH /api/patient/service-bookings/{serviceBooking}/pay`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `notes` | Tidak | string | catatan pembayaran |
+
+Response pembayaran service booking:
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `service_booking` | object | data booking layanan |
+| `payment` | object | data tagihan |
+| `midtrans` | object | Snap token dan redirect URL Midtrans |
+
+Contoh response pembayaran:
+
+```json
+{
+  "message": "Transaksi Midtrans berhasil dibuat. Lanjutkan pembayaran layanan.",
+  "data": {
+    "service_booking": {
+      "id": 25,
+      "booking_code": "SVC-ABCDEFGH",
+      "payment": {
+        "id": 50,
+        "status": "pending",
+        "amount": "300000.00"
+      }
+    },
+    "payment": {
+      "id": 50,
+      "payment_code": "PAY-SVC-20260707120000-123",
+      "status": "pending",
+      "amount": "300000.00"
+    },
+    "midtrans": {
+      "token": "snap-token",
+      "redirect_url": "https://app.sandbox.midtrans.com/snap/v2/vtweb/snap-token",
+      "order_id": "PAY-SVC-20260707120000-123",
+      "gross_amount": 300000,
+      "is_reused": false
+    }
+  }
+}
+```
+
+Mitra baru bisa menerima/memproses booking jika `payment.status` sudah `paid`.
 
 Update status booking:
 
@@ -732,6 +835,7 @@ consultation.created
 consultation.status_updated
 consultation.message_created
 service_booking.matched
+service_booking.paid
 service_booking.status_updated
 service_booking.accepted
 service_booking.on_the_way
@@ -1019,7 +1123,11 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `assigned_partner_user_id` | integer/null | ID mitra hasil matchmaking |
 | `patient_address_id` | integer/null | alamat layanan |
 | `status` | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
+| `booking_type` | enum | `scheduled`, `daily` |
 | `scheduled_at` | datetime/null | jadwal |
+| `schedule_start_at` | datetime/null | tanggal mulai layanan |
+| `schedule_end_at` | datetime/null | tanggal selesai layanan |
+| `duration_days` | integer | jumlah hari layanan; default 1 |
 | `accepted_at` | datetime/null | waktu diterima mitra |
 | `started_at` | datetime/null | waktu mulai/perjalanan |
 | `completed_at` | datetime/null | waktu selesai |
@@ -1035,6 +1143,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `assigned_partner` | object/null | user mitra |
 | `address` | object/null | alamat pasien |
 | `histories` | array | histori tindakan/status jika dimuat |
+| `payment` | object/null | tagihan booking layanan |
 
 ### Consultation
 
@@ -1147,6 +1256,24 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `data` | object/null | metadata |
 | `read_at` | datetime/null | null berarti belum dibaca |
 | `created_at` | datetime | waktu dibuat |
+
+### Payment
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID pembayaran |
+| `consultation_id` | integer/null | terisi untuk pembayaran konsultasi |
+| `service_booking_id` | integer/null | terisi untuk pembayaran booking layanan |
+| `patient_user_id` | integer | user pasien |
+| `payment_code` | string | kode unik pembayaran, dipakai sebagai Midtrans `order_id` |
+| `snap_token` | string/null | token Snap Midtrans |
+| `snap_redirect_url` | string/null | URL pembayaran Midtrans |
+| `snap_token_created_at` | datetime/null | waktu token dibuat |
+| `payment_method` | enum | `wallet`, `bank_transfer`, `credit_card`, `cash` |
+| `status` | enum | `pending`, `paid`, `failed`, `refunded`, `expired` |
+| `amount` | decimal string | nominal pembayaran |
+| `paid_at` | datetime/null | waktu lunas |
+| `notes` | string/null | catatan |
 
 ## Contoh Flow Flutter Pasien
 

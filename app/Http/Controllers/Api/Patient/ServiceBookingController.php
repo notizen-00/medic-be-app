@@ -4,13 +4,20 @@ namespace App\Http\Controllers\Api\Patient;
 
 use App\Http\Controllers\Controller;
 use App\Models\PatientAddress;
+use App\Models\Payment;
 use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\PromoCode;
+use App\Services\MidtransService;
 use App\Services\ServicePartnerSelectionService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use Throwable;
 
 class ServiceBookingController extends Controller
 {
@@ -119,7 +126,11 @@ class ServiceBookingController extends Controller
         $validated = $request->validate([
             'service_id' => 'required|exists:services,id',
             'patient_address_id' => 'nullable|exists:patient_addresses,id',
+            'booking_type' => 'nullable|in:scheduled,daily',
             'scheduled_at' => 'nullable|date|after:now',
+            'schedule_start_at' => 'nullable|date|after:now',
+            'schedule_end_at' => 'nullable|date|after_or_equal:schedule_start_at',
+            'duration_days' => 'nullable|integer|min:1|max:30',
             'notes' => 'nullable|string|max:1000',
             'promo_code' => 'nullable|string',
         ]);
@@ -153,7 +164,9 @@ class ServiceBookingController extends Controller
         $promoCodeData = null;
 
         if (isset($validated['promo_code']) && $validated['promo_code']) {
-            $result = (new ServiceBooking())->applyPromoCode($validated['promo_code'], $user->id);
+            $promoBooking = new ServiceBooking();
+            $promoBooking->service_id = $validated['service_id'];
+            $result = $promoBooking->applyPromoCode($validated['promo_code'], $user->id);
 
             if (!$result['success']) {
                 return response()->json([
@@ -166,28 +179,48 @@ class ServiceBookingController extends Controller
             $promoCodeData = $result;
         }
 
-        // Final price
+        $schedule = $this->resolveBookingSchedule($validated);
+        $subtotal = $subtotal * $schedule['duration_days'];
+        if (($promoCodeData['discount_type'] ?? null) === 'percentage') {
+            $discountAmount = $discountAmount * $schedule['duration_days'];
+        }
         $finalPrice = $subtotal - $discountAmount;
 
-        // Create booking
-        $booking = ServiceBooking::create([
-            'booking_code' => 'SVC-' . strtoupper(Str::random(8)),
-            'service_id' => $validated['service_id'],
-            'patient_user_id' => $user->id,
-            'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
-            'patient_address_id' => $validated['patient_address_id'] ?? null,
-            'scheduled_at' => $validated['scheduled_at'] ?? null,
-            'notes' => $validated['notes'] ?? null,
-            'status' => 'pending',
-            'promo_code' => $validated['promo_code'] ?? null,
-            'discount_amount' => $discountAmount,
-            'discount_type' => $promoCodeData['discount_type'] ?? null,
-            'subtotal' => $subtotal,
-            'markup_amount' => $markupAmount,
-            'total_amount' => $finalPrice,
-        ]);
+        $booking = DB::transaction(function () use ($validated, $user, $selectedPartnerService, $schedule, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice): ServiceBooking {
+            $booking = ServiceBooking::create([
+                'booking_code' => 'SVC-' . strtoupper(Str::random(8)),
+                'service_id' => $validated['service_id'],
+                'patient_user_id' => $user->id,
+                'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
+                'patient_address_id' => $validated['patient_address_id'] ?? null,
+                'booking_type' => $schedule['booking_type'],
+                'scheduled_at' => $schedule['scheduled_at'],
+                'schedule_start_at' => $schedule['schedule_start_at'],
+                'schedule_end_at' => $schedule['schedule_end_at'],
+                'duration_days' => $schedule['duration_days'],
+                'notes' => $validated['notes'] ?? null,
+                'status' => 'pending',
+                'promo_code' => $validated['promo_code'] ?? null,
+                'discount_amount' => $discountAmount,
+                'discount_type' => $promoCodeData['discount_type'] ?? null,
+                'subtotal' => $subtotal,
+                'markup_amount' => $markupAmount * $schedule['duration_days'],
+                'total_amount' => $finalPrice,
+            ]);
 
-        $booking->load(['service', 'address', 'assignedPartner.partnerProfile']);
+            Payment::create([
+                'service_booking_id' => $booking->id,
+                'patient_user_id' => $booking->patient_user_id,
+                'payment_code' => 'PAY-SVC-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
+                'status' => 'pending',
+                'amount' => $booking->total_amount,
+                'notes' => 'Pembayaran layanan menunggu pelunasan sebelum mitra menerima pesanan.',
+            ]);
+
+            return $booking;
+        });
+
+        $booking->load(['service', 'address', 'assignedPartner.partnerProfile', 'payment']);
 
         return response()->json([
             'success' => true,
@@ -196,10 +229,11 @@ class ServiceBookingController extends Controller
                 'booking' => $booking,
                 'pricing' => [
                     'base_price' => $service->price,
-                    'markup_amount' => $markupAmount,
+                    'markup_amount' => $booking->markup_amount,
                     'subtotal' => $subtotal,
                     'discount_amount' => $discountAmount,
                     'total_amount' => $finalPrice,
+                    'duration_days' => $schedule['duration_days'],
                 ],
                 'matchmaking' => [
                     'partner_service_id' => $selectedPartnerService->id,
@@ -226,7 +260,7 @@ class ServiceBookingController extends Controller
             ], 403);
         }
 
-        $serviceBooking->load(['service', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'partnerBalanceTransaction']);
+        $serviceBooking->load(['service', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'partnerBalanceTransaction', 'payment']);
 
         return response()->json([
             'success' => true,
@@ -242,7 +276,7 @@ class ServiceBookingController extends Controller
         $user = Auth::user();
 
         $query = ServiceBooking::where('patient_user_id', $user->id)
-            ->with(['service', 'address', 'assignedPartner.partnerProfile', 'histories.actor']);
+            ->with(['service', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'payment']);
 
         if ($request->has('status')) {
             $query->where('status', $request->status);
@@ -259,5 +293,122 @@ class ServiceBookingController extends Controller
     private function basePriceFor(Service $service): float
     {
         return (float) ($service->base_price ?? $service->price ?? 0);
+    }
+
+    public function pay(Request $request, ServiceBooking $serviceBooking, MidtransService $midtransService)
+    {
+        if ($serviceBooking->patient_user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk membayar booking ini',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $payment = $serviceBooking->payment;
+
+        if (! $payment) {
+            $payment = Payment::create([
+                'service_booking_id' => $serviceBooking->id,
+                'patient_user_id' => $serviceBooking->patient_user_id,
+                'payment_code' => 'PAY-SVC-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
+                'status' => 'pending',
+                'amount' => $serviceBooking->total_amount,
+                'notes' => 'Pembayaran layanan dibuat ulang dari endpoint pay.',
+            ]);
+        }
+
+        if ($payment->status === 'paid') {
+            $serviceBooking->load(['service', 'address', 'assignedPartner.partnerProfile', 'payment']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Pembayaran layanan sudah lunas.',
+                'data' => $serviceBooking,
+            ]);
+        }
+
+        $payment->update([
+            'notes' => $validated['notes'] ?? $payment->notes,
+        ]);
+
+        try {
+            $snap = $midtransService->getOrCreateSnapTransaction($payment->fresh(['patient', 'serviceBooking.service']));
+        } catch (Throwable $exception) {
+            Log::error('Gagal membuat Snap token Midtrans untuk service booking patient.', [
+                'service_booking_id' => $serviceBooking->id,
+                'payment_id' => $payment->id,
+                'payment_code' => $payment->payment_code,
+                'error' => $exception->getMessage(),
+            ]);
+
+            throw ValidationException::withMessages([
+                'payment' => [$exception->getMessage()],
+            ]);
+        }
+
+        $serviceBooking->load(['service', 'address', 'assignedPartner.partnerProfile', 'payment']);
+
+        return response()->json([
+            'success' => true,
+            'message' => $snap['is_reused']
+                ? 'Snap token Midtrans lama masih aktif dan dipakai ulang untuk pembayaran layanan.'
+                : 'Transaksi Midtrans berhasil dibuat. Lanjutkan pembayaran layanan.',
+            'data' => [
+                'service_booking' => $serviceBooking,
+                'payment' => $payment->fresh(),
+                'midtrans' => $snap,
+            ],
+        ]);
+    }
+
+    private function resolveBookingSchedule(array $validated): array
+    {
+        $bookingType = $validated['booking_type'] ?? 'scheduled';
+        $scheduledAt = isset($validated['scheduled_at']) ? Carbon::parse($validated['scheduled_at']) : null;
+
+        if ($bookingType === 'daily') {
+            $startAt = isset($validated['schedule_start_at'])
+                ? Carbon::parse($validated['schedule_start_at'])
+                : $scheduledAt;
+
+            if (! $startAt) {
+                throw ValidationException::withMessages([
+                    'schedule_start_at' => ['Tanggal mulai wajib diisi untuk booking harian.'],
+                ]);
+            }
+
+            $durationDays = (int) ($validated['duration_days'] ?? 1);
+            $endAt = isset($validated['schedule_end_at'])
+                ? Carbon::parse($validated['schedule_end_at'])
+                : $startAt->copy()->addDays($durationDays - 1);
+
+            $durationDays = max(1, $startAt->copy()->startOfDay()->diffInDays($endAt->copy()->startOfDay()) + 1);
+
+            if ($durationDays > 30) {
+                throw ValidationException::withMessages([
+                    'duration_days' => ['Booking harian maksimal 30 hari.'],
+                ]);
+            }
+
+            return [
+                'booking_type' => 'daily',
+                'scheduled_at' => $startAt,
+                'schedule_start_at' => $startAt,
+                'schedule_end_at' => $endAt,
+                'duration_days' => $durationDays,
+            ];
+        }
+
+        return [
+            'booking_type' => 'scheduled',
+            'scheduled_at' => $scheduledAt,
+            'schedule_start_at' => $scheduledAt,
+            'schedule_end_at' => $scheduledAt,
+            'duration_days' => 1,
+        ];
     }
 }

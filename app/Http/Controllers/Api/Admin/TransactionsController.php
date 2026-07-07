@@ -24,7 +24,7 @@ class TransactionsController extends Controller
         $search = $validated['search'] ?? null;
 
         $payments = Payment::query()
-            ->with(['patient', 'consultation'])
+            ->with(['patient', 'consultation', 'serviceBooking.service'])
             ->when(
                 $search,
                 fn ($query, $value) => $query->where(function ($paymentQuery) use ($value) {

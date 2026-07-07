@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable([
     'booking_code',
@@ -14,7 +15,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'assigned_partner_user_id',
     'patient_address_id',
     'status',
+    'booking_type',
     'scheduled_at',
+    'schedule_start_at',
+    'schedule_end_at',
+    'duration_days',
     'accepted_at',
     'started_at',
     'completed_at',
@@ -34,6 +39,9 @@ class ServiceBooking extends Model
     {
         return [
             'scheduled_at' => 'datetime',
+            'schedule_start_at' => 'datetime',
+            'schedule_end_at' => 'datetime',
+            'duration_days' => 'integer',
             'accepted_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
@@ -75,12 +83,21 @@ class ServiceBooking extends Model
         return $this->hasMany(ServiceBookingHistory::class)->latest('handled_at')->latest();
     }
 
+    public function payment(): HasOne
+    {
+        return $this->hasOne(Payment::class);
+    }
+
     /**
      * Calculate final price with markup and discount
      */
     public function calculateFinalPrice(): array
     {
-        $basePrice = $this->service->base_price ?? $this->service->price ?? 0;
+        $service = $this->relationLoaded('service')
+            ? $this->service
+            : Service::find($this->service_id);
+
+        $basePrice = $service?->base_price ?? $service?->price ?? 0;
 
         // Get active markup setting
         $markupSetting = ServiceMarkupSetting::getActiveSetting($this->service_id);

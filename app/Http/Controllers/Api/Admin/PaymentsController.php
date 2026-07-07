@@ -21,7 +21,7 @@ class PaymentsController extends Controller
         $perPage = $this->resolvePerPage($request);
 
         $payments = Payment::query()
-            ->with(['patient', 'consultation.patient', 'consultation.partner.partnerProfile'])
+            ->with(['patient', 'consultation.patient', 'consultation.partner.partnerProfile', 'serviceBooking.service', 'serviceBooking.assignedPartner.partnerProfile'])
             ->when(
                 $validated['status'] ?? null,
                 fn ($query, $status) => $query->where('status', $status)
@@ -40,7 +40,9 @@ class PaymentsController extends Controller
                             ->where('name', 'like', "%{$search}%")
                             ->orWhere('email', 'like', "%{$search}%"))
                         ->orWhereHas('consultation', fn ($consultationQuery) => $consultationQuery
-                            ->where('consultation_code', 'like', "%{$search}%"));
+                            ->where('consultation_code', 'like', "%{$search}%"))
+                        ->orWhereHas('serviceBooking', fn ($bookingQuery) => $bookingQuery
+                            ->where('booking_code', 'like', "%{$search}%"));
                 })
             )
             ->latest()

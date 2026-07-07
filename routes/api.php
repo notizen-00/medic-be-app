@@ -135,6 +135,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::post('/', 'store');
             Route::get('/{serviceBooking}', 'show');
+            Route::patch('/{serviceBooking}/pay', 'pay');
             Route::patch('/{serviceBooking}/status', 'updateStatus');
         });
 
@@ -174,6 +175,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::post('/check-promo-code', 'checkPromoCode');
             Route::post('/', 'store');
             Route::get('/', 'indexBookings');
+            Route::patch('/{serviceBooking}/pay', 'pay');
             Route::get('/{serviceBooking}', 'showBooking');
         });
 

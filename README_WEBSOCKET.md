@@ -103,6 +103,7 @@ php artisan serve
 - Broadcast ke private channel `user.{userId}.notifications`
 - Event name: `.notification.created`
 - Payload berisi judul, isi, tipe, reference, data tambahan, dan timestamp
+- Tipe service booking yang relevan: `service_booking.matched`, `service_booking.paid`, `service_booking.status_updated`, `service_booking.accepted`, `service_booking.on_the_way`, `service_booking.completed`
 
 ### Models
 
@@ -135,6 +136,8 @@ PATCH /api/mitra/service-bookings/{serviceBooking}/accept
 Headers: Authorization: Bearer {token}
 Body: { "notes": "Accepted from mitra web test." }
 ```
+
+Catatan: service booking baru yang memiliki payment pending harus dibayar dulu oleh pasien lewat `PATCH /api/patient/service-bookings/{serviceBooking}/pay`. Mitra akan ditolak saat accept/start/complete jika `payment.status` belum `paid`.
 
 ## Frontend Integration
 

@@ -35,12 +35,13 @@ class MidtransService
 
     public function getOrCreateSnapTransaction(Payment $payment): array
     {
-        $payment->loadMissing(['patient', 'consultation']);
+        $payment->loadMissing(['patient', 'consultation', 'serviceBooking.service']);
 
         Log::info('Memulai proses Snap Midtrans.', [
             'payment_id' => $payment->id,
             'payment_code' => $payment->payment_code,
             'consultation_id' => $payment->consultation_id,
+            'service_booking_id' => $payment->service_booking_id,
             'patient_user_id' => $payment->patient_user_id,
             'status' => $payment->status,
             'amount' => (float) $payment->amount,
@@ -72,9 +73,7 @@ class MidtransService
                 'id' => $payment->payment_code,
                 'price' => (int) round((float) $payment->amount),
                 'quantity' => 1,
-                'name' => $payment->consultation?->consultation_code
-                    ? 'Pembayaran Konsultasi ' . $payment->consultation->consultation_code
-                    : 'Pembayaran Konsultasi',
+                'name' => $this->itemName($payment),
             ]],
             'customer_details' => [
                 'first_name' => $payment->patient?->name ?? 'Pelanggan',
@@ -114,6 +113,7 @@ class MidtransService
                 'payment_id' => $payment->id,
                 'payment_code' => $payment->payment_code,
                 'consultation_id' => $payment->consultation_id,
+                'service_booking_id' => $payment->service_booking_id,
                 'error' => $exception->getMessage(),
             ]);
 
@@ -156,5 +156,18 @@ class MidtransService
             'gross_amount' => (int) round((float) $payment->amount),
             'is_reused' => false,
         ];
+    }
+
+    private function itemName(Payment $payment): string
+    {
+        if ($payment->consultation?->consultation_code) {
+            return 'Pembayaran Konsultasi ' . $payment->consultation->consultation_code;
+        }
+
+        if ($payment->serviceBooking?->booking_code) {
+            return 'Pembayaran Layanan ' . $payment->serviceBooking->booking_code;
+        }
+
+        return 'Pembayaran Medic App';
     }
 }
