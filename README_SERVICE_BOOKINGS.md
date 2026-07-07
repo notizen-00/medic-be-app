@@ -168,9 +168,11 @@ Alur manual:
 1. Jalankan app dan Reverb.
 2. Buka `/mitra/login`.
 3. Login menggunakan akun mitra.
-4. Buat booking pasien melalui `POST /api/patient/service-bookings`.
-5. Jika sistem memilih mitra tersebut, halaman akan menerima event `.service-booking.matched`.
-6. Klik `Accept` untuk menguji endpoint `PATCH /api/mitra/service-bookings/{serviceBooking}/accept`.
+4. Pastikan status Reverb menjadi `subscribed`.
+5. Panel `Online` akan menampilkan user yang join presence channel `online-users`.
+6. Buat booking pasien melalui `POST /api/patient/service-bookings`.
+7. Jika sistem memilih mitra tersebut, halaman akan menerima event `.service-booking.matched`.
+8. Klik `Accept` untuk menguji endpoint `PATCH /api/mitra/service-bookings/{serviceBooking}/accept`.
 
 Channel dan event:
 
@@ -179,4 +181,5 @@ Channel: private-partner.{partnerId}.service-bookings
 Laravel channel: partner.{partnerId}.service-bookings
 Event: .service-booking.matched
 Auth endpoint: POST /api/broadcasting/auth
+Presence channel: presence-online-users
 ```

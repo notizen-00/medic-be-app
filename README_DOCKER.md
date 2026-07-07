@@ -57,7 +57,22 @@ Halaman test mitra tersedia di:
 
 `http://localhost:8081/mitra/login`
 
-Gunakan halaman itu untuk login mitra, subscribe ke private channel booking, menerima notifikasi matchmaking, dan test tombol accept booking.
+Gunakan halaman itu untuk login mitra, subscribe ke private channel booking, menerima notifikasi matchmaking, melihat presence online users, dan test tombol accept booking.
+
+Jika production memakai Nginx Proxy Manager, aktifkan `Websockets Support` pada proxy host domain backend. Domain HTTPS tetap forward ke Docker nginx `8081`; browser tidak perlu langsung akses port Reverb `8080`.
+
+Alur production:
+
+```text
+Browser wss://backend.perawatku.tech/app/...
+-> Nginx Proxy Manager
+-> Docker nginx 127.0.0.1:8081
+-> service reverb:8080
+```
+
+Contoh konfigurasi tambahan proxy production ada di:
+
+`docker/nginx/reverb-production-proxy.conf.example`
 
 ## Useful commands
 

@@ -71,6 +71,7 @@ php artisan serve
 
 3. **`online-users`** - Presence channel
     - Untuk tracking status online user
+    - Halaman `/mitra/login` menampilkan daftar user online dari channel ini
 
 4. **`partner.{partnerId}.service-bookings`** - Private channel untuk booking layanan mitra
     - Hanya akun mitra dengan ID yang sama yang bisa subscribe
@@ -290,11 +291,17 @@ config/
 1. Jalankan Laravel app dan Reverb.
 2. Buka `http://localhost:8081/mitra/login` atau `https://domain-kamu/mitra/login`.
 3. Login sebagai akun mitra.
-4. Pastikan status koneksi berubah menjadi `connected` dan subscription berhasil.
-5. Login sebagai pasien dari aplikasi/API.
-6. Buat booking melalui `POST /api/patient/service-bookings`.
-7. Jika matchmaking memilih mitra yang sedang login di halaman test, kartu booking akan muncul realtime.
-8. Klik `Accept` untuk memanggil endpoint `PATCH /api/mitra/service-bookings/{id}/accept`.
+4. Pastikan status koneksi berubah menjadi `subscribed`.
+5. Pastikan panel `Online` menampilkan akun yang tersambung ke presence channel `online-users`.
+6. Login sebagai pasien dari aplikasi/API.
+7. Buat booking melalui `POST /api/patient/service-bookings`.
+8. Jika matchmaking memilih mitra yang sedang login di halaman test, kartu booking akan muncul realtime.
+9. Klik `Accept` untuk memanggil endpoint `PATCH /api/mitra/service-bookings/{id}/accept`.
+
+Catatan halaman test:
+- Tombol `Test Raw WS` hanya untuk memastikan proxy WebSocket sudah bisa handshake ke Reverb.
+- Log `pusher:connection_established` atau status HTTP `101 Switching Protocols` berarti koneksi WebSocket sudah sampai ke Reverb.
+- Subscribe private channel dan presence channel tetap membutuhkan `POST /api/broadcasting/auth` dengan Bearer token.
 
 #### Test Chat Consultation
 
