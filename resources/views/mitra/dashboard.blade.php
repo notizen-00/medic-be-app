@@ -653,7 +653,7 @@
             const payload = await apiFetch(`/api/mitra/service-bookings?${params.toString()}`);
             const rawBookings = payload.data.data || [];
             const search = $('#order-search').value.trim().toLowerCase();
-            bookings = search ? rawBookings.filter((item) => [item.booking_code, item.patient?.name, item.patient?.email, item.service?.name].filter(Boolean).join(' ').toLowerCase().includes(search)) : rawBookings;
+            bookings = search ? rawBookings.filter((item) => [item.booking_code, item.patient_member?.name, item.patient?.name, item.patient?.email, item.service?.name].filter(Boolean).join(' ').toLowerCase().includes(search)) : rawBookings;
             renderBookings();
             updateStats();
         } catch (error) {
@@ -671,7 +671,7 @@
             <button type="button" class="list-item ${activeBooking?.id === booking.id ? 'active' : ''}" data-booking-id="${booking.id}">
                 <h3>${escapeHtml(booking.booking_code || `Order #${booking.id}`)}</h3>
                 <div class="muted">${escapeHtml(booking.service?.name || '-')}</div>
-                <div class="muted">${escapeHtml(booking.patient?.name || '-')}</div>
+                <div class="muted">${escapeHtml(booking.patient_member?.name || booking.patient?.name || '-')}</div>
                 <div class="badge-row"><span class="badge ${statusClass(booking.status)}">${escapeHtml(booking.status)}</span><span class="badge">${escapeHtml(money(booking.total_amount))}</span></div>
             </button>
         `).join('');
@@ -692,12 +692,13 @@
     function renderBookingDetail() {
         const b = activeBooking;
         $('#order-title').textContent = b.booking_code || `Order #${b.id}`;
-        $('#order-subtitle').textContent = `${b.service?.name || '-'} - ${b.patient?.name || '-'}`;
+        $('#order-subtitle').textContent = `${b.service?.name || '-'} - ${b.patient_member?.name || b.patient?.name || '-'}`;
         $('#order-badge').textContent = b.status;
         $('#order-badge').className = `badge ${statusClass(b.status)}`;
         $('#order-detail').innerHTML = `
             <div class="info-grid">
-                <div class="info"><span>Pasien</span><b>${escapeHtml(b.patient?.name || '-')}</b></div>
+                <div class="info"><span>Pasien</span><b>${escapeHtml(b.patient_member?.name || b.patient?.name || '-')}</b></div>
+                <div class="info"><span>Hubungan</span><b>${escapeHtml(b.patient_member?.relationship || '-')}</b></div>
                 <div class="info"><span>Layanan</span><b>${escapeHtml(b.service?.name || '-')}</b></div>
                 <div class="info"><span>Jadwal</span><b>${escapeHtml(formatDate(b.scheduled_at))}</b></div>
                 <div class="info"><span>Total</span><b>${escapeHtml(money(b.total_amount))}</b></div>

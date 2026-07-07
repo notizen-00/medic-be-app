@@ -11,7 +11,7 @@ class SessionController extends BaseAuthController
     {
         $user = $request->user();
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
+        $user->load(['patientProfile', 'patientMembers', 'partnerProfile', 'courierProfile', 'pharmacy']);
         $user->setAttribute('profile_user', $this->resolveProfileUser($user));
 
         return response()->json([
@@ -29,4 +29,3 @@ class SessionController extends BaseAuthController
         ]);
     }
 }
-

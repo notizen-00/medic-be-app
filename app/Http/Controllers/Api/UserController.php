@@ -108,7 +108,7 @@ class UserController extends Controller
                 $validated['search'] ?? null,
                 fn ($query, $search) => $query->where('name', 'like', "%{$search}%")
             )
-            ->with(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy'])
+            ->with(['patientProfile', 'patientMembers', 'partnerProfile', 'courierProfile', 'pharmacy'])
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
@@ -121,7 +121,7 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy']);
+        $user->load(['patientProfile', 'patientMembers', 'partnerProfile', 'courierProfile', 'pharmacy']);
 
         return response()->json([
             'message' => 'Detail user berhasil diambil.',

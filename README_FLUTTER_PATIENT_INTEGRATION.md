@@ -225,6 +225,85 @@ Query alternatif catalog:
 | `search` | Tidak | string | cari nama layanan |
 | `per_page` | Tidak | integer | default 20 |
 
+### Profil Pasien Keluarga
+
+Satu akun pasien bisa memiliki beberapa profil pasien, misalnya diri sendiri, suami, istri, anak, kakek, atau nenek. Profil ini bisa dipakai saat membuat booking layanan dengan mengirim `patient_member_id`.
+
+```http
+GET /api/patient/members
+POST /api/patient/members
+GET /api/patient/members/{patientMember}
+PATCH /api/patient/members/{patientMember}
+PATCH /api/patient/members/{patientMember}/primary
+DELETE /api/patient/members/{patientMember}
+```
+
+Query `GET /api/patient/members`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `relationship` | Tidak | string | contoh `self`, `suami`, `istri`, `anak`, `kakek`, `nenek` |
+| `search` | Tidak | string | cari nama, hubungan, telepon, alamat |
+| `per_page` | Tidak | integer | 1-100 |
+
+Body `POST /api/patient/members`:
+
+```json
+{
+  "name": "Siti Aminah",
+  "relationship": "istri",
+  "date_of_birth": "1996-02-14",
+  "age": 30,
+  "gender": "perempuan",
+  "phone": "081234567890",
+  "blood_type": "A",
+  "emergency_contact_name": "Budi",
+  "emergency_contact_phone": "081298765432",
+  "allergies": "Alergi seafood",
+  "medical_notes": "Riwayat asma",
+  "address_label": "Rumah",
+  "recipient_name": "Siti Aminah",
+  "recipient_phone": "081234567890",
+  "address": "Jl. Jawa No. 10, Jember",
+  "province": "Jawa Timur",
+  "city": "Jember",
+  "district": "Sumbersari",
+  "postal_code": "68121",
+  "latitude": -8.172357,
+  "longitude": 113.700302,
+  "is_primary": false
+}
+```
+
+Field `POST/PATCH /api/patient/members`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `name` | Ya saat POST | string | max 255 |
+| `relationship` | Tidak | string | max 50; contoh `self`, `suami`, `istri`, `anak`, `kakek`, `nenek` |
+| `date_of_birth` | Tidak | date | format `YYYY-MM-DD` |
+| `age` | Tidak | integer | 0-150; bisa dipakai jika tanggal lahir tidak diketahui |
+| `gender` | Tidak | enum | `laki-laki`, `perempuan` |
+| `phone` | Tidak | string | max 20 |
+| `blood_type` | Tidak | string | max 5 |
+| `emergency_contact_name` | Tidak | string | max 255 |
+| `emergency_contact_phone` | Tidak | string | max 20 |
+| `allergies` | Tidak | string | alergi pasien |
+| `medical_notes` | Tidak | string | catatan medis |
+| `address_label` | Tidak | string | contoh `Rumah`, `Kos`, `Rumah Kakek` |
+| `recipient_name` | Tidak | string | nama penerima/alamat |
+| `recipient_phone` | Tidak | string | telepon penerima |
+| `address` | Tidak | string | alamat lengkap profil pasien |
+| `province` | Tidak | string | provinsi |
+| `city` | Tidak | string | kota/kabupaten |
+| `district` | Tidak | string | kecamatan |
+| `postal_code` | Tidak | string | max 10 |
+| `latitude` | Tidak | numeric | -90 sampai 90 |
+| `longitude` | Tidak | numeric | -180 sampai 180 |
+| `is_primary` | Tidak | boolean | jika `true`, profil utama lama otomatis dimatikan |
+
+Endpoint `PATCH /api/patient/members/{patientMember}/primary` tidak butuh body.
+
 ### Booking Layanan / Matchmaking
 
 Buat booking:
@@ -238,6 +317,7 @@ Body minimal:
 ```json
 {
   "service_id": 1,
+  "patient_member_id": 2,
   "patient_address_id": 10,
   "booking_type": "scheduled",
   "notes": "Pasien demam sejak malam"
@@ -249,6 +329,7 @@ Field request `POST /api/patient/service-bookings`:
 | Field | Required | Type | Rule/Catatan |
 | --- | --- | --- | --- |
 | `service_id` | Ya | integer | harus ada di `services` |
+| `patient_member_id` | Tidak | integer | harus milik akun pasien login; profil pasien keluarga yang menerima layanan |
 | `patient_address_id` | Tidak | integer | harus ada di `patient_addresses`; wajib secara bisnis untuk layanan homecare |
 | `booking_type` | Tidak | enum | `scheduled` untuk sekali jalan, `daily` untuk layanan harian; default `scheduled` |
 | `scheduled_at` | Tidak | datetime | format `YYYY-MM-DD HH:mm:ss`; wajib setelah waktu sekarang jika dikirim |
@@ -264,11 +345,20 @@ Body dengan jadwal:
 ```json
 {
   "service_id": 1,
+  "patient_member_id": 2,
   "patient_address_id": 10,
   "booking_type": "scheduled",
   "scheduled_at": "2026-07-06 10:00:00",
   "notes": "Datang pagi jika memungkinkan"
 }
+```
+
+Jika `patient_address_id` tidak dikirim, backend akan memakai alamat dari `patient_member_id` jika profil tersebut punya alamat. Untuk layanan homecare, kirim salah satu:
+
+```text
+patient_address_id
+atau
+patient_member_id yang punya alamat
 ```
 
 Body layanan harian:
@@ -316,6 +406,7 @@ Response penting:
     "booking_code": "SVB-20260705101010-123",
     "service_id": 1,
     "patient_user_id": 7,
+    "patient_member_id": 2,
     "assigned_partner_user_id": 12,
     "patient_address_id": 10,
     "booking_type": "scheduled",
@@ -1079,6 +1170,35 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `longitude` | decimal/null | longitude alamat |
 | `is_primary` | boolean | alamat utama |
 
+### Patient Member
+
+| Field | Type | Catatan |
+| --- | --- | --- |
+| `id` | integer | ID profil pasien keluarga |
+| `owner_user_id` | integer | akun pemilik profil |
+| `name` | string | nama pasien |
+| `relationship` | string/null | hubungan dengan pemilik akun |
+| `date_of_birth` | date/null | tanggal lahir |
+| `age` | integer/null | usia manual jika tanggal lahir tidak diketahui |
+| `gender` | enum/null | `laki-laki`, `perempuan` |
+| `phone` | string/null | nomor pasien |
+| `blood_type` | string/null | golongan darah |
+| `emergency_contact_name` | string/null | kontak darurat |
+| `emergency_contact_phone` | string/null | nomor kontak darurat |
+| `allergies` | string/null | alergi |
+| `medical_notes` | string/null | catatan medis |
+| `address_label` | string/null | label alamat |
+| `recipient_name` | string/null | nama penerima |
+| `recipient_phone` | string/null | telepon penerima |
+| `address` | string/null | alamat lengkap |
+| `province` | string/null | provinsi |
+| `city` | string/null | kota/kabupaten |
+| `district` | string/null | kecamatan |
+| `postal_code` | string/null | kode pos |
+| `latitude` | decimal/null | latitude alamat |
+| `longitude` | decimal/null | longitude alamat |
+| `is_primary` | boolean | profil utama |
+
 ### Partner Profile
 
 | Field | Type | Catatan |
@@ -1120,6 +1240,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `booking_code` | string | kode booking |
 | `service_id` | integer | ID layanan |
 | `patient_user_id` | integer | ID pasien |
+| `patient_member_id` | integer/null | profil pasien keluarga yang dipakai |
 | `assigned_partner_user_id` | integer/null | ID mitra hasil matchmaking |
 | `patient_address_id` | integer/null | alamat layanan |
 | `status` | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
@@ -1140,6 +1261,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `markup_amount` | decimal string/null | markup layanan |
 | `service` | object/null | data layanan |
 | `patient` | object/null | user pasien |
+| `patient_member` | object/null | profil pasien keluarga |
 | `assigned_partner` | object/null | user mitra |
 | `address` | object/null | alamat pasien |
 | `histories` | array | histori tindakan/status jika dimuat |

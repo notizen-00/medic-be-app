@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'booking_code',
     'service_id',
     'patient_user_id',
+    'patient_member_id',
     'assigned_partner_user_id',
     'patient_address_id',
     'status',
@@ -61,6 +62,11 @@ class ServiceBooking extends Model
     public function patient(): BelongsTo
     {
         return $this->belongsTo(User::class, 'patient_user_id');
+    }
+
+    public function patientMember(): BelongsTo
+    {
+        return $this->belongsTo(PatientMember::class);
     }
 
     public function assignedPartner(): BelongsTo

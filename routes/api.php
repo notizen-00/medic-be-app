@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\Admin\ShipmentsController as AdminShipmentsControll
 use App\Http\Controllers\Api\Admin\TransactionsController as AdminTransactionsController;
 use App\Http\Controllers\Api\Admin\JournalsController as AdminJournalsController;
 use App\Http\Controllers\Api\Patient\BalanceController as PatientBalanceController;
+use App\Http\Controllers\Api\Patient\PatientMemberController;
 use App\Http\Controllers\Api\Patient\ServiceBookingController as PatientServiceBookingController;
 use App\Http\Controllers\Api\Apotik\ProductController as ApotikProductController;
 use App\Http\Controllers\Api\Auth\AdminAuthController;
@@ -125,6 +126,15 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/doctors', [DoctorController::class, 'index']);
         Route::get('/nurses', [NurseController::class, 'index']);
         Route::get('/apotiks', [UserController::class, 'apotiks']);
+
+        Route::prefix('members')->controller(PatientMemberController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('/{patientMember}', 'show');
+            Route::patch('/{patientMember}', 'update');
+            Route::patch('/{patientMember}/primary', 'setPrimary');
+            Route::delete('/{patientMember}', 'destroy');
+        });
 
         Route::prefix('services')->controller(ServiceController::class)->group(function () {
             Route::get('/', 'index');

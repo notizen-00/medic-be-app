@@ -28,7 +28,7 @@ class BaseAuthController extends Controller
             ], 422);
         }
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy.profile']);
+        $user->load(['patientProfile', 'patientMembers', 'partnerProfile', 'courierProfile', 'pharmacy.profile']);
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -60,7 +60,7 @@ class BaseAuthController extends Controller
             ], 422);
         }
 
-        $user->load(['patientProfile', 'partnerProfile', 'courierProfile', 'pharmacy.profile']);
+        $user->load(['patientProfile', 'patientMembers', 'partnerProfile', 'courierProfile', 'pharmacy.profile']);
 
         return response()->json([
             'message' => 'Login berhasil.',
@@ -90,4 +90,3 @@ class BaseAuthController extends Controller
         return null;
     }
 }
-
