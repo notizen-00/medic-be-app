@@ -305,25 +305,44 @@
         const useTls = scheme === 'https';
 
         disconnect();
-
-        pusher = new Pusher(reverbKey, {
-            cluster: 'mt1',
-            wsHost: host,
-            wsPort: port,
-            wssPort: port,
-            forceTLS: useTls,
-            enabledTransports: useTls ? ['wss'] : ['ws'],
-            disableStats: true,
-            authEndpoint: '/api/broadcasting/auth',
-            auth: {
-                headers: {
-                    'Accept': 'application/json',
-                    'Authorization': `Bearer ${token}`,
-                    'X-CSRF-TOKEN': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            },
+        setStatus('Connecting', false);
+        writeLog('Connecting to Reverb.', {
+            url: `${useTls ? 'wss' : 'ws'}://${host}:${port}/app/${reverbKey}`,
+            host,
+            port,
+            scheme: useTls ? 'wss' : 'ws',
         });
+
+        if (typeof Pusher === 'undefined') {
+            setStatus('Pusher missing', false);
+            writeLog('Pusher JS belum ter-load. Cek koneksi browser ke CDN js.pusher.com.');
+            return;
+        }
+
+        try {
+            pusher = new Pusher(reverbKey, {
+                cluster: 'mt1',
+                wsHost: host,
+                wsPort: port,
+                wssPort: port,
+                forceTLS: useTls,
+                enabledTransports: useTls ? ['wss'] : ['ws'],
+                disableStats: true,
+                authEndpoint: '/api/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'Accept': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                        'X-CSRF-TOKEN': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                },
+            });
+        } catch (error) {
+            setStatus('Connect failed', false);
+            writeLog('Failed to initialize Pusher.', error);
+            return;
+        }
 
         pusher.connection.bind('state_change', (states) => {
             setStatus(states.current, states.current === 'connected');
@@ -332,6 +351,26 @@
 
         pusher.connection.bind('error', (error) => {
             writeLog('Connection error.', error);
+        });
+
+        pusher.connection.bind('connected', () => {
+            setStatus('connected', true);
+            writeLog('WebSocket connected.');
+        });
+
+        pusher.connection.bind('unavailable', () => {
+            setStatus('unavailable', false);
+            writeLog('WebSocket unavailable. Check Reverb server and proxy /app/ upgrade config.');
+        });
+
+        pusher.connection.bind('failed', () => {
+            setStatus('failed', false);
+            writeLog('WebSocket failed. The browser could not establish a connection to Reverb.');
+        });
+
+        pusher.connection.bind('disconnected', () => {
+            setStatus('disconnected', false);
+            writeLog('WebSocket disconnected.');
         });
 
         const channelName = `private-partner.${user.id}.service-bookings`;
