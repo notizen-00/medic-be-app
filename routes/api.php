@@ -131,12 +131,20 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{service}', 'show');
         });
 
-        Route::prefix('service-bookings')->controller(ServiceBookingController::class)->group(function () {
-            Route::get('/', 'index');
-            Route::post('/', 'store');
-            Route::get('/{serviceBooking}', 'show');
-            Route::patch('/{serviceBooking}/pay', 'pay');
-            Route::patch('/{serviceBooking}/status', 'updateStatus');
+        // Service booking dengan discount, markup, pembayaran, dan catalog layanan.
+        // Route statis harus berada sebelum /{serviceBooking} agar "services" tidak dianggap ID booking.
+        Route::prefix('service-bookings')->group(function () {
+            Route::controller(PatientServiceBookingController::class)->group(function () {
+                Route::get('/services', 'index');
+                Route::get('/services/{service}', 'show');
+                Route::post('/check-promo-code', 'checkPromoCode');
+                Route::post('/', 'store');
+                Route::get('/', 'indexBookings');
+                Route::patch('/{serviceBooking}/pay', 'pay');
+                Route::get('/{serviceBooking}', 'showBooking');
+            });
+
+            Route::patch('/{serviceBooking}/status', [ServiceBookingController::class, 'updateStatus']);
         });
 
         Route::prefix('products')->controller(ProductController::class)->group(function () {
@@ -166,17 +174,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/history', [PatientBalanceController::class, 'history']);
             Route::post('/topup', [PatientBalanceController::class, 'topup']);
             Route::patch('/topup/confirm', [PatientBalanceController::class, 'confirmTopup']);
-        });
-
-        // Service booking dengan discount dan markup
-        Route::prefix('service-bookings')->controller(PatientServiceBookingController::class)->group(function () {
-            Route::get('/services', 'index');
-            Route::get('/services/{service}', 'show');
-            Route::post('/check-promo-code', 'checkPromoCode');
-            Route::post('/', 'store');
-            Route::get('/', 'indexBookings');
-            Route::patch('/{serviceBooking}/pay', 'pay');
-            Route::get('/{serviceBooking}', 'showBooking');
         });
 
         // Promo codes yang tersedia untuk patient
