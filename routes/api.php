@@ -12,7 +12,9 @@ use App\Http\Controllers\Api\Admin\PromoCodeController as AdminPromoCodeControll
 use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
 use App\Http\Controllers\Api\Admin\ReportsController as AdminReportsController;
 use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
+use App\Http\Controllers\Api\Admin\ServiceCategoriesController as AdminServiceCategoriesController;
 use App\Http\Controllers\Api\Admin\ServiceMarkupController as AdminServiceMarkupController;
+use App\Http\Controllers\Api\Admin\ServicesController as AdminServicesController;
 use App\Http\Controllers\Api\Admin\ShipmentsController as AdminShipmentsController;
 use App\Http\Controllers\Api\Admin\TransactionsController as AdminTransactionsController;
 use App\Http\Controllers\Api\Admin\JournalsController as AdminJournalsController;
@@ -287,6 +289,22 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/partner-services', [AdminPartnerServicesController::class, 'index']);
         Route::get('/shipments', [AdminShipmentsController::class, 'index']);
 
+        Route::prefix('service-categories')->controller(AdminServiceCategoriesController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('/{serviceCategory}', 'show');
+            Route::patch('/{serviceCategory}', 'update');
+            Route::delete('/{serviceCategory}', 'destroy');
+        });
+
+        Route::prefix('services')->controller(AdminServicesController::class)->group(function () {
+            Route::get('/', 'index');
+            Route::post('/', 'store');
+            Route::get('/{service}', 'show');
+            Route::patch('/{service}', 'update');
+            Route::delete('/{service}', 'destroy');
+        });
+
         // Balance routes untuk admin
         Route::prefix('balance')->group(function () {
             Route::get('/', [AdminBalanceController::class, 'index']);
@@ -331,11 +349,6 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{journalEntry}', 'show');
             Route::post('/{journalEntry}/post', 'post');
         });
-    });
-
-    Route::prefix('admin/services')->controller(ServiceController::class)->group(function () {
-        Route::post('/', 'store');
-        Route::patch('/{service}', 'update');
     });
 
     Route::prefix('admin/service-applications')->controller(PartnerServiceController::class)->group(function () {

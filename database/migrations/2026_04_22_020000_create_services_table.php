@@ -15,7 +15,16 @@ return new class extends Migration
             $table->id();
             $table->string('service_code')->unique();
             $table->string('name');
-            $table->enum('service_type', ['dokter_homecare', 'perawat_homecare', 'bidan_homecare', 'konsultasi_tindakan']);
+            $table->enum('service_type', [
+                'consultation',
+                'procedure',
+                'caregiver',
+                'homecare',
+                'dokter_homecare',
+                'perawat_homecare',
+                'bidan_homecare',
+                'konsultasi_tindakan',
+            ]);
             $table->string('category')->nullable();
             $table->text('description')->nullable();
             $table->decimal('base_price', 12, 2)->default(0);

@@ -115,7 +115,9 @@ Response penting:
 }
 ```
 
-Simpan `user_api_token` di secure storage Flutter. Semua endpoint protected memakai:
+Simpan `user_api_token` di secure storage Flutter. Login/register akan menerbitkan token baru dan mereset token lama user tersebut, jadi selalu overwrite token lama di secure storage setelah login ulang.
+
+Semua endpoint protected memakai:
 
 ```http
 Authorization: Bearer 1|plain-token
@@ -200,7 +202,8 @@ Query `GET /api/patient/services`:
 | Query | Required | Type | Rule/Catatan |
 | --- | --- | --- | --- |
 | `patient_address_id` | Tidak | integer | dipakai menghitung jarak/matchmaking |
-| `service_type` | Tidak | enum | `dokter_homecare`, `perawat_homecare`, `bidan_homecare`, `konsultasi_tindakan` |
+| `service_type` | Tidak | enum | `consultation`, `procedure`, `caregiver`, `homecare`; value legacy seperti `dokter_homecare`, `perawat_homecare`, `bidan_homecare`, `konsultasi_tindakan` masih didukung |
+| `service_mode` | Tidak | enum/string | `chat`, `voice`, `video`, `visit` |
 | `search` | Tidak | string | max 100 |
 | `per_page` | Tidak | integer | 1-100 |
 
@@ -400,35 +403,49 @@ Response penting:
 
 ```json
 {
-  "message": "Booking layanan berhasil dibuat.",
+  "success": true,
+  "message": "Service booking berhasil dibuat. Lanjutkan pembayaran agar sistem mencarikan mitra.",
   "data": {
-    "id": 25,
-    "booking_code": "SVB-20260705101010-123",
-    "service_id": 1,
-    "patient_user_id": 7,
-    "patient_member_id": 2,
-    "assigned_partner_user_id": 12,
-    "patient_address_id": 10,
-    "booking_type": "scheduled",
-    "status": "pending",
-    "duration_days": 1,
-    "total_amount": "100000.00",
-    "payment": {
-      "id": 50,
-      "payment_code": "PAY-SVC-20260707120000-123",
+    "booking": {
+      "id": 25,
+      "booking_code": "SVC-ABCDEFGH",
+      "service_id": 1,
+      "patient_user_id": 7,
+      "patient_member_id": 2,
+      "assigned_partner_user_id": null,
+      "patient_address_id": 10,
+      "booking_type": "scheduled",
       "status": "pending",
-      "amount": "100000.00"
-    }
-  },
-  "matchmaking": {
-    "partner_service_id": 4,
-    "partner_user_id": 12,
-    "distance_km": 2.35,
-    "match_score": 82.4,
-    "quality_score": 90
+      "duration_days": 1,
+      "total_amount": "100000.00",
+      "payment": {
+        "id": 50,
+        "payment_code": "PAY-SVC-20260707120000-123",
+        "status": "pending",
+        "amount": "100000.00"
+      }
+    },
+    "pricing": {
+      "base_price": 100000,
+      "markup_amount": 0,
+      "subtotal": 100000,
+      "discount_amount": 0,
+      "total_amount": 100000,
+      "duration_days": 1
+    },
+    "matchmaking": null,
+    "matchmaking_status": "waiting_payment"
   }
 }
 ```
+
+Catatan alur terbaru:
+
+```text
+Pasien memilih service -> booking dibuat pending -> pasien bayar -> backend matchmaking setelah payment paid -> mitra menerima event realtime
+```
+
+`assigned_partner_user_id` masih `null` saat booking baru dibuat. Setelah pembayaran berhasil, backend akan mencari mitra yang memenuhi syarat dan mengisi `assigned_partner_user_id`.
 
 List booking pasien:
 
@@ -1118,7 +1135,7 @@ Event:
 service-booking.matched
 ```
 
-Saat pasien membuat booking, backend mengirim event ini ke mitra yang dipilih matchmaking. Aplikasi pasien saat ini cukup memakai response HTTP dari `POST /api/patient/service-bookings` untuk mengetahui hasil matchmaking.
+Saat pasien membuat booking, backend belum mengirim event ini. Event baru dikirim setelah pembayaran booking menjadi `paid` dan backend berhasil memilih mitra.
 
 ## Referensi Field Model
 
@@ -1405,10 +1422,11 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 4. Buat booking via `POST /api/patient/service-bookings`.
 5. Tampilkan status booking dari response.
 6. Polling/list detail booking via `GET /api/patient/service-bookings/{id}` jika perlu.
-7. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
-8. Saat mengirim pesan, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
-9. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
-10. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
+7. Setelah pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat mitra terpilih.
+8. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
+9. Saat mengirim pesan, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+10. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+11. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 

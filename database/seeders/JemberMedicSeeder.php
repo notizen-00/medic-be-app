@@ -20,11 +20,13 @@ use App\Models\PrescriptionItem;
 use App\Models\Product;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Models\ServiceCategory;
 use App\Models\Shipment;
 use App\Models\ShipmentHistory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -662,19 +664,47 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
-        $pharmacy = Pharmacy::updateOrCreate(
+        $pharmacyLegacyColumns = [];
+
+        if (Schema::hasColumn('pharmacies', 'name')) {
+            $pharmacyLegacyColumns = [
+                'name' => 'Apotik Sehat Jember',
+                'license_number' => 'SIA-JBR-001',
+                'address' => 'Jl. Karimata No. 20, Sumbersari, Jember',
+                'latitude' => -8.1662000,
+                'longitude' => 113.7171000,
+                'description' => 'Apotik mitra di Kota Jember yang menyediakan obat resep dan produk kesehatan.',
+            ];
+        }
+
+        $pharmacy = Pharmacy::unguarded(fn () => Pharmacy::updateOrCreate(
             ['owner_user_id' => $pharmacyOwner->id],
             [
                 'is_active' => true,
+                ...$pharmacyLegacyColumns,
             ]
-        );
+        ));
 
-        $pharmacyTwo = Pharmacy::updateOrCreate(
+        $pharmacyTwoLegacyColumns = [];
+
+        if (Schema::hasColumn('pharmacies', 'name')) {
+            $pharmacyTwoLegacyColumns = [
+                'name' => 'Apotik Kota Jember',
+                'license_number' => 'SIA-JBR-002',
+                'address' => 'Jl. Sultan Agung No. 45, Kaliwates, Jember',
+                'latitude' => -8.1738000,
+                'longitude' => 113.6881000,
+                'description' => 'Apotik pusat kota dengan layanan pengiriman cepat area Kaliwates dan Patrang.',
+            ];
+        }
+
+        $pharmacyTwo = Pharmacy::unguarded(fn () => Pharmacy::updateOrCreate(
             ['owner_user_id' => $pharmacyOwnerTwo->id],
             [
                 'is_active' => true,
+                ...$pharmacyTwoLegacyColumns,
             ]
-        );
+        ));
 
         PharmacyProfile::updateOrCreate(
             ['pharmacy_id' => $pharmacy->id],
@@ -912,58 +942,187 @@ class JemberMedicSeeder extends Seeder
             ],
         ];
 
+        $productPharmacyOwners = [
+            $pharmacy->id => $pharmacyOwner->id,
+            $pharmacyTwo->id => $pharmacyOwnerTwo->id,
+        ];
+
         foreach ($products as $product) {
-            Product::updateOrCreate(
+            if (Schema::hasColumn('products', 'pharmacy_user_id')) {
+                $product['pharmacy_user_id'] = $productPharmacyOwners[$product['pharmacy_id']];
+            }
+
+            Product::unguarded(fn () => Product::updateOrCreate(
                 [
                     'pharmacy_id' => $product['pharmacy_id'],
                     'sku' => $product['sku'],
                 ],
                 $product
-            );
+            ));
         }
+
+        $serviceCategories = collect([
+            [
+                'name' => 'Doctor',
+                'slug' => 'doctor',
+                'icon' => 'stethoscope',
+                'sort_order' => 10,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Nurse',
+                'slug' => 'nurse',
+                'icon' => 'heart-pulse',
+                'sort_order' => 20,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Midwife',
+                'slug' => 'midwife',
+                'icon' => 'baby',
+                'sort_order' => 30,
+                'is_active' => true,
+            ],
+            [
+                'name' => 'Caregiver',
+                'slug' => 'caregiver',
+                'icon' => 'hand-heart',
+                'sort_order' => 40,
+                'is_active' => true,
+            ],
+        ])->mapWithKeys(function (array $category) {
+            $model = ServiceCategory::updateOrCreate(
+                ['slug' => $category['slug']],
+                $category
+            );
+
+            return [$category['slug'] => $model];
+        });
 
         $services = [
             [
                 'service_code' => 'SRV-DOC-JBR-001',
-                'name' => 'Dokter Home Visit Umum',
-                'service_type' => 'dokter_homecare',
-                'category' => 'Kunjungan Dokter',
-                'description' => 'Kunjungan dokter umum ke rumah untuk pemeriksaan dasar, evaluasi keluhan, dan rekomendasi terapi awal.',
+                'service_category_id' => $serviceCategories['doctor']->id,
+                'name' => 'Dokter Datang ke Rumah',
+                'slug' => 'dokter-datang-ke-rumah',
+                'service_type' => 'homecare',
+                'service_mode' => 'visit',
+                'category' => 'Doctor',
+                'description' => 'Kunjungan dokter ke rumah untuk pemeriksaan dasar, evaluasi keluhan, dan rekomendasi terapi awal.',
                 'base_price' => 225000,
                 'duration_minutes' => 60,
+                'requires_address' => true,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 10,
                 'is_active' => true,
                 'is_homecare' => true,
             ],
             [
                 'service_code' => 'SRV-DOC-JBR-002',
-                'name' => 'Tindakan Medis Ringan oleh Dokter',
-                'service_type' => 'konsultasi_tindakan',
-                'category' => 'Tindakan Medis',
-                'description' => 'Tindakan medis ringan di rumah sesuai asesmen dokter, termasuk edukasi lanjutan untuk keluarga pasien.',
+                'service_category_id' => $serviceCategories['doctor']->id,
+                'name' => 'Konsultasi Video Dokter',
+                'slug' => 'konsultasi-video-dokter',
+                'service_type' => 'consultation',
+                'service_mode' => 'video',
+                'category' => 'Doctor',
+                'description' => 'Konsultasi dokter melalui video call untuk asesmen awal, edukasi, dan tindak lanjut keluhan pasien.',
                 'base_price' => 300000,
-                'duration_minutes' => 90,
+                'duration_minutes' => 30,
+                'requires_address' => false,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 20,
                 'is_active' => true,
-                'is_homecare' => true,
+                'is_homecare' => false,
             ],
             [
                 'service_code' => 'SRV-NRS-JBR-001',
-                'name' => 'Perawat Home Visit Non ICU',
-                'service_type' => 'perawat_homecare',
-                'category' => 'Layanan Perawat',
-                'description' => 'Layanan perawat ke rumah untuk observasi kondisi pasien, pemberian tindakan dasar, dan monitoring harian.',
+                'service_category_id' => $serviceCategories['nurse']->id,
+                'name' => 'Pasang Infus',
+                'slug' => 'pasang-infus',
+                'service_type' => 'procedure',
+                'service_mode' => 'visit',
+                'category' => 'Nurse',
+                'description' => 'Layanan pemasangan infus di rumah oleh perawat terverifikasi sesuai kebutuhan pasien.',
                 'base_price' => 185000,
                 'duration_minutes' => 90,
+                'requires_address' => true,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 30,
                 'is_active' => true,
                 'is_homecare' => true,
             ],
             [
                 'service_code' => 'SRV-NRS-JBR-002',
-                'name' => 'Rawat Luka Homecare',
-                'service_type' => 'konsultasi_tindakan',
-                'category' => 'Perawatan Luka',
+                'service_category_id' => $serviceCategories['nurse']->id,
+                'name' => 'Perawatan Luka',
+                'slug' => 'perawatan-luka',
+                'service_type' => 'procedure',
+                'service_mode' => 'visit',
+                'category' => 'Nurse',
                 'description' => 'Perawatan luka di rumah untuk luka operasi, luka diabetes, dan luka kronis dengan teknik steril.',
                 'base_price' => 210000,
                 'duration_minutes' => 75,
+                'requires_address' => true,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 40,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+            [
+                'service_code' => 'SRV-NRS-JBR-003',
+                'service_category_id' => $serviceCategories['nurse']->id,
+                'name' => 'Pasang Kateter',
+                'slug' => 'pasang-kateter',
+                'service_type' => 'procedure',
+                'service_mode' => 'visit',
+                'category' => 'Nurse',
+                'description' => 'Pemasangan atau penggantian kateter di rumah oleh perawat terverifikasi.',
+                'base_price' => 240000,
+                'duration_minutes' => 75,
+                'requires_address' => true,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 50,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+            [
+                'service_code' => 'SRV-CGV-JBR-001',
+                'service_category_id' => $serviceCategories['caregiver']->id,
+                'name' => 'Rawat Lansia 12 Jam',
+                'slug' => 'rawat-lansia-12-jam',
+                'service_type' => 'caregiver',
+                'service_mode' => 'visit',
+                'category' => 'Caregiver',
+                'description' => 'Pendampingan lansia di rumah selama 12 jam, termasuk monitoring dasar dan bantuan aktivitas harian.',
+                'base_price' => 350000,
+                'duration_minutes' => 720,
+                'requires_address' => true,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 60,
+                'is_active' => true,
+                'is_homecare' => true,
+            ],
+            [
+                'service_code' => 'SRV-MDW-JBR-001',
+                'service_category_id' => $serviceCategories['midwife']->id,
+                'name' => 'Pemeriksaan Kehamilan di Rumah',
+                'slug' => 'pemeriksaan-kehamilan-di-rumah',
+                'service_type' => 'homecare',
+                'service_mode' => 'visit',
+                'category' => 'Midwife',
+                'description' => 'Pemeriksaan kehamilan dasar di rumah oleh bidan terverifikasi.',
+                'base_price' => 220000,
+                'duration_minutes' => 60,
+                'requires_address' => true,
+                'requires_schedule' => true,
+                'requires_matchmaking' => true,
+                'sort_order' => 70,
                 'is_active' => true,
                 'is_homecare' => true,
             ],
@@ -1012,43 +1171,75 @@ class JemberMedicSeeder extends Seeder
         $doctorProcedureService = Service::where('service_code', 'SRV-DOC-JBR-002')->firstOrFail();
         $nurseHomecareService = Service::where('service_code', 'SRV-NRS-JBR-001')->firstOrFail();
         $nurseWoundCareService = Service::where('service_code', 'SRV-NRS-JBR-002')->firstOrFail();
+        $nurseCatheterService = Service::where('service_code', 'SRV-NRS-JBR-003')->firstOrFail();
+        $caregiverElderlyService = Service::where('service_code', 'SRV-CGV-JBR-001')->firstOrFail();
 
         $partnerServices = [
             [
                 'service_id' => $doctorHomecareService->id,
                 'partner_user_id' => $doctor->id,
+                'price' => 235000,
                 'custom_price' => 235000,
                 'coverage_radius_km' => 12,
                 'is_active' => true,
                 'is_verified' => true,
+                'is_available' => true,
                 'notes' => 'Dokter umum untuk home visit area Jember kota.',
             ],
             [
                 'service_id' => $doctorProcedureService->id,
                 'partner_user_id' => $doctor->id,
+                'price' => 325000,
                 'custom_price' => 325000,
                 'coverage_radius_km' => 10,
                 'is_active' => true,
                 'is_verified' => true,
+                'is_available' => true,
                 'notes' => 'Dokter melayani tindakan medis ringan homecare.',
             ],
             [
                 'service_id' => $nurseHomecareService->id,
                 'partner_user_id' => $nurse->id,
+                'price' => 185000,
                 'custom_price' => 185000,
                 'coverage_radius_km' => 15,
                 'is_active' => true,
                 'is_verified' => true,
+                'is_available' => true,
                 'notes' => 'Perawat aktif untuk layanan homecare umum.',
             ],
             [
                 'service_id' => $nurseWoundCareService->id,
                 'partner_user_id' => $nurse->id,
+                'price' => 210000,
                 'custom_price' => 210000,
                 'coverage_radius_km' => 15,
                 'is_active' => true,
                 'is_verified' => true,
+                'is_available' => true,
                 'notes' => 'Perawat rawat luka aktif area Jember.',
+            ],
+            [
+                'service_id' => $nurseCatheterService->id,
+                'partner_user_id' => $nurse->id,
+                'price' => 240000,
+                'custom_price' => 240000,
+                'coverage_radius_km' => 15,
+                'is_active' => true,
+                'is_verified' => true,
+                'is_available' => true,
+                'notes' => 'Perawat tersedia untuk pemasangan kateter area Jember.',
+            ],
+            [
+                'service_id' => $caregiverElderlyService->id,
+                'partner_user_id' => $nurse->id,
+                'price' => 350000,
+                'custom_price' => 350000,
+                'coverage_radius_km' => 12,
+                'is_active' => true,
+                'is_verified' => true,
+                'is_available' => true,
+                'notes' => 'Contoh layanan caregiver lansia yang ditangani mitra perawat.',
             ],
         ];
 
@@ -1056,10 +1247,12 @@ class JemberMedicSeeder extends Seeder
             $partnerServices[] = [
                 'service_id' => $nurseHomecareService->id,
                 'partner_user_id' => $additionalNurseUser->id,
+                'price' => 180000 + (($index + 1) * 5000),
                 'custom_price' => 180000 + (($index + 1) * 5000),
                 'coverage_radius_km' => 10 + ($index % 4) * 2,
                 'is_active' => true,
                 'is_verified' => true,
+                'is_available' => true,
                 'notes' => 'Perawat homecare area Jember dan sekitarnya.',
             ];
 
@@ -1067,10 +1260,12 @@ class JemberMedicSeeder extends Seeder
                 $partnerServices[] = [
                     'service_id' => $nurseWoundCareService->id,
                     'partner_user_id' => $additionalNurseUser->id,
+                    'price' => 205000 + (($index + 1) * 5000),
                     'custom_price' => 205000 + (($index + 1) * 5000),
                     'coverage_radius_km' => 10 + ($index % 3) * 3,
                     'is_active' => true,
                     'is_verified' => true,
+                    'is_available' => true,
                     'notes' => 'Perawat rawat luka area Jember dan sekitarnya.',
                 ];
             }
@@ -1080,10 +1275,12 @@ class JemberMedicSeeder extends Seeder
             $partnerServices[] = [
                 'service_id' => $doctorHomecareService->id,
                 'partner_user_id' => $additionalDoctor['user']->id,
+                'price' => 220000 + (($index + 1) * 5000),
                 'custom_price' => 220000 + (($index + 1) * 5000),
                 'coverage_radius_km' => 8 + ($index % 4) * 2,
                 'is_active' => true,
                 'is_verified' => true,
+                'is_available' => true,
                 'notes' => 'Dokter spesialis melayani konsultasi dan home visit area Jember.',
             ];
 
@@ -1091,10 +1288,12 @@ class JemberMedicSeeder extends Seeder
                 $partnerServices[] = [
                     'service_id' => $doctorProcedureService->id,
                     'partner_user_id' => $additionalDoctor['user']->id,
+                    'price' => 300000 + (($index + 1) * 7500),
                     'custom_price' => 300000 + (($index + 1) * 7500),
                     'coverage_radius_km' => 8 + ($index % 3) * 2,
                     'is_active' => true,
                     'is_verified' => true,
+                    'is_available' => true,
                     'notes' => 'Dokter spesialis tersedia untuk tindakan medis ringan sesuai asesmen.',
                 ];
             }
@@ -1249,22 +1448,28 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
-        $orderOne = Order::updateOrCreate(
+        $orderOneData = [
+            'patient_user_id' => $patientOne->id,
+            'pharmacy_id' => $pharmacy->id,
+            'patient_address_id' => $addressOne->id,
+            'prescription_id' => $prescription->id,
+            'order_type' => 'resep',
+            'status' => 'shipped',
+            'subtotal' => 47000,
+            'shipping_cost' => 10000,
+            'total_amount' => 57000,
+            'notes' => 'Pengantaran ke area Kaliwates, Jember.',
+            'ordered_at' => now()->subHours(6),
+        ];
+
+        if (Schema::hasColumn('orders', 'pharmacy_user_id')) {
+            $orderOneData['pharmacy_user_id'] = $pharmacyOwner->id;
+        }
+
+        $orderOne = Order::unguarded(fn () => Order::updateOrCreate(
             ['order_code' => 'ORD-JBR-0001'],
-            [
-                'patient_user_id' => $patientOne->id,
-                'pharmacy_id' => $pharmacy->id,
-                'patient_address_id' => $addressOne->id,
-                'prescription_id' => $prescription->id,
-                'order_type' => 'resep',
-                'status' => 'shipped',
-                'subtotal' => 47000,
-                'shipping_cost' => 10000,
-                'total_amount' => 57000,
-                'notes' => 'Pengantaran ke area Kaliwates, Jember.',
-                'ordered_at' => now()->subHours(6),
-            ]
-        );
+            $orderOneData
+        ));
 
         OrderItem::updateOrCreate(
             ['order_id' => $orderOne->id, 'product_id' => $paracetamol->id],
@@ -1290,22 +1495,28 @@ class JemberMedicSeeder extends Seeder
             ]
         );
 
-        $orderTwo = Order::updateOrCreate(
+        $orderTwoData = [
+            'patient_user_id' => $patientTwo->id,
+            'pharmacy_id' => $pharmacy->id,
+            'patient_address_id' => $addressTwo->id,
+            'prescription_id' => null,
+            'order_type' => 'non_resep',
+            'status' => 'delivered',
+            'subtotal' => 83000,
+            'shipping_cost' => 12000,
+            'total_amount' => 95000,
+            'notes' => 'Pesanan vitamin dan alat kesehatan area Sumbersari, Jember.',
+            'ordered_at' => now()->subDay(),
+        ];
+
+        if (Schema::hasColumn('orders', 'pharmacy_user_id')) {
+            $orderTwoData['pharmacy_user_id'] = $pharmacyOwner->id;
+        }
+
+        $orderTwo = Order::unguarded(fn () => Order::updateOrCreate(
             ['order_code' => 'ORD-JBR-0002'],
-            [
-                'patient_user_id' => $patientTwo->id,
-                'pharmacy_id' => $pharmacy->id,
-                'patient_address_id' => $addressTwo->id,
-                'prescription_id' => null,
-                'order_type' => 'non_resep',
-                'status' => 'delivered',
-                'subtotal' => 83000,
-                'shipping_cost' => 12000,
-                'total_amount' => 95000,
-                'notes' => 'Pesanan vitamin dan alat kesehatan area Sumbersari, Jember.',
-                'ordered_at' => now()->subDay(),
-            ]
-        );
+            $orderTwoData
+        ));
 
         OrderItem::updateOrCreate(
             ['order_id' => $orderTwo->id, 'product_id' => $vitaminC->id],

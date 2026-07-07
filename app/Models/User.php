@@ -35,8 +35,12 @@ class User extends Authenticatable
         ];
     }
 
-    public function issueApiToken(string $tokenName = 'user_api_token'): string
+    public function issueApiToken(string $tokenName = 'user_api_token', bool $resetExistingTokens = true): string
     {
+        if ($resetExistingTokens) {
+            $this->tokens()->delete();
+        }
+
         return $this->createToken($tokenName)->plainTextToken;
     }
 

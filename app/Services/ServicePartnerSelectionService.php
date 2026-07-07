@@ -19,6 +19,14 @@ class ServicePartnerSelectionService
         return Service::query()
             ->where('is_active', true)
             ->when(
+                $filters['category_id'] ?? null,
+                fn ($query, $categoryId) => $query->where('service_category_id', $categoryId)
+            )
+            ->when(
+                $filters['service_mode'] ?? null,
+                fn ($query, $serviceMode) => $query->where('service_mode', $serviceMode)
+            )
+            ->when(
                 $filters['service_type'] ?? null,
                 fn ($query, $serviceType) => $query->where('service_type', $serviceType)
             )
@@ -30,7 +38,8 @@ class ServicePartnerSelectionService
                         ->orWhere('description', 'like', "%{$search}%");
                 })
             )
-            ->with(['partnerServices.partner.partnerProfile'])
+            ->with(['serviceCategory', 'partnerServices.partner.partnerProfile'])
+            ->orderBy('sort_order')
             ->orderBy('name')
             ->get()
             ->map(function (Service $service) use ($address) {
@@ -90,6 +99,42 @@ class ServicePartnerSelectionService
         return $selected;
     }
 
+    public function matchBookingAfterPayment(ServiceBooking $booking): ?array
+    {
+        $booking->loadMissing(['service.partnerServices.partner.partnerProfile', 'address', 'payment']);
+
+        if ($booking->service && $booking->service->requires_matchmaking === false) {
+            return null;
+        }
+
+        if ($booking->payment && $booking->payment->status !== 'paid') {
+            throw ValidationException::withMessages([
+                'payment' => ['Matchmaking hanya dapat dilakukan setelah pembayaran lunas.'],
+            ]);
+        }
+
+        if ($booking->assigned_partner_user_id) {
+            return [
+                'partner_user_id' => $booking->assigned_partner_user_id,
+                'already_assigned' => true,
+            ];
+        }
+
+        $selectedPartnerService = $this->resolveBestPartnerForQuickBooking($booking->service, $booking->address);
+
+        $booking->update([
+            'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
+        ]);
+
+        return [
+            'partner_service_id' => $selectedPartnerService->id,
+            'partner_user_id' => $selectedPartnerService->partner_user_id,
+            'distance_km' => $selectedPartnerService->distance_km,
+            'match_score' => $selectedPartnerService->match_score,
+            'quality_score' => $selectedPartnerService->quality_score,
+        ];
+    }
+
     private function eligiblePartnerServices(Service $service, ?PatientAddress $address): Collection
     {
         $service->loadMissing('partnerServices.partner.partnerProfile');
@@ -105,13 +150,13 @@ class ServicePartnerSelectionService
         $maxPrice = max(
             1,
             (float) $service->partnerServices
-                ->map(fn (PartnerService $partnerService) => $partnerService->custom_price ?? $service->base_price)
+                ->map(fn (PartnerService $partnerService) => $partnerService->price ?? $partnerService->custom_price ?? $service->base_price)
                 ->max()
         );
 
         return $service->partnerServices
             ->filter(function (PartnerService $partnerService) use ($address, $service, $bookingMetrics, $maxDistanceKm, $maxPrice) {
-                if (! $partnerService->is_active || ! $partnerService->is_verified) {
+                if (! $partnerService->is_active || ! $partnerService->is_verified || ! $partnerService->is_available) {
                     return false;
                 }
 
@@ -128,7 +173,7 @@ class ServicePartnerSelectionService
                 }
 
                 $partnerService->setAttribute('distance_km', $distanceKm);
-                $partnerService->setAttribute('effective_price', $partnerService->custom_price ?? $service->base_price);
+                $partnerService->setAttribute('effective_price', $partnerService->price ?? $partnerService->custom_price ?? $service->base_price);
                 $this->attachMatchScores(
                     $partnerService,
                     $bookingMetrics->get($partnerService->partner_user_id, [

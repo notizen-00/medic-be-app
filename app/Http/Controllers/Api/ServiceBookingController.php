@@ -728,7 +728,7 @@ class ServiceBookingController extends Controller
 
     private function ensurePartnerCanHandleBooking(User $partner, ServiceBooking $serviceBooking): void
     {
-        $serviceBooking->loadMissing('service');
+        $serviceBooking->loadMissing('service.serviceCategory');
 
         if ($serviceBooking->assigned_partner_user_id !== null && $serviceBooking->assigned_partner_user_id !== $partner->id) {
             throw ValidationException::withMessages([
@@ -736,14 +736,7 @@ class ServiceBookingController extends Controller
             ]);
         }
 
-        $allowedServiceTypes = match ($partner->partnerProfile->profession) {
-            'dokter' => ['dokter_homecare', 'konsultasi_tindakan'],
-            'perawat' => ['perawat_homecare', 'konsultasi_tindakan'],
-            'bidan' => ['bidan_homecare', 'konsultasi_tindakan'],
-            default => [],
-        };
-
-        if (! in_array($serviceBooking->service->service_type, $allowedServiceTypes, true)) {
+        if (! $this->serviceMatchesPartnerProfession($serviceBooking->service, $partner->partnerProfile->profession)) {
             throw ValidationException::withMessages([
                 'service_id' => ['Layanan booking ini tidak sesuai dengan profesi mitra.'],
             ]);
@@ -770,6 +763,35 @@ class ServiceBookingController extends Controller
                 'service_booking' => ['Booking ini bukan milik mitra yang sedang login.'],
             ]);
         }
+    }
+
+    private function serviceMatchesPartnerProfession(Service $service, string $profession): bool
+    {
+        $categoryKey = strtolower((string) ($service->serviceCategory?->slug ?? $service->serviceCategory?->name ?? ''));
+
+        if ($categoryKey !== '') {
+            $allowedCategoryKeywords = match ($profession) {
+                'dokter' => ['doctor', 'dokter'],
+                'perawat' => ['nurse', 'perawat', 'caregiver'],
+                'bidan' => ['midwife', 'bidan'],
+                default => [],
+            };
+
+            foreach ($allowedCategoryKeywords as $keyword) {
+                if (str_contains($categoryKey, $keyword)) {
+                    return true;
+                }
+            }
+        }
+
+        $allowedServiceTypes = match ($profession) {
+            'dokter' => ['consultation', 'homecare', 'dokter_homecare', 'konsultasi_tindakan'],
+            'perawat' => ['procedure', 'caregiver', 'homecare', 'perawat_homecare', 'konsultasi_tindakan'],
+            'bidan' => ['procedure', 'homecare', 'bidan_homecare', 'konsultasi_tindakan'],
+            default => [],
+        };
+
+        return in_array($service->service_type, $allowedServiceTypes, true);
     }
 
     private function recordHistory(

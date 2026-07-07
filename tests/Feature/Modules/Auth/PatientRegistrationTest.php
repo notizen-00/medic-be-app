@@ -1,5 +1,8 @@
 <?php
 
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+
 it('registers a patient and creates the default patient records', function () {
     $response = $this->postJson('/api/patient/register', [
         'name' => 'Pasien Modul Test',
@@ -43,4 +46,38 @@ it('registers a patient and creates the default patient records', function () {
         'relationship' => 'self',
         'is_primary' => true,
     ]);
+});
+
+it('resets old api tokens when a patient logs in again', function () {
+    User::factory()->create([
+        'name' => 'Pasien Token Reset',
+        'email' => 'pasien.token-reset@example.test',
+        'phone' => '081234567002',
+        'role' => 'pasien',
+        'password' => Hash::make('password'),
+    ]);
+
+    $firstLogin = $this->postJson('/api/patient/login', [
+        'email' => 'pasien.token-reset@example.test',
+        'password' => 'password',
+    ]);
+
+    $firstToken = $firstLogin->json('user_api_token');
+
+    $secondLogin = $this->postJson('/api/patient/login', [
+        'email' => 'pasien.token-reset@example.test',
+        'password' => 'password',
+    ]);
+
+    $secondToken = $secondLogin->json('user_api_token');
+
+    expect($firstToken)->not->toBe($secondToken);
+
+    $this->withHeader('Authorization', "Bearer {$firstToken}")
+        ->getJson('/api/shared/me')
+        ->assertUnauthorized();
+
+    $this->withHeader('Authorization', "Bearer {$secondToken}")
+        ->getJson('/api/shared/me')
+        ->assertOk();
 });

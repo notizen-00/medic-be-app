@@ -8,7 +8,6 @@ use App\Models\PatientMember;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\ServiceBooking;
-use App\Models\PromoCode;
 use App\Services\MidtransService;
 use App\Services\ServicePartnerSelectionService;
 use Carbon\Carbon;
@@ -32,17 +31,25 @@ class ServiceBookingController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Service::with('partnerServices')->where('is_active', true);
+        $query = Service::with(['serviceCategory', 'partnerServices'])->where('is_active', true);
 
         if ($request->has('category')) {
             $query->where('category', $request->category);
+        }
+
+        if ($request->has('category_id')) {
+            $query->where('service_category_id', $request->category_id);
+        }
+
+        if ($request->has('service_mode')) {
+            $query->where('service_mode', $request->service_mode);
         }
 
         if ($request->has('search')) {
             $query->where('name', 'like', '%' . $request->search . '%');
         }
 
-        $services = $query->latest()->paginate($request->input('per_page', 20));
+        $services = $query->orderBy('sort_order')->orderBy('name')->paginate($request->input('per_page', 20));
 
         return response()->json([
             'success' => true,
@@ -55,7 +62,7 @@ class ServiceBookingController extends Controller
      */
     public function show(Service $service)
     {
-        $service->load('partnerServices');
+        $service->load(['serviceCategory', 'partnerServices']);
 
         // Hitung harga dengan markup
         $pricing = [];
@@ -146,16 +153,23 @@ class ServiceBookingController extends Controller
             ->findOrFail($validated['service_id']);
         $basePrice = $this->basePriceFor($service);
 
-        if ($service->is_homecare && ! isset($validated['patient_address_id']) && ! $patientMember?->address) {
+        if (! $service->is_active) {
             throw ValidationException::withMessages([
-                'patient_address_id' => ['Alamat pasien wajib diisi untuk layanan homecare. Kirim patient_address_id atau patient_member_id yang memiliki alamat.'],
+                'service_id' => ['Layanan yang dipilih sedang tidak aktif.'],
             ]);
         }
 
-        $address = $this->resolveBookingAddress($validated, $patientMember);
+        if ($this->serviceRequiresAddress($service) && ! isset($validated['patient_address_id']) && ! $patientMember?->address) {
+            throw ValidationException::withMessages([
+                'patient_address_id' => ['Alamat pasien wajib diisi untuk layanan ini. Kirim patient_address_id atau patient_member_id yang memiliki alamat.'],
+            ]);
+        }
 
-        $selectedPartnerService = $this->servicePartnerSelectionService
-            ->resolveBestPartnerForQuickBooking($service, $address);
+        if ($service->requires_schedule && ! isset($validated['scheduled_at']) && ! isset($validated['schedule_start_at'])) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => ['Jadwal wajib diisi untuk layanan ini.'],
+            ]);
+        }
 
         // Get markup setting
         $markupSetting = \App\Models\ServiceMarkupSetting::getActiveSetting($service->id);
@@ -195,13 +209,13 @@ class ServiceBookingController extends Controller
         }
         $finalPrice = $subtotal - $discountAmount;
 
-        $booking = DB::transaction(function () use ($validated, $user, $selectedPartnerService, $schedule, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice): ServiceBooking {
+        $booking = DB::transaction(function () use ($validated, $user, $schedule, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice): ServiceBooking {
             $booking = ServiceBooking::create([
                 'booking_code' => 'SVC-' . strtoupper(Str::random(8)),
                 'service_id' => $validated['service_id'],
                 'patient_user_id' => $user->id,
                 'patient_member_id' => $validated['patient_member_id'] ?? null,
-                'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
+                'assigned_partner_user_id' => null,
                 'patient_address_id' => $validated['patient_address_id'] ?? null,
                 'booking_type' => $schedule['booking_type'],
                 'scheduled_at' => $schedule['scheduled_at'],
@@ -234,26 +248,21 @@ class ServiceBookingController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Service booking berhasil dibuat',
+            'message' => 'Service booking berhasil dibuat. Lanjutkan pembayaran agar sistem mencarikan mitra.',
             'data' => [
                 'booking' => $booking,
                 'pricing' => [
-                    'base_price' => $service->price,
+                    'base_price' => $basePrice,
                     'markup_amount' => $booking->markup_amount,
                     'subtotal' => $subtotal,
                     'discount_amount' => $discountAmount,
                     'total_amount' => $finalPrice,
                     'duration_days' => $schedule['duration_days'],
                 ],
-                'matchmaking' => [
-                    'partner_service_id' => $selectedPartnerService->id,
-                    'partner_user_id' => $selectedPartnerService->partner_user_id,
-                    'distance_km' => $selectedPartnerService->distance_km,
-                    'match_score' => $selectedPartnerService->match_score,
-                    'quality_score' => $selectedPartnerService->quality_score,
-                ],
+                'matchmaking' => null,
+                'matchmaking_status' => $service->requires_matchmaking ? 'waiting_payment' : 'not_required',
             ],
-        ]);
+        ], 201);
     }
 
     /**
@@ -303,6 +312,11 @@ class ServiceBookingController extends Controller
     private function basePriceFor(Service $service): float
     {
         return (float) ($service->base_price ?? $service->price ?? 0);
+    }
+
+    private function serviceRequiresAddress(Service $service): bool
+    {
+        return (bool) ($service->requires_address ?? $service->is_homecare);
     }
 
     public function pay(Request $request, ServiceBooking $serviceBooking, MidtransService $midtransService)

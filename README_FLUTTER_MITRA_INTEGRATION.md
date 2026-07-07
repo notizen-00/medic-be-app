@@ -179,7 +179,9 @@ GET /api/shared/me
 POST /api/shared/logout
 ```
 
-Simpan `user_api_token` di secure storage Flutter. Semua endpoint protected memakai:
+Simpan `user_api_token` di secure storage Flutter. Login/register akan menerbitkan token baru dan mereset token lama user tersebut, jadi selalu overwrite token lama di secure storage setelah login ulang.
+
+Semua endpoint protected memakai:
 
 ```http
 Authorization: Bearer 1|plain-token
@@ -267,6 +269,7 @@ Field:
 | Field | Required | Type | Rule/Catatan |
 | --- | --- | --- | --- |
 | `service_id` | Ya | integer | harus ada di `services` |
+| `price` | Tidak | numeric | harga layanan mitra, field baru sesuai arsitektur marketplace |
 | `custom_price` | Tidak | numeric | min 0 |
 | `coverage_radius_km` | Tidak | integer | min 1 |
 | `notes` | Tidak | string | catatan pengajuan |
@@ -275,8 +278,10 @@ Body `PATCH /api/mitra/service-applications/{partnerService}`:
 
 ```json
 {
+  "price": 175000,
   "custom_price": 175000,
   "coverage_radius_km": 20,
+  "is_available": true,
   "is_active": true,
   "notes": "Update radius layanan"
 }
@@ -294,7 +299,7 @@ bidan   -> bidan_homecare, konsultasi_tindakan
 
 ## Booking Layanan Mitra
 
-Endpoint ini untuk menerima dan memproses booking layanan homecare yang ditugaskan ke mitra.
+Endpoint ini untuk menerima dan memproses booking layanan yang ditugaskan ke mitra. Booking baru tidak langsung muncul ke mitra saat dibuat pasien; backend baru menjalankan matchmaking dan mengirim event realtime setelah payment booking menjadi `paid`.
 
 ```http
 GET /api/mitra/service-bookings
@@ -342,7 +347,7 @@ Syarat:
 - booking ditugaskan ke mitra tersebut atau belum punya assigned partner;
 - layanan sesuai profesi mitra;
 - partner service aktif dan terverifikasi;
-- `payment.status = paid` jika booking punya payment.
+- `payment.status = paid`.
 
 Jika pembayaran belum lunas, backend mengembalikan error:
 

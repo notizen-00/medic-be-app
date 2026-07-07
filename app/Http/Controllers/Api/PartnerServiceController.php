@@ -42,13 +42,14 @@ class PartnerServiceController extends Controller
 
         $validated = $request->validate([
             'service_id' => ['required', 'integer', 'exists:services,id'],
+            'price' => ['nullable', 'numeric', 'min:0'],
             'custom_price' => ['nullable', 'numeric', 'min:0'],
             'coverage_radius_km' => ['nullable', 'integer', 'min:1'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        $service = Service::findOrFail($validated['service_id']);
-        $this->ensureServiceTypeMatchesProfession($partner->partnerProfile, $service->service_type);
+        $service = Service::with('serviceCategory')->findOrFail($validated['service_id']);
+        $this->ensureServiceMatchesProfession($partner->partnerProfile, $service);
 
         $application = PartnerService::updateOrCreate(
             [
@@ -56,9 +57,11 @@ class PartnerServiceController extends Controller
                 'partner_user_id' => $partner->id,
             ],
             [
-                'custom_price' => $validated['custom_price'] ?? null,
+                'price' => $validated['price'] ?? $validated['custom_price'] ?? null,
+                'custom_price' => $validated['custom_price'] ?? $validated['price'] ?? null,
                 'coverage_radius_km' => $validated['coverage_radius_km'] ?? null,
                 'is_active' => true,
+                'is_available' => true,
                 'is_verified' => false,
                 'notes' => $validated['notes'] ?? null,
             ]
@@ -83,11 +86,21 @@ class PartnerServiceController extends Controller
         }
 
         $validated = $request->validate([
+            'price' => ['nullable', 'numeric', 'min:0'],
             'custom_price' => ['nullable', 'numeric', 'min:0'],
             'coverage_radius_km' => ['nullable', 'integer', 'min:1'],
             'is_active' => ['sometimes', 'boolean'],
+            'is_available' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string'],
         ]);
+
+        if (array_key_exists('price', $validated) && ! array_key_exists('custom_price', $validated)) {
+            $validated['custom_price'] = $validated['price'];
+        }
+
+        if (array_key_exists('custom_price', $validated) && ! array_key_exists('price', $validated)) {
+            $validated['price'] = $validated['custom_price'];
+        }
 
         $partnerService->update($validated);
         $partnerService->load(['service', 'partner.partnerProfile']);
@@ -144,16 +157,33 @@ class PartnerServiceController extends Controller
         return $user;
     }
 
-    private function ensureServiceTypeMatchesProfession(PartnerProfile $partnerProfile, string $serviceType): void
+    private function ensureServiceMatchesProfession(PartnerProfile $partnerProfile, Service $service): void
     {
+        $categoryKey = strtolower((string) ($service->serviceCategory?->slug ?? $service->serviceCategory?->name ?? ''));
+
+        if ($categoryKey !== '') {
+            $allowedCategoryKeywords = match ($partnerProfile->profession) {
+                'dokter' => ['doctor', 'dokter'],
+                'perawat' => ['nurse', 'perawat', 'caregiver'],
+                'bidan' => ['midwife', 'bidan'],
+                default => [],
+            };
+
+            foreach ($allowedCategoryKeywords as $keyword) {
+                if (str_contains($categoryKey, $keyword)) {
+                    return;
+                }
+            }
+        }
+
         $allowedServiceTypes = match ($partnerProfile->profession) {
-            'dokter' => ['dokter_homecare', 'konsultasi_tindakan'],
-            'perawat' => ['perawat_homecare', 'konsultasi_tindakan'],
-            'bidan' => ['bidan_homecare', 'konsultasi_tindakan'],
+            'dokter' => ['consultation', 'homecare', 'dokter_homecare', 'konsultasi_tindakan'],
+            'perawat' => ['procedure', 'caregiver', 'homecare', 'perawat_homecare', 'konsultasi_tindakan'],
+            'bidan' => ['procedure', 'homecare', 'bidan_homecare', 'konsultasi_tindakan'],
             default => [],
         };
 
-        if (! in_array($serviceType, $allowedServiceTypes, true)) {
+        if (! in_array($service->service_type, $allowedServiceTypes, true)) {
             throw ValidationException::withMessages([
                 'service_id' => ['Layanan ini tidak sesuai dengan profesi mitra yang sedang login.'],
             ]);
