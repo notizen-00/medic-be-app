@@ -20,6 +20,7 @@ RUN apt-get update \
         intl \
         mbstring \
         opcache \
+        pcntl \
         pdo_mysql \
         zip \
     && pecl install redis \
