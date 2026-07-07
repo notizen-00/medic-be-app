@@ -13,6 +13,7 @@ Backend Laravel untuk aplikasi layanan kesehatan Medic. Modul utama meliputi aut
 
 Dokumentasi tambahan:
 - [Environment files](README_ENV.md)
+- [Feature Testing](README_TESTING_FEATURE.md)
 - [WebSocket](README_WEBSOCKET.md)
 - [Docker](README_DOCKER.md)
 - [Reports & Journals](README_REPORTS_JOURNALS.md)

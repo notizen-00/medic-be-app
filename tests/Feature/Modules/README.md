@@ -37,3 +37,5 @@ composer test:module:service-booking
 ```
 
 Setiap feature test otomatis memakai `RefreshDatabase` dari `tests/Pest.php`, jadi data antar test di-reset menggunakan konfigurasi testing.
+
+Dokumentasi lengkap ada di `README_TESTING_FEATURE.md`.

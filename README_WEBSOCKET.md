@@ -40,13 +40,19 @@ REVERB_SERVER_PORT=8080
 REVERB_HOST=127.0.0.1
 REVERB_PORT=8080
 REVERB_SCHEME=http
+
+# Untuk frontend/Vite dan halaman test mitra lokal
+VITE_REVERB_APP_KEY="${REVERB_APP_KEY}"
+VITE_REVERB_HOST=127.0.0.1
+VITE_REVERB_PORT=8080
+VITE_REVERB_SCHEME=http
 ```
 
 ### 3. Jalankan Reverb Server
 
 ```bash
 # Jalankan Reverb server
-php artisan reverb:start
+php artisan reverb:start --host=0.0.0.0 --port=8080 --hostname=127.0.0.1 --debug
 
 # Atau dengan production mode
 php artisan reverb:start --host=0.0.0.0 --port=8080
@@ -56,6 +62,67 @@ php artisan reverb:start --host=0.0.0.0 --port=8080
 
 ```bash
 php artisan serve
+```
+
+## Localhost Laragon
+
+Untuk local development di Laragon, jalankan dari root project:
+
+```bash
+php artisan optimize:clear
+php artisan reverb:start --host=0.0.0.0 --port=8080 --hostname=127.0.0.1 --debug
+```
+
+Jika `php` belum terbaca di terminal:
+
+```bash
+C:\laragon\bin\php\php-8.4.20-Win32-vs17-x64\php.exe artisan optimize:clear
+C:\laragon\bin\php\php-8.4.20-Win32-vs17-x64\php.exe artisan reverb:start --host=0.0.0.0 --port=8080 --hostname=127.0.0.1 --debug
+```
+
+Jalankan Laravel app di terminal lain:
+
+```bash
+php artisan serve
+```
+
+Jika memakai asset Vite:
+
+```bash
+npm run dev
+```
+
+Buka halaman test:
+
+```text
+http://medic-app.test/mitra/login
+```
+
+Pastikan field WebSocket di halaman test berisi:
+
+```text
+Host   : 127.0.0.1
+Port   : 8080
+Scheme : http
+```
+
+Klik `Test Raw WS`. Jika berhasil, log akan menampilkan koneksi WebSocket terbuka atau pesan `pusher:connection_established`.
+
+## Perubahan Konfigurasi Local Reverb
+
+Beberapa file yang mengatur local WebSocket:
+
+- `config/reverb.php` mendefinisikan Reverb server, app key, allowed origins, dan default local `127.0.0.1:8080`.
+- `.env` dan `.env.example` menyimpan nilai `REVERB_*` untuk backend serta `VITE_REVERB_*` untuk frontend.
+- `routes/web.php` mengirim default Reverb host/port/scheme ke halaman `/mitra/login` dan `/mitra/dashboard`.
+- `resources/js/echo.js` memakai default `127.0.0.1:8080` dengan scheme `http` agar local tidak fallback ke `https`.
+
+Alur koneksi lokal:
+
+```text
+Browser/Pusher JS -> ws://127.0.0.1:8080/app/{REVERB_APP_KEY}
+Laravel backend   -> http://127.0.0.1:8080
+Reverb server     -> listen 0.0.0.0:8080
 ```
 
 ## Arsitektur
