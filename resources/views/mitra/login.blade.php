@@ -237,6 +237,7 @@
     const logEl = document.querySelector('#log');
 
     let pusher = null;
+    let probeSocket = null;
     let token = null;
     let user = null;
 
@@ -303,15 +304,19 @@
         const port = Number(document.querySelector('#ws-port').value.trim());
         const scheme = document.querySelector('#ws-scheme').value;
         const useTls = scheme === 'https';
+        const wsProtocol = useTls ? 'wss' : 'ws';
+        const wsUrl = `${wsProtocol}://${host}:${port}/app/${reverbKey}?protocol=7&client=mitra-test&version=1.0&flash=false`;
 
         disconnect();
         setStatus('Connecting', false);
         writeLog('Connecting to Reverb.', {
-            url: `${useTls ? 'wss' : 'ws'}://${host}:${port}/app/${reverbKey}`,
+            url: wsUrl,
             host,
             port,
-            scheme: useTls ? 'wss' : 'ws',
+            scheme: wsProtocol,
         });
+
+        probeWebSocket(wsUrl);
 
         if (typeof Pusher === 'undefined') {
             setStatus('Pusher missing', false);
@@ -322,6 +327,7 @@
         try {
             pusher = new Pusher(reverbKey, {
                 cluster: 'mt1',
+                encrypted: useTls,
                 wsHost: host,
                 wsPort: port,
                 wssPort: port,
@@ -393,12 +399,48 @@
     }
 
     function disconnect() {
+        if (probeSocket) {
+            probeSocket.close();
+            probeSocket = null;
+        }
+
         if (pusher) {
             pusher.disconnect();
             pusher = null;
         }
         disconnectButton.disabled = true;
         setStatus('Idle', false);
+    }
+
+    function probeWebSocket(url) {
+        try {
+            probeSocket = new WebSocket(url);
+        } catch (error) {
+            writeLog('Native WebSocket probe could not start.', error);
+            return;
+        }
+
+        probeSocket.addEventListener('open', () => {
+            writeLog('Native WebSocket probe connected. Proxy/TLS path is reachable.');
+            probeSocket.close();
+        });
+
+        probeSocket.addEventListener('message', (event) => {
+            writeLog('Native WebSocket probe received message.', event.data);
+        });
+
+        probeSocket.addEventListener('error', () => {
+            writeLog('Native WebSocket probe error. Check browser Network tab for the ws request and server/proxy logs.');
+        });
+
+        probeSocket.addEventListener('close', (event) => {
+            writeLog('Native WebSocket probe closed.', {
+                code: event.code,
+                reason: event.reason || null,
+                wasClean: event.wasClean,
+            });
+            probeSocket = null;
+        });
     }
 
     form.addEventListener('submit', async (event) => {
