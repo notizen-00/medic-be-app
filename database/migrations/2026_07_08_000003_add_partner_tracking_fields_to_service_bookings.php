@@ -20,7 +20,7 @@ return new class extends Migration
             $table->timestamp('recorded_at')->nullable();
             $table->timestamps();
 
-            $table->index(['partner_user_id', 'recorded_at']);
+            $table->index(['partner_user_id', 'recorded_at'], 'sb_partner_loc_partner_recorded_idx');
         });
     }
 
