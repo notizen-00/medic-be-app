@@ -66,6 +66,7 @@ class ServiceBookingController extends Controller
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+        $bookings->getCollection()->each->useServiceAddressRelation();
 
         return response()->json([
             'message' => 'Daftar booking layanan berhasil diambil.',
@@ -105,9 +106,9 @@ class ServiceBookingController extends Controller
             ]);
         }
 
-        if ($service->is_homecare && ! isset($validated['patient_address_id']) && ! $patientMember?->address) {
+        if ($service->is_homecare && ! $patientMember?->address && ! isset($validated['patient_address_id'])) {
             throw ValidationException::withMessages([
-                'patient_address_id' => ['Alamat pasien wajib diisi untuk layanan homecare. Kirim patient_address_id atau patient_member_id yang memiliki alamat.'],
+                'patient_member_id' => ['Alamat pasien wajib diisi untuk layanan homecare. Kirim patient_member_id yang memiliki alamat.'],
             ]);
         }
 
@@ -120,14 +121,16 @@ class ServiceBookingController extends Controller
         $baseAmount = (float) ($selectedPartnerService->custom_price ?? $service->base_price ?? 0);
         $totalAmount = $baseAmount * $schedule['duration_days'];
 
-        $booking = DB::transaction(function () use ($service, $patientUserId, $selectedPartnerService, $validated, $schedule, $totalAmount): ServiceBooking {
+        $patientAddressId = $patientMember?->address ? null : ($validated['patient_address_id'] ?? null);
+
+        $booking = DB::transaction(function () use ($service, $patientUserId, $selectedPartnerService, $validated, $schedule, $totalAmount, $patientAddressId): ServiceBooking {
             $booking = ServiceBooking::create([
                 'booking_code' => 'SVB-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
                 'service_id' => $service->id,
                 'patient_user_id' => $patientUserId,
                 'patient_member_id' => $validated['patient_member_id'] ?? null,
                 'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
-                'patient_address_id' => $validated['patient_address_id'] ?? null,
+                'patient_address_id' => $patientAddressId,
                 'status' => 'pending',
                 'booking_type' => $schedule['booking_type'],
                 'scheduled_at' => $schedule['scheduled_at'],
@@ -152,6 +155,7 @@ class ServiceBookingController extends Controller
         });
 
         $booking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'payment']);
+        $booking->useServiceAddressRelation();
 
         $matchmaking = [
             'partner_service_id' => $selectedPartnerService->id,
@@ -189,6 +193,7 @@ class ServiceBookingController extends Controller
     public function show(ServiceBooking $serviceBooking): JsonResponse
     {
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction', 'payment']);
+        $serviceBooking->useServiceAddressRelation();
 
         return response()->json([
             'message' => 'Detail booking layanan berhasil diambil.',
@@ -219,6 +224,7 @@ class ServiceBookingController extends Controller
 
         if ($payment->status === 'paid') {
             $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'payment']);
+            $serviceBooking->useServiceAddressRelation();
 
             return response()->json([
                 'message' => 'Pembayaran layanan sudah lunas.',
@@ -246,6 +252,7 @@ class ServiceBookingController extends Controller
         }
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'payment']);
+        $serviceBooking->useServiceAddressRelation();
 
         return response()->json([
             'message' => $snap['is_reused']
@@ -298,6 +305,7 @@ class ServiceBookingController extends Controller
         );
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
+        $serviceBooking->useServiceAddressRelation();
 
         $actor = $request->user();
         $notificationTargetId = $actor?->id === $serviceBooking->patient_user_id
@@ -361,6 +369,7 @@ class ServiceBookingController extends Controller
         );
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
+        $serviceBooking->useServiceAddressRelation();
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.accepted',
@@ -415,6 +424,7 @@ class ServiceBookingController extends Controller
         );
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
+        $serviceBooking->useServiceAddressRelation();
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.on_the_way',
@@ -534,6 +544,7 @@ class ServiceBookingController extends Controller
         });
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction']);
+        $serviceBooking->useServiceAddressRelation();
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.completed',
@@ -595,15 +606,13 @@ class ServiceBookingController extends Controller
 
     private function resolveBookingAddress(array $validated, ?PatientMember $patientMember): ?PatientAddress
     {
-        if (isset($validated['patient_address_id'])) {
-            return PatientAddress::find($validated['patient_address_id']);
+        if ($patientMember?->address) {
+            return $patientMember->toPatientAddress();
         }
 
-        if (! $patientMember || ! $patientMember->address) {
-            return null;
-        }
-
-        return $patientMember->toPatientAddress();
+        return isset($validated['patient_address_id'])
+            ? PatientAddress::find($validated['patient_address_id'])
+            : null;
     }
 
     private function ensureBookingCanBeUpdatedByAuthenticatedUser(Request $request, ServiceBooking $serviceBooking): void

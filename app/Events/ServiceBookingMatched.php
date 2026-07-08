@@ -17,7 +17,7 @@ class ServiceBookingMatched implements ShouldBroadcastNow
         public ServiceBooking $booking,
         public array $matchmaking = []
     ) {
-        $this->booking->loadMissing(['service', 'patient', 'assignedPartner.partnerProfile', 'address']);
+        $this->booking->loadMissing(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address']);
     }
 
     /**
@@ -40,10 +40,13 @@ class ServiceBookingMatched implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
+        $address = $this->booking->serviceAddress();
+
         return [
             'booking' => [
                 'id' => $this->booking->id,
                 'booking_code' => $this->booking->booking_code,
+                'patient_member_id' => $this->booking->patient_member_id,
                 'status' => $this->booking->status,
                 'scheduled_at' => $this->booking->scheduled_at?->toISOString(),
                 'total_amount' => $this->booking->total_amount,
@@ -58,12 +61,18 @@ class ServiceBookingMatched implements ShouldBroadcastNow
                     'name' => $this->booking->patient->name,
                     'phone' => $this->booking->patient->phone,
                 ] : null,
-                'address' => $this->booking->address ? [
-                    'id' => $this->booking->address->id,
-                    'label' => $this->booking->address->label,
-                    'address' => $this->booking->address->address,
-                    'latitude' => $this->booking->address->latitude,
-                    'longitude' => $this->booking->address->longitude,
+                'patient_member' => $this->booking->patientMember ? [
+                    'id' => $this->booking->patientMember->id,
+                    'name' => $this->booking->patientMember->name,
+                    'relationship' => $this->booking->patientMember->relationship,
+                    'phone' => $this->booking->patientMember->phone,
+                ] : null,
+                'address' => $address ? [
+                    'id' => $address->id,
+                    'label' => $address->label,
+                    'address' => $address->address,
+                    'latitude' => $address->latitude,
+                    'longitude' => $address->longitude,
                 ] : null,
             ],
             'matchmaking' => $this->matchmaking,

@@ -84,6 +84,30 @@ class ServiceBooking extends Model
         return $this->belongsTo(PatientAddress::class, 'patient_address_id');
     }
 
+    public function serviceAddress(): ?PatientAddress
+    {
+        if ($this->address) {
+            return $this->address;
+        }
+
+        if ($this->patientMember?->address) {
+            return $this->patientMember->toPatientAddress();
+        }
+
+        return null;
+    }
+
+    public function useServiceAddressRelation(): self
+    {
+        $address = $this->serviceAddress();
+
+        if ($address) {
+            $this->setRelation('address', $address);
+        }
+
+        return $this;
+    }
+
     public function histories(): HasMany
     {
         return $this->hasMany(ServiceBookingHistory::class)->latest('handled_at')->latest();

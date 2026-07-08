@@ -101,7 +101,7 @@ class ServicePartnerSelectionService
 
     public function matchBookingAfterPayment(ServiceBooking $booking): ?array
     {
-        $booking->loadMissing(['service.partnerServices.partner.partnerProfile', 'address', 'payment']);
+        $booking->loadMissing(['service.partnerServices.partner.partnerProfile', 'address', 'patientMember', 'payment']);
 
         if ($booking->service && $booking->service->requires_matchmaking === false) {
             return null;
@@ -120,7 +120,7 @@ class ServicePartnerSelectionService
             ];
         }
 
-        $selectedPartnerService = $this->resolveBestPartnerForQuickBooking($booking->service, $booking->address);
+        $selectedPartnerService = $this->resolveBestPartnerForQuickBooking($booking->service, $booking->serviceAddress());
 
         $booking->update([
             'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,

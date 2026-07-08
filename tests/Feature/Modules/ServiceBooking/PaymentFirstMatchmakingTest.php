@@ -2,7 +2,7 @@
 
 use App\Models\PartnerProfile;
 use App\Models\PartnerService;
-use App\Models\PatientAddress;
+use App\Models\PatientMember;
 use App\Models\Service;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
@@ -13,8 +13,10 @@ it('matches a service booking to a partner only after payment is paid', function
     $patient = User::factory()->create(['role' => 'pasien']);
     $partner = User::factory()->create(['role' => 'mitra']);
 
-    $address = PatientAddress::create([
-        'patient_user_id' => $patient->id,
+    $patientMember = PatientMember::create([
+        'owner_user_id' => $patient->id,
+        'name' => 'Pasien Test',
+        'relationship' => 'self',
         'recipient_name' => 'Pasien Test',
         'recipient_phone' => '081234567890',
         'address' => 'Jl. Test',
@@ -60,7 +62,7 @@ it('matches a service booking to a partner only after payment is paid', function
 
     $bookingResponse = $this->postJson('/api/patient/service-bookings', [
         'service_id' => $service->id,
-        'patient_address_id' => $address->id,
+        'patient_member_id' => $patientMember->id,
         'notes' => 'Pasien membutuhkan infus.',
     ]);
 
@@ -88,6 +90,8 @@ it('matches a service booking to a partner only after payment is paid', function
 
     $this->assertDatabaseHas('service_bookings', [
         'id' => $bookingResponse->json('data.booking.id'),
+        'patient_member_id' => $patientMember->id,
+        'patient_address_id' => null,
         'assigned_partner_user_id' => $partner->id,
     ]);
 });
