@@ -22,10 +22,11 @@ Dokumentasi tambahan:
 
 ## Service Booking Matchmaking
 
-Pesanan cepat pasien otomatis memilih mitra terbaik melalui `App\Services\ServicePartnerSelectionService`. Kandidat mitra harus:
+Pesanan cepat pasien memakai model marketplace: pasien memilih service, melakukan booking, lalu membayar. Setelah payment menjadi `paid`, backend memilih mitra terbaik melalui `App\Services\ServicePartnerSelectionService`. Kandidat mitra harus:
 - layanan mitra aktif dan terverifikasi;
 - profil mitra terverifikasi;
 - mitra sedang tersedia/online melalui `partner_profiles.is_available`;
+- service mitra tersedia melalui `partner_services.is_available`;
 - masih dalam `coverage_radius_km` jika alamat pasien dan koordinat mitra tersedia.
 
 Skor matching menggabungkan jarak, kualitas, dan harga:
@@ -36,7 +37,14 @@ Skor matching menggabungkan jarak, kualitas, dan harga:
 Endpoint pesanan cepat:
 - `POST /api/patient/service-bookings`
 - user pasien login tidak wajib mengirim `patient_user_id`; sistem memakai user dari token Sanctum.
-- response menyertakan object `matchmaking` berisi `partner_service_id`, `partner_user_id`, `distance_km`, `match_score`, dan `quality_score`.
+- response awal menyertakan `matchmaking_status = waiting_payment` dan `assigned_partner_user_id = null`.
+- setelah pembayaran `paid`, callback Midtrans menjalankan matchmaking dan mengisi `assigned_partner_user_id`.
+
+Endpoint admin master service:
+- `GET|POST /api/admin/service-categories`
+- `GET|PATCH|DELETE /api/admin/service-categories/{serviceCategory}`
+- `GET|POST /api/admin/services`
+- `GET|PATCH|DELETE /api/admin/services/{service}`
 
 Lihat detail payload dan contoh response di [README_SERVICE_BOOKINGS.md](README_SERVICE_BOOKINGS.md).
 

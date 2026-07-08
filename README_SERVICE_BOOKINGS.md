@@ -126,6 +126,155 @@ base_price service -> markup aplikasi -> promo -> total_amount
 partner_services.price dipakai untuk ranking partner dan harga efektif mitra.
 ```
 
+## Admin Master Service
+
+Admin mengelola kategori layanan dan master service dari endpoint berikut. Semua endpoint memakai:
+
+```http
+Authorization: Bearer {admin_api_token}
+Accept: application/json
+Content-Type: application/json
+```
+
+### Service Category CRUD
+
+```http
+GET /api/admin/service-categories
+POST /api/admin/service-categories
+GET /api/admin/service-categories/{serviceCategory}
+PATCH /api/admin/service-categories/{serviceCategory}
+DELETE /api/admin/service-categories/{serviceCategory}
+```
+
+Query list:
+
+| Query | Required | Type | Catatan |
+| --- | --- | --- | --- |
+| `search` | Tidak | string | cari `name` atau `slug` |
+| `is_active` | Tidak | boolean | filter aktif/nonaktif |
+| `per_page` | Tidak | integer | 1-100, default 20 |
+
+Body create/update:
+
+```json
+{
+  "name": "Nurse",
+  "slug": "nurse",
+  "icon": "heart-pulse",
+  "sort_order": 20,
+  "is_active": true
+}
+```
+
+Field:
+
+| Field | Required | Type | Catatan |
+| --- | --- | --- | --- |
+| `name` | Ya saat create | string | nama kategori yang tampil di admin/mobile |
+| `slug` | Tidak | string | unique; jika kosong saat create dibuat dari `name` |
+| `icon` | Tidak | string | nama icon untuk UI, contoh `heart-pulse` |
+| `sort_order` | Tidak | integer | urutan tampilan kategori |
+| `is_active` | Tidak | boolean | status kategori |
+
+Kategori tidak bisa dihapus jika masih punya service.
+
+### Service CRUD
+
+```http
+GET /api/admin/services
+POST /api/admin/services
+GET /api/admin/services/{service}
+PATCH /api/admin/services/{service}
+DELETE /api/admin/services/{service}
+```
+
+Query list:
+
+| Query | Required | Type | Catatan |
+| --- | --- | --- | --- |
+| `service_category_id` / `category_id` | Tidak | integer | filter kategori |
+| `service_type` | Tidak | enum | `consultation`, `procedure`, `caregiver`, `homecare`, atau value legacy |
+| `service_mode` | Tidak | enum | `chat`, `voice`, `video`, `visit` |
+| `is_active` | Tidak | boolean | filter aktif/nonaktif |
+| `requires_address` | Tidak | boolean | filter layanan yang butuh alamat |
+| `requires_schedule` | Tidak | boolean | filter layanan yang butuh jadwal |
+| `requires_matchmaking` | Tidak | boolean | filter layanan yang butuh matchmaking |
+| `search` | Tidak | string | cari nama, kode, slug, kategori teks |
+| `per_page` | Tidak | integer | 1-100, default 20 |
+
+Body create:
+
+```json
+{
+  "service_category_id": 2,
+  "service_code": "SRV-NRS-JBR-001",
+  "name": "Pasang Infus",
+  "slug": "pasang-infus",
+  "service_type": "procedure",
+  "service_mode": "visit",
+  "category": "Nurse",
+  "description": "Layanan pemasangan infus di rumah oleh perawat terverifikasi.",
+  "base_price": 185000,
+  "duration_minutes": 90,
+  "requires_address": true,
+  "requires_schedule": true,
+  "requires_matchmaking": true,
+  "sort_order": 30,
+  "is_active": true,
+  "is_homecare": true
+}
+```
+
+Field:
+
+| Field | Required | Type | Catatan |
+| --- | --- | --- | --- |
+| `service_category_id` | Tidak | integer | relasi ke `service_categories`; alias request `category_id` juga diterima |
+| `service_code` | Tidak | string | unique; jika kosong dibuat otomatis |
+| `name` | Ya saat create | string | nama service yang tampil ke pasien |
+| `slug` | Tidak | string | jika kosong saat create dibuat dari `name` |
+| `service_type` | Ya saat create | enum | `consultation`, `procedure`, `caregiver`, `homecare`, plus legacy |
+| `service_mode` | Tidak | enum | `chat`, `voice`, `video`, `visit`; default `visit` |
+| `category` | Tidak | string | label teks kompatibilitas lama |
+| `description` | Tidak | string | deskripsi layanan |
+| `base_price` | Ya saat create | numeric | harga dasar sebelum markup/promo |
+| `duration_minutes` | Tidak | integer | default 60 |
+| `requires_address` | Tidak | boolean | wajib alamat saat booking |
+| `requires_schedule` | Tidak | boolean | wajib jadwal saat booking |
+| `requires_matchmaking` | Tidak | boolean | jika false, tidak mencari mitra otomatis |
+| `sort_order` | Tidak | integer | urutan tampilan service |
+| `is_active` | Tidak | boolean | status service |
+| `is_homecare` | Tidak | boolean | flag kompatibilitas homecare |
+
+Service tidak bisa dihapus jika sudah dipakai oleh `partner_services` atau `service_bookings`.
+
+Contoh response create service:
+
+```json
+{
+  "message": "Master layanan berhasil dibuat.",
+  "data": {
+    "id": 1,
+    "service_category_id": 2,
+    "service_code": "SRV-NRS-JBR-001",
+    "name": "Pasang Infus",
+    "slug": "pasang-infus",
+    "service_type": "procedure",
+    "service_mode": "visit",
+    "base_price": "185000.00",
+    "requires_address": true,
+    "requires_schedule": true,
+    "requires_matchmaking": true,
+    "is_active": true,
+    "service_category": {
+      "id": 2,
+      "name": "Nurse",
+      "slug": "nurse"
+    }
+  }
+}
+```
+
 ## Pesanan Cepat Pasien
 
 Endpoint:

@@ -192,6 +192,19 @@ Query `GET /api/patient/apotiks`:
 
 ### Layanan
 
+Untuk UI mobile, gunakan pola marketplace:
+
+```text
+Ambil catalog service -> group by service.service_category -> user pilih category -> tampilkan service di category itu -> booking -> payment -> matchmaking
+```
+
+Catatan penting:
+
+```text
+Tidak perlu memanggil endpoint admin /api/admin/service-categories dari app pasien.
+App pasien cukup memakai catalog service pasien, lalu membuat kategori dari field service.service_category.
+```
+
 ```http
 GET /api/patient/services
 GET /api/patient/services/{service}
@@ -220,13 +233,137 @@ GET /api/patient/service-bookings/services
 GET /api/patient/service-bookings/services/{service}
 ```
 
+Endpoint ini direkomendasikan untuk halaman pilih layanan di Flutter karena response langsung memuat `service_category`, harga dasar, status service, dan flag kebutuhan booking.
+
 Query alternatif catalog:
 
 | Query | Required | Type | Rule/Catatan |
 | --- | --- | --- | --- |
 | `category` | Tidak | string | filter kategori layanan |
+| `category_id` | Tidak | integer | filter `service_category_id`; dipakai saat user memilih category di UI |
+| `service_mode` | Tidak | enum/string | `chat`, `voice`, `video`, `visit` |
 | `search` | Tidak | string | cari nama layanan |
 | `per_page` | Tidak | integer | default 20 |
+
+Contoh ambil semua catalog lalu group category di Flutter:
+
+```http
+GET /api/patient/service-bookings/services?per_page=100
+```
+
+Contoh response item catalog:
+
+```json
+{
+  "id": 1,
+  "service_category_id": 2,
+  "service_code": "SRV-NRS-JBR-001",
+  "name": "Pasang Infus",
+  "slug": "pasang-infus",
+  "service_type": "procedure",
+  "service_mode": "visit",
+  "category": "Nurse",
+  "description": "Layanan pemasangan infus di rumah oleh perawat terverifikasi.",
+  "base_price": "185000.00",
+  "duration_minutes": 90,
+  "requires_address": true,
+  "requires_schedule": true,
+  "requires_matchmaking": true,
+  "sort_order": 30,
+  "is_active": true,
+  "is_homecare": true,
+  "service_category": {
+    "id": 2,
+    "name": "Nurse",
+    "slug": "nurse",
+    "icon": "heart-pulse",
+    "sort_order": 20,
+    "is_active": true
+  }
+}
+```
+
+Contoh UI data mapping:
+
+| UI | Source response |
+| --- | --- |
+| Tab/chip category | `service.service_category.name` |
+| Icon category | `service.service_category.icon` |
+| Nama card service | `service.name` |
+| Harga mulai | `service.base_price` atau detail `pricing.final_price` |
+| Badge online/tersedia | service aktif dan jumlah mitra jika endpoint catalog advanced mengirim count |
+| Butuh alamat | `service.requires_address` |
+| Butuh jadwal | `service.requires_schedule` |
+
+Contoh user pilih category Nurse:
+
+```http
+GET /api/patient/service-bookings/services?category_id=2&per_page=20
+```
+
+Contoh filter layanan visit:
+
+```http
+GET /api/patient/service-bookings/services?category_id=2&service_mode=visit
+```
+
+Contoh detail sebelum booking:
+
+```http
+GET /api/patient/service-bookings/services/1
+```
+
+Response detail berisi:
+
+```json
+{
+  "success": true,
+  "data": {
+    "service": {
+      "id": 1,
+      "name": "Pasang Infus",
+      "service_category": {
+        "id": 2,
+        "name": "Nurse",
+        "slug": "nurse"
+      },
+      "requires_address": true,
+      "requires_schedule": true
+    },
+    "pricing": {
+      "base_price": 185000,
+      "markup_amount": 18500,
+      "final_price": 203500
+    }
+  }
+}
+```
+
+Rekomendasi layar mobile:
+
+```text
+Home Layanan
+- Search service
+- Horizontal category dari service_category
+- List service berdasarkan category aktif
+
+Detail Service
+- Nama service
+- Deskripsi
+- Harga mulai/final price
+- Durasi
+- Form alamat jika requires_address=true
+- Form jadwal jika requires_schedule=true
+- Tombol Booking
+
+Booking Status
+- Menunggu pembayaran
+- Pembayaran diproses
+- Mencari mitra
+- Mitra ditemukan
+- Dalam perjalanan
+- Selesai
+```
 
 ### Profil Pasien Keluarga
 
@@ -1418,15 +1555,20 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 
 1. Login pasien via `POST /api/patient/login`.
 2. Simpan `user_api_token`.
-3. Ambil catalog layanan via `GET /api/patient/service-bookings/services`.
-4. Buat booking via `POST /api/patient/service-bookings`.
-5. Tampilkan status booking dari response.
-6. Polling/list detail booking via `GET /api/patient/service-bookings/{id}` jika perlu.
-7. Setelah pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat mitra terpilih.
-8. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
-9. Saat mengirim pesan, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
-10. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
-11. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
+3. Ambil catalog layanan via `GET /api/patient/service-bookings/services?per_page=100`.
+4. Bentuk tab/chip category dari `data.data.*.service_category`.
+5. Saat user pilih category, filter lokal dari catalog yang sudah ada atau panggil ulang `GET /api/patient/service-bookings/services?category_id={id}`.
+6. Saat user pilih service, ambil detail via `GET /api/patient/service-bookings/services/{serviceId}` untuk pricing terbaru.
+7. Tampilkan form alamat jika `requires_address=true`.
+8. Tampilkan form jadwal jika `requires_schedule=true`.
+9. Buat booking via `POST /api/patient/service-bookings`.
+10. Tampilkan status `Menunggu pembayaran`; response awal punya `assigned_partner_user_id=null` dan `matchmaking_status=waiting_payment`.
+11. Bayar booking via `PATCH /api/patient/service-bookings/{id}/pay`.
+12. Setelah pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat mitra terpilih.
+13. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+14. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
+15. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+16. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 
