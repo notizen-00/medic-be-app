@@ -213,6 +213,48 @@
         .empty { padding: 18px; color: #64748b; font-size: 13px; }
         .log { max-height: 120px; overflow: auto; margin-top: 14px; padding: 10px; border-radius: 8px; background: #0f172a; color: #dbeafe; font-size: 12px; white-space: pre-wrap; }
 
+        .order-alert {
+            position: fixed;
+            inset: 0;
+            z-index: 10;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            background: rgba(15, 23, 42, .58);
+        }
+        .order-alert.active { display: flex; }
+        .order-alert-panel {
+            width: min(520px, 100%);
+            overflow: hidden;
+            border: 1px solid #dfe7f1;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 24px 80px rgba(15, 23, 42, .28);
+        }
+        .order-alert-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px;
+            border-bottom: 1px solid #dfe7f1;
+        }
+        .order-alert-head h2 { margin: 0 0 5px; font-size: 18px; }
+        .order-alert-body { display: grid; gap: 10px; padding: 16px; }
+        .order-alert-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .order-alert-field { padding: 10px; border: 1px solid #e5ebf3; border-radius: 7px; background: #fbfcfe; }
+        .order-alert-field span { display: block; margin-bottom: 4px; color: #64748b; font-size: 12px; font-weight: 750; }
+        .order-alert-field b { overflow-wrap: anywhere; font-size: 14px; }
+        .order-alert-address { grid-column: 1 / -1; }
+        .order-alert-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+            gap: 10px;
+            padding: 14px 16px 16px;
+            border-top: 1px solid #dfe7f1;
+        }
+
         @media (max-width: 1080px) {
             .app.active { grid-template-columns: 1fr; }
             .sidebar { min-height: auto; border-right: 0; border-bottom: 1px solid #dfe7f1; }
@@ -223,7 +265,7 @@
 
         @media (max-width: 640px) {
             .topbar, .topbar-actions { align-items: stretch; flex-direction: column; }
-            .stats, .info-grid, .filters, .composer, .nav { grid-template-columns: 1fr; }
+            .stats, .info-grid, .filters, .composer, .nav, .order-alert-grid, .order-alert-actions { grid-template-columns: 1fr; }
             .content { padding: 14px; }
         }
     </style>
@@ -350,6 +392,34 @@
     </div>
 </div>
 
+<div id="order-alert" class="order-alert" role="dialog" aria-modal="true" aria-labelledby="order-alert-title">
+    <div class="order-alert-panel">
+        <div class="order-alert-head">
+            <div>
+                <h2 id="order-alert-title">Order layanan baru</h2>
+                <p id="order-alert-subtitle" class="muted" style="margin-bottom:0;">Ada pesanan pasien yang cocok untuk akun ini.</p>
+            </div>
+            <span id="order-alert-status" class="badge">baru</span>
+        </div>
+        <div class="order-alert-body">
+            <div class="order-alert-grid">
+                <div class="order-alert-field"><span>Kode</span><b id="order-alert-code">-</b></div>
+                <div class="order-alert-field"><span>Layanan</span><b id="order-alert-service">-</b></div>
+                <div class="order-alert-field"><span>Pasien</span><b id="order-alert-patient">-</b></div>
+                <div class="order-alert-field"><span>Total</span><b id="order-alert-total">-</b></div>
+                <div class="order-alert-field"><span>Jadwal</span><b id="order-alert-schedule">-</b></div>
+                <div class="order-alert-field"><span>Jarak</span><b id="order-alert-distance">-</b></div>
+                <div class="order-alert-field order-alert-address"><span>Alamat</span><b id="order-alert-address">-</b></div>
+            </div>
+            <p id="order-alert-notes" class="muted" style="margin-bottom:0;"></p>
+        </div>
+        <div class="order-alert-actions">
+            <button id="order-alert-dismiss-button" type="button" class="secondary-button">Tidak</button>
+            <button id="order-alert-accept-button" type="button" class="primary-button">Terima</button>
+        </div>
+    </div>
+</div>
+
 <script>
     const reverbKey = @json($reverbKey);
     const reverbHost = @json($reverbHost);
@@ -380,6 +450,7 @@
     let notifications = [];
     let unreadCount = 0;
     let renderedMessageIds = new Set();
+    let pendingMatchedBooking = null;
 
     function log(message, payload = null, target = loginLog) {
         const detail = payload ? `\n${JSON.stringify(payload, null, 2)}` : '';
@@ -497,7 +568,76 @@
             log('Order layanan baru.', payload, eventLog);
             await loadBookings();
             setView('orders');
+            showOrderAlert(payload);
         });
+    }
+
+    function normalizeMatchedBooking(payload) {
+        const booking = payload?.booking || payload || {};
+        if (!booking.id) return null;
+
+        const loadedBooking = bookings.find((item) => Number(item.id) === Number(booking.id));
+        return {
+            ...(loadedBooking || {}),
+            ...booking,
+            service: booking.service || loadedBooking?.service || null,
+            patient: booking.patient || loadedBooking?.patient || null,
+            patient_member: booking.patient_member || loadedBooking?.patient_member || null,
+            address: booking.address || loadedBooking?.address || null,
+            matchmaking: payload?.matchmaking || booking.matchmaking || loadedBooking?.matchmaking || null,
+        };
+    }
+
+    function showOrderAlert(payload) {
+        const booking = normalizeMatchedBooking(payload);
+        if (!booking) return;
+
+        pendingMatchedBooking = booking;
+        const patientName = booking.patient_member?.name || booking.patient?.name || '-';
+        const distance = booking.matchmaking?.distance_km;
+
+        $('#order-alert-code').textContent = booking.booking_code || `Order #${booking.id}`;
+        $('#order-alert-service').textContent = booking.service?.name || '-';
+        $('#order-alert-patient').textContent = patientName;
+        $('#order-alert-total').textContent = money(booking.total_amount);
+        $('#order-alert-schedule').textContent = formatDate(booking.scheduled_at);
+        $('#order-alert-distance').textContent = distance === null || distance === undefined ? '-' : `${Number(distance).toFixed(2)} km`;
+        $('#order-alert-address').textContent = booking.address?.address || '-';
+        $('#order-alert-status').textContent = booking.status || 'baru';
+        $('#order-alert-status').className = `badge ${statusClass(booking.status)}`;
+        $('#order-alert-notes').textContent = booking.notes ? `Catatan: ${booking.notes}` : '';
+        $('#order-alert-accept-button').disabled = !['pending', 'scheduled'].includes(booking.status);
+        $('#order-alert-dismiss-button').disabled = false;
+        $('#order-alert').classList.add('active');
+    }
+
+    function hideOrderAlert() {
+        $('#order-alert').classList.remove('active');
+        pendingMatchedBooking = null;
+        $('#order-alert-accept-button').disabled = false;
+        $('#order-alert-dismiss-button').disabled = false;
+    }
+
+    async function acceptPendingMatchedBooking() {
+        if (!pendingMatchedBooking) return;
+
+        const bookingId = pendingMatchedBooking.id;
+        $('#order-alert-accept-button').disabled = true;
+        $('#order-alert-dismiss-button').disabled = true;
+
+        try {
+            const payload = await apiFetch(`/api/mitra/service-bookings/${bookingId}/accept`, { method: 'PATCH', body: JSON.stringify({ notes: 'Diterima dari dashboard mitra.' }) });
+            activeBooking = payload.data;
+            hideOrderAlert();
+            setView('orders');
+            await loadBookings();
+            await openBooking(bookingId);
+            log('Order layanan diterima.', payload, eventLog);
+        } catch (error) {
+            log('Accept order failed.', error, eventLog);
+            $('#order-alert-accept-button').disabled = false;
+            $('#order-alert-dismiss-button').disabled = false;
+        }
     }
 
     async function loadAll() {
@@ -797,6 +937,7 @@
         if (pusher) pusher.disconnect();
         token = null; user = null; pusher = null; notificationChannel = null; bookingChannel = null; activeChatChannel = null;
         activeConsultation = null; activeBooking = null; consultations = []; bookings = []; notifications = []; unreadCount = 0;
+        hideOrderAlert();
         eventLog.textContent = '';
         loginCard.style.display = 'block';
         app.classList.remove('active');
@@ -836,6 +977,8 @@
     $('#refresh-notifications-button').addEventListener('click', loadNotifications);
     $('#mark-all-read-button').addEventListener('click', markAllNotificationsRead);
     $('#logout-button').addEventListener('click', logout);
+    $('#order-alert-accept-button').addEventListener('click', acceptPendingMatchedBooking);
+    $('#order-alert-dismiss-button').addEventListener('click', hideOrderAlert);
 
     $('#consultation-status-filter').addEventListener('change', loadConsultations);
     $('#consultation-search').addEventListener('input', () => { window.clearTimeout($('#consultation-search')._timer); $('#consultation-search')._timer = window.setTimeout(loadConsultations, 350); });
