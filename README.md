@@ -42,6 +42,7 @@ Endpoint pesanan cepat:
 
 Pemisahan akses service booking:
 - Endpoint pasien berada di `App\Http\Controllers\Api\Patient\ServiceBookingController` dan dipakai untuk katalog layanan, cek promo, membuat booking, melihat booking pasien, dan pembayaran.
+- Pasien dapat mengonfirmasi layanan selesai lewat `PATCH /api/patient/service-bookings/{serviceBooking}/confirm-completion`; setelah pembayaran lunas, endpoint ini menandai booking `completed` dan mengirim saldo layanan ke wallet mitra secara idempotent.
 - Endpoint mitra berada di `App\Http\Controllers\Api\Mitra\ServiceBookingController` dan dipakai untuk melihat pesanan milik mitra, menerima pesanan, berangkat, menambah catatan penanganan, menyelesaikan pesanan, dan update status operasional.
 - Route `/api/patient/*` memakai middleware `role:pasien`, sedangkan `/api/mitra/*` memakai middleware `role:mitra`, sehingga token pasien tidak dapat mengakses endpoint mitra dan token mitra tidak dapat mengakses endpoint pasien.
 - Endpoint `PATCH /api/patient/service-bookings/{serviceBooking}/status` sudah tidak digunakan; perubahan status layanan dilakukan dari endpoint mitra sesuai alur pesanan.

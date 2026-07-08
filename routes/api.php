@@ -153,6 +153,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::post('/', 'store');
                 Route::get('/', 'indexBookings');
                 Route::patch('/{serviceBooking}/pay', 'pay');
+                Route::patch('/{serviceBooking}/confirm-completion', 'confirmCompletion');
                 Route::get('/{serviceBooking}', 'showBooking');
             });
         });

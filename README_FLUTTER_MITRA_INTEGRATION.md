@@ -349,6 +349,14 @@ Syarat:
 
 Accept bisa dilakukan sebelum pembayaran lunas. Setelah accept, pasien melanjutkan pembayaran. Aksi berikutnya seperti `start-journey`, `histories`, dan `complete` membutuhkan `payment.status = paid`.
 
+Payout saldo mitra juga dapat terjadi saat pasien mengonfirmasi layanan selesai lewat:
+
+```http
+PATCH /api/patient/service-bookings/{serviceBooking}/confirm-completion
+```
+
+Jika booking sudah lunas dan belum pernah dibayarkan ke mitra, backend mengkredit wallet mitra dan mengisi `partner_paid_at` serta `partner_balance_transaction_id`. Endpoint ini idempotent, jadi konfirmasi ulang pasien tidak menggandakan saldo.
+
 ### Start Journey
 
 ```http

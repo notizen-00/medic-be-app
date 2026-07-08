@@ -655,6 +655,22 @@ Contoh response pembayaran:
 
 Mitra dapat menerima booking saat status masih `pending` atau `scheduled`. Untuk aksi operasional berikutnya seperti berangkat, menambah catatan penanganan, atau menyelesaikan layanan, pembayaran harus sudah `paid`.
 
+Konfirmasi layanan selesai:
+
+```http
+PATCH /api/patient/service-bookings/{serviceBooking}/confirm-completion
+```
+
+Body opsional:
+
+```json
+{
+  "notes": "Layanan sudah selesai dan sesuai."
+}
+```
+
+Endpoint ini hanya dapat dipakai pasien pemilik booking. Syaratnya booking sudah ditugaskan ke mitra, status booking `confirmed`, `scheduled`, `on_the_way`, atau `completed`, dan `payment.status = paid`. Saat berhasil, backend menandai booking `completed`, membuat histori konfirmasi pasien, dan mengirim saldo layanan ke wallet mitra. Endpoint aman dipanggil ulang karena payout tidak akan dibuat dua kali jika `partner_balance_transaction_id` sudah ada.
+
 Status booking yang muncul di response:
 
 ```text
@@ -1550,11 +1566,12 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 9. Buat booking via `POST /api/patient/service-bookings`.
 10. Tampilkan status `Menunggu konfirmasi mitra`; response awal punya `assigned_partner_user_id` dan `matchmaking_status=waiting_partner_acceptance`.
 11. Bayar booking via `PATCH /api/patient/service-bookings/{id}/pay`.
-12. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
-13. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
-14. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
-15. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
-16. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
+12. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
+13. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
+14. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+15. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
+16. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+17. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 

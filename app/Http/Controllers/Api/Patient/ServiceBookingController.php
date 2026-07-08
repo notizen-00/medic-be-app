@@ -9,6 +9,8 @@ use App\Models\PatientMember;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Models\ServiceBookingHistory;
+use App\Services\BalanceService;
 use App\Services\AppNotificationService;
 use App\Services\MidtransService;
 use App\Services\ServicePartnerSelectionService;
@@ -25,7 +27,8 @@ class ServiceBookingController extends Controller
 {
     public function __construct(
         private readonly ServicePartnerSelectionService $servicePartnerSelectionService,
-        private readonly AppNotificationService $notifications
+        private readonly AppNotificationService $notifications,
+        private readonly BalanceService $balanceService
     ) {
     }
 
@@ -425,6 +428,105 @@ class ServiceBookingController extends Controller
                 'payment' => $payment->fresh(),
                 'midtrans' => $snap,
             ],
+        ]);
+    }
+
+    public function confirmCompletion(Request $request, ServiceBooking $serviceBooking)
+    {
+        if ($serviceBooking->patient_user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk mengonfirmasi booking ini',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $serviceBooking = DB::transaction(function () use ($serviceBooking, $validated): ServiceBooking {
+            $lockedBooking = ServiceBooking::query()
+                ->with(['payment', 'assignedPartner'])
+                ->lockForUpdate()
+                ->findOrFail($serviceBooking->id);
+
+            if (! $lockedBooking->assigned_partner_user_id || ! $lockedBooking->assignedPartner) {
+                throw ValidationException::withMessages([
+                    'service_booking' => ['Booking belum memiliki mitra yang ditugaskan.'],
+                ]);
+            }
+
+            if (! in_array($lockedBooking->status, ['confirmed', 'scheduled', 'on_the_way', 'completed'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => ['Booking hanya dapat dikonfirmasi selesai setelah diterima atau diproses mitra.'],
+                ]);
+            }
+
+            if (! $lockedBooking->payment || $lockedBooking->payment->status !== 'paid') {
+                throw ValidationException::withMessages([
+                    'payment' => ['Booking hanya dapat dikonfirmasi selesai setelah pembayaran lunas.'],
+                ]);
+            }
+
+            $lockedBooking->update([
+                'status' => 'completed',
+                'completed_at' => $lockedBooking->completed_at ?? now(),
+                'notes' => $validated['notes'] ?? $lockedBooking->notes,
+            ]);
+
+            ServiceBookingHistory::create([
+                'service_booking_id' => $lockedBooking->id,
+                'actor_user_id' => Auth::id(),
+                'type' => 'status',
+                'title' => 'Pasien mengonfirmasi layanan selesai',
+                'description' => $validated['notes'] ?? 'Pasien mengonfirmasi layanan telah selesai.',
+                'meta' => ['status' => 'completed', 'patient_confirmed' => true],
+                'handled_at' => now(),
+            ]);
+
+            if ((float) $lockedBooking->total_amount > 0 && $lockedBooking->partner_balance_transaction_id === null) {
+                $balance = $this->balanceService->getOrCreateBalance($lockedBooking->assignedPartner);
+                $transaction = $this->balanceService->credit($balance, (float) $lockedBooking->total_amount, [
+                    'reference_type' => 'service_booking',
+                    'reference_id' => $lockedBooking->id,
+                    'booking_code' => $lockedBooking->booking_code,
+                    'description' => 'Pendapatan layanan '.$lockedBooking->booking_code,
+                    'confirmed_by_patient' => true,
+                ]);
+
+                $lockedBooking->update([
+                    'partner_paid_at' => now(),
+                    'partner_balance_transaction_id' => $transaction->id,
+                ]);
+            }
+
+            return $lockedBooking;
+        });
+
+        $serviceBooking->load(['service', 'patientMember', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'partnerBalanceTransaction', 'payment']);
+        $serviceBooking->useServiceAddressRelation();
+
+        if ($serviceBooking->assigned_partner_user_id) {
+            $this->notifications->send($serviceBooking->assigned_partner_user_id, [
+                'type' => 'service_booking.patient_confirmed_completed',
+                'title' => 'Pasien mengonfirmasi layanan selesai',
+                'body' => 'Pasien mengonfirmasi pesanan '.$serviceBooking->booking_code.' selesai. Saldo mitra sudah diperbarui.',
+                'action_url' => '/mitra/service-bookings/'.$serviceBooking->id,
+                'reference_type' => 'service_booking',
+                'reference_id' => $serviceBooking->id,
+                'data' => [
+                    'service_booking_id' => $serviceBooking->id,
+                    'booking_code' => $serviceBooking->booking_code,
+                    'status' => $serviceBooking->status,
+                    'partner_balance_transaction_id' => $serviceBooking->partner_balance_transaction_id,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Konfirmasi selesai berhasil. Saldo mitra sudah diperbarui.',
+            'data' => $serviceBooking,
         ]);
     }
 
