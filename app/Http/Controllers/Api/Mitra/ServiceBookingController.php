@@ -239,18 +239,22 @@ class ServiceBookingController extends Controller
             'recorded_at' => ['nullable', 'date'],
         ]);
 
-        $serviceBooking->update([
-            'partner_current_latitude' => $validated['latitude'],
-            'partner_current_longitude' => $validated['longitude'],
-            'partner_location_accuracy_meters' => $validated['accuracy_meters'] ?? null,
-            'partner_location_heading' => $validated['heading'] ?? null,
-            'partner_location_speed_mps' => $validated['speed_mps'] ?? null,
-            'partner_location_updated_at' => isset($validated['recorded_at'])
-                ? Carbon::parse($validated['recorded_at'])
-                : now(),
-        ]);
+        $location = $serviceBooking->partnerLocation()->updateOrCreate(
+            ['service_booking_id' => $serviceBooking->id],
+            [
+                'partner_user_id' => $partner->id,
+                'latitude' => $validated['latitude'],
+                'longitude' => $validated['longitude'],
+                'accuracy_meters' => $validated['accuracy_meters'] ?? null,
+                'heading' => $validated['heading'] ?? null,
+                'speed_mps' => $validated['speed_mps'] ?? null,
+                'recorded_at' => isset($validated['recorded_at'])
+                    ? Carbon::parse($validated['recorded_at'])
+                    : now(),
+            ]
+        );
 
-        $serviceBooking->refresh();
+        $serviceBooking->setRelation('partnerLocation', $location);
 
         ServiceBookingPartnerLocationUpdated::dispatch($serviceBooking);
 
@@ -260,12 +264,12 @@ class ServiceBookingController extends Controller
                 'service_booking_id' => $serviceBooking->id,
                 'status' => $serviceBooking->status,
                 'location' => [
-                    'latitude' => $serviceBooking->partner_current_latitude,
-                    'longitude' => $serviceBooking->partner_current_longitude,
-                    'accuracy_meters' => $serviceBooking->partner_location_accuracy_meters,
-                    'heading' => $serviceBooking->partner_location_heading,
-                    'speed_mps' => $serviceBooking->partner_location_speed_mps,
-                    'updated_at' => $serviceBooking->partner_location_updated_at?->toISOString(),
+                    'latitude' => $location->latitude,
+                    'longitude' => $location->longitude,
+                    'accuracy_meters' => $location->accuracy_meters,
+                    'heading' => $location->heading,
+                    'speed_mps' => $location->speed_mps,
+                    'updated_at' => $location->recorded_at?->toISOString(),
                 ],
             ],
         ]);

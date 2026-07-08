@@ -8,27 +8,24 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('service_bookings', function (Blueprint $table) {
-            $table->decimal('partner_current_latitude', 10, 7)->nullable()->after('partner_balance_transaction_id');
-            $table->decimal('partner_current_longitude', 10, 7)->nullable()->after('partner_current_latitude');
-            $table->decimal('partner_location_accuracy_meters', 8, 2)->nullable()->after('partner_current_longitude');
-            $table->decimal('partner_location_heading', 6, 2)->nullable()->after('partner_location_accuracy_meters');
-            $table->decimal('partner_location_speed_mps', 8, 2)->nullable()->after('partner_location_heading');
-            $table->timestamp('partner_location_updated_at')->nullable()->after('partner_location_speed_mps');
+        Schema::create('service_booking_partner_locations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('service_booking_id')->unique()->constrained('service_bookings')->cascadeOnDelete();
+            $table->foreignId('partner_user_id')->nullable()->constrained('users')->nullOnDelete();
+            $table->decimal('latitude', 10, 7);
+            $table->decimal('longitude', 10, 7);
+            $table->decimal('accuracy_meters', 8, 2)->nullable();
+            $table->decimal('heading', 6, 2)->nullable();
+            $table->decimal('speed_mps', 8, 2)->nullable();
+            $table->timestamp('recorded_at')->nullable();
+            $table->timestamps();
+
+            $table->index(['partner_user_id', 'recorded_at']);
         });
     }
 
     public function down(): void
     {
-        Schema::table('service_bookings', function (Blueprint $table) {
-            $table->dropColumn([
-                'partner_current_latitude',
-                'partner_current_longitude',
-                'partner_location_accuracy_meters',
-                'partner_location_heading',
-                'partner_location_speed_mps',
-                'partner_location_updated_at',
-            ]);
-        });
+        Schema::dropIfExists('service_booking_partner_locations');
     }
 };

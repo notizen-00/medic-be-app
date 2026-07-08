@@ -539,10 +539,11 @@ class ServiceBookingController extends Controller
             ], 403);
         }
 
-        $serviceBooking->load(['assignedPartner.partnerProfile', 'patientMember', 'address']);
+        $serviceBooking->load(['assignedPartner.partnerProfile', 'patientMember', 'address', 'partnerLocation']);
         $serviceBooking->useServiceAddressRelation();
 
         $address = $serviceBooking->serviceAddress();
+        $partnerLocation = $serviceBooking->partnerLocation;
 
         return response()->json([
             'success' => true,
@@ -558,12 +559,12 @@ class ServiceBookingController extends Controller
                     'partner_profile' => $serviceBooking->assignedPartner->partnerProfile,
                 ] : null,
                 'partner_location' => [
-                    'latitude' => $serviceBooking->partner_current_latitude,
-                    'longitude' => $serviceBooking->partner_current_longitude,
-                    'accuracy_meters' => $serviceBooking->partner_location_accuracy_meters,
-                    'heading' => $serviceBooking->partner_location_heading,
-                    'speed_mps' => $serviceBooking->partner_location_speed_mps,
-                    'updated_at' => $serviceBooking->partner_location_updated_at?->toISOString(),
+                    'latitude' => $partnerLocation?->latitude,
+                    'longitude' => $partnerLocation?->longitude,
+                    'accuracy_meters' => $partnerLocation?->accuracy_meters,
+                    'heading' => $partnerLocation?->heading,
+                    'speed_mps' => $partnerLocation?->speed_mps,
+                    'updated_at' => $partnerLocation?->recorded_at?->toISOString(),
                 ],
                 'destination' => $address ? [
                     'id' => $address->id,

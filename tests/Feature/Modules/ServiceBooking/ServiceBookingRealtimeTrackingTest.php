@@ -4,6 +4,7 @@ use App\Events\ServiceBookingPartnerLocationUpdated;
 use App\Models\PartnerProfile;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Models\ServiceBookingPartnerLocation;
 use App\Models\User;
 use Illuminate\Support\Facades\Event;
 use Laravel\Sanctum\Sanctum;
@@ -49,10 +50,11 @@ it('lets assigned partner update realtime location and broadcasts it to tracking
         ->assertJsonPath('data.location.latitude', '-8.1723570')
         ->assertJsonPath('data.location.longitude', '113.7003020');
 
-    $this->assertDatabaseHas('service_bookings', [
-        'id' => $booking->id,
-        'partner_current_latitude' => -8.172357,
-        'partner_current_longitude' => 113.700302,
+    $this->assertDatabaseHas('service_booking_partner_locations', [
+        'service_booking_id' => $booking->id,
+        'partner_user_id' => $partner->id,
+        'latitude' => -8.172357,
+        'longitude' => 113.700302,
     ]);
 
     Event::assertDispatched(ServiceBookingPartnerLocationUpdated::class, function (ServiceBookingPartnerLocationUpdated $event) use ($booking) {
@@ -85,10 +87,15 @@ it('lets patient fetch latest tracking snapshot for their service booking', func
         'assigned_partner_user_id' => $partner->id,
         'status' => 'on_the_way',
         'total_amount' => 100000,
-        'partner_current_latitude' => -8.172357,
-        'partner_current_longitude' => 113.700302,
-        'partner_location_accuracy_meters' => 10,
-        'partner_location_updated_at' => now(),
+    ]);
+
+    ServiceBookingPartnerLocation::create([
+        'service_booking_id' => $booking->id,
+        'partner_user_id' => $partner->id,
+        'latitude' => -8.172357,
+        'longitude' => 113.700302,
+        'accuracy_meters' => 10,
+        'recorded_at' => now(),
     ]);
 
     Sanctum::actingAs($patient);

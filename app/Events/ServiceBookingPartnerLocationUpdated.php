@@ -16,7 +16,7 @@ class ServiceBookingPartnerLocationUpdated implements ShouldBroadcastNow
     public function __construct(
         public ServiceBooking $booking
     ) {
-        $this->booking->loadMissing(['assignedPartner', 'patient']);
+        $this->booking->loadMissing(['assignedPartner', 'patient', 'partnerLocation']);
     }
 
     /**
@@ -39,6 +39,8 @@ class ServiceBookingPartnerLocationUpdated implements ShouldBroadcastNow
      */
     public function broadcastWith(): array
     {
+        $location = $this->booking->partnerLocation;
+
         return [
             'service_booking_id' => $this->booking->id,
             'booking_code' => $this->booking->booking_code,
@@ -51,12 +53,12 @@ class ServiceBookingPartnerLocationUpdated implements ShouldBroadcastNow
                 'phone' => $this->booking->assignedPartner->phone,
             ] : null,
             'location' => [
-                'latitude' => $this->booking->partner_current_latitude,
-                'longitude' => $this->booking->partner_current_longitude,
-                'accuracy_meters' => $this->booking->partner_location_accuracy_meters,
-                'heading' => $this->booking->partner_location_heading,
-                'speed_mps' => $this->booking->partner_location_speed_mps,
-                'updated_at' => $this->booking->partner_location_updated_at?->toISOString(),
+                'latitude' => $location?->latitude,
+                'longitude' => $location?->longitude,
+                'accuracy_meters' => $location?->accuracy_meters,
+                'heading' => $location?->heading,
+                'speed_mps' => $location?->speed_mps,
+                'updated_at' => $location?->recorded_at?->toISOString(),
             ],
         ];
     }
