@@ -11,12 +11,15 @@ use App\Models\User;
 use Illuminate\Validation\ValidationException;
 use App\Models\ConsultationMessage;
 use App\Services\AppNotificationService;
+use App\Services\ConsultationPayoutService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class ConsultationsController extends Controller
 {
     public function __construct(
-        private readonly AppNotificationService $notifications
+        private readonly AppNotificationService $notifications,
+        private readonly ConsultationPayoutService $consultationPayouts
     ) {
     }
 
@@ -78,7 +81,7 @@ class ConsultationsController extends Controller
 
     public function updateStatus(Request $request, Consultation $consultation): JsonResponse
     {
-        $this->authorizeMitraConsultation($request, $consultation);
+        $partner = $this->authorizeMitraConsultation($request, $consultation);
 
         $validated = $request->validate([
             'status' => ['required', 'in:pending,confirmed,ongoing,completed,cancelled'],
@@ -100,8 +103,28 @@ class ConsultationsController extends Controller
             $payload['ended_at'] = now();
         }
 
-        $consultation->update($payload);
-        $consultation->load(['patient', 'partner.partnerProfile']);
+        $consultation = DB::transaction(function () use ($consultation, $partner, $payload, $validated): Consultation {
+            $lockedConsultation = Consultation::query()
+                ->with('payment')
+                ->lockForUpdate()
+                ->findOrFail($consultation->id);
+
+            if ($validated['status'] === 'completed' && (! $lockedConsultation->payment || $lockedConsultation->payment->status !== 'paid')) {
+                throw ValidationException::withMessages([
+                    'payment' => ['Konsultasi hanya dapat diselesaikan setelah pembayaran lunas.'],
+                ]);
+            }
+
+            $lockedConsultation->update($payload);
+
+            if ($validated['status'] === 'completed') {
+                $this->consultationPayouts->creditPartnerIfNeeded($lockedConsultation, $partner);
+            }
+
+            return $lockedConsultation;
+        });
+
+        $consultation->load(['patient', 'partner.partnerProfile', 'partnerBalanceTransaction']);
 
         $this->notifications->send($consultation->patient_user_id, [
             'type' => 'consultation.status_updated',

@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'scheduled_at',
     'started_at',
     'ended_at',
+    'partner_paid_at',
+    'partner_balance_transaction_id',
     'complaint',
     'diagnosis',
     'notes',
@@ -30,6 +32,7 @@ class Consultation extends Model
             'scheduled_at' => 'datetime',
             'started_at' => 'datetime',
             'ended_at' => 'datetime',
+            'partner_paid_at' => 'datetime',
             'consultation_fee' => 'decimal:2',
         ];
     }
@@ -57,5 +60,10 @@ class Consultation extends Model
     public function payment(): HasOne
     {
         return $this->hasOne(Payment::class);
+    }
+
+    public function partnerBalanceTransaction(): BelongsTo
+    {
+        return $this->belongsTo(BalanceTransaction::class, 'partner_balance_transaction_id');
     }
 }

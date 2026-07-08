@@ -10,6 +10,7 @@ use App\Models\PartnerProfile;
 use App\Models\User;
 use App\Services\MidtransService;
 use App\Services\AppNotificationService;
+use App\Services\ConsultationPayoutService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,7 +23,8 @@ class ConsultationController extends Controller
 {
     public function __construct(
         private readonly MidtransService $midtransService,
-        private readonly AppNotificationService $notifications
+        private readonly AppNotificationService $notifications,
+        private readonly ConsultationPayoutService $consultationPayouts
     ) {}
 
     public function index(Request $request): JsonResponse
@@ -227,8 +229,24 @@ class ConsultationController extends Controller
             $payload['ended_at'] = now();
         }
 
-        $consultation->update($payload);
-        $consultation->load(['patient', 'partner.partnerProfile']);
+        $consultation = DB::transaction(function () use ($consultation, $payload, $validated): Consultation {
+            $lockedConsultation = Consultation::query()
+                ->with(['payment', 'partner'])
+                ->lockForUpdate()
+                ->findOrFail($consultation->id);
+
+            $lockedConsultation->update($payload);
+
+            if ($validated['status'] === 'completed' && $lockedConsultation->partner) {
+                $this->consultationPayouts->creditPartnerIfNeeded($lockedConsultation, $lockedConsultation->partner, [
+                    'confirmed_by_patient' => true,
+                ]);
+            }
+
+            return $lockedConsultation;
+        });
+
+        $consultation->load(['patient', 'partner.partnerProfile', 'partnerBalanceTransaction']);
 
         if ($consultation->partner_user_id) {
             $this->notifications->send($consultation->partner_user_id, [
