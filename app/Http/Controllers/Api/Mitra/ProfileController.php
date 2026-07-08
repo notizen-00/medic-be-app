@@ -87,6 +87,43 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function toggleAvailability(Request $request): JsonResponse
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+
+        if (! $user || $user->role !== 'mitra') {
+            throw ValidationException::withMessages([
+                'user' => ['Hanya akun mitra yang dapat mengakses endpoint ini.'],
+            ]);
+        }
+
+        /** @var PartnerProfile|null $partnerProfile */
+        $partnerProfile = $user->partnerProfile;
+
+        if (! $partnerProfile) {
+            throw ValidationException::withMessages([
+                'partner_profile' => ['Profil mitra belum tersedia.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'is_available' => ['required', 'boolean'],
+        ]);
+
+        $partnerProfile->update(['is_available' => $validated['is_available']]);
+        $partnerProfile->refresh();
+
+        $status = $partnerProfile->is_available ? 'Aktif' : 'Tidak Aktif';
+
+        return response()->json([
+            'message' => "Status ketersediaan mitra berhasil diubah menjadi {$status}.",
+            'data' => [
+                'is_available' => $partnerProfile->is_available,
+            ],
+        ]);
+    }
+
     private function storePartnerDocument(int $userId, UploadedFile $file, string $documentType): string
     {
         $extension = strtolower($file->getClientOriginalExtension() ?: 'jpg');

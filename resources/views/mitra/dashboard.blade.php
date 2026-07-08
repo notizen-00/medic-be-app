@@ -84,6 +84,44 @@
         .profile-box { padding: 12px; border: 1px solid #dfe7f1; border-radius: 8px; background: #f8fafc; }
         .profile-box b { display: block; margin-bottom: 4px; font-size: 14px; }
 
+        .availability-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #e5ebf3;
+        }
+        .availability-label { font-size: 12px; font-weight: 750; color: #475569; }
+        .availability-status { font-size: 12px; font-weight: 800; }
+        .availability-status.is-active { color: #0f766e; }
+        .availability-status.is-inactive { color: #b91c1c; }
+
+        /* Toggle switch */
+        .toggle-switch { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
+        .toggle-track {
+            position: absolute; inset: 0;
+            background: #cbd5e1;
+            border-radius: 999px;
+            cursor: pointer;
+            transition: background .2s;
+        }
+        .toggle-track::after {
+            content: '';
+            position: absolute;
+            top: 3px; left: 3px;
+            width: 18px; height: 18px;
+            background: #fff;
+            border-radius: 50%;
+            box-shadow: 0 1px 3px rgba(0,0,0,.25);
+            transition: transform .2s;
+        }
+        .toggle-switch input:checked + .toggle-track { background: #0f766e; }
+        .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+        .toggle-switch input:disabled + .toggle-track { opacity: .5; cursor: not-allowed; }
+
         .nav { display: grid; align-content: start; gap: 6px; }
         .nav-button {
             display: grid;
@@ -143,10 +181,15 @@
         .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; }
 
         .content { padding: 18px 20px 24px; }
-        .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
         .stat { padding: 14px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
         .stat span { color: #64748b; font-size: 12px; font-weight: 750; }
         .stat b { display: block; margin-top: 6px; font-size: 24px; }
+        .stat.stat-availability { display: flex; flex-direction: column; justify-content: space-between; }
+        .stat.stat-availability .stat-toggle-row { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+        .stat-availability-value { font-size: 14px; font-weight: 800; }
+        .stat-availability-value.is-active { color: #0f766e; }
+        .stat-availability-value.is-inactive { color: #b91c1c; }
 
         .view { display: none; }
         .view.active { display: block; }
@@ -293,6 +336,16 @@
         <div class="profile-box">
             <b id="profile-name">Belum login</b>
             <div id="profile-meta" class="muted">-</div>
+            <div class="availability-row">
+                <div>
+                    <div class="availability-label">Status Ketersediaan</div>
+                    <div id="availability-status-text" class="availability-status is-inactive">Tidak Aktif</div>
+                </div>
+                <label class="toggle-switch" aria-label="Toggle ketersediaan">
+                    <input type="checkbox" id="availability-toggle" disabled>
+                    <span class="toggle-track"></span>
+                </label>
+            </div>
         </div>
         <nav class="nav" aria-label="Menu dashboard">
             <button type="button" class="nav-button active" data-view="consultations"><span class="nav-icon">K</span><span>Konsultasi</span><span id="nav-consultation-count" class="badge">0</span></button>
@@ -320,6 +373,16 @@
                 <div class="stat"><span>Order Aktif</span><b id="stat-active-orders">0</b></div>
                 <div class="stat"><span>Notif Belum Dibaca</span><b id="stat-unread-notifications">0</b></div>
                 <div class="stat"><span>Status Socket</span><b id="stat-socket">Idle</b></div>
+                <div class="stat stat-availability">
+                    <span>Ketersediaan</span>
+                    <div class="stat-toggle-row">
+                        <span id="stat-availability-value" class="stat-availability-value is-inactive">Tidak Aktif</span>
+                        <label class="toggle-switch" aria-label="Toggle ketersediaan">
+                            <input type="checkbox" id="stat-availability-toggle" disabled>
+                            <span class="toggle-track"></span>
+                        </label>
+                    </div>
+                </div>
             </div>
 
             <section id="view-consultations" class="view active">
@@ -436,6 +499,8 @@
     const eventLog = $('#event-log');
     const navButtons = [...document.querySelectorAll('.nav-button')];
     const views = { consultations: $('#view-consultations'), orders: $('#view-orders'), notifications: $('#view-notifications') };
+    const availabilityToggle = $('#availability-toggle');
+    const statAvailabilityToggle = $('#stat-availability-toggle');
 
     let token = null;
     let user = null;
@@ -451,6 +516,7 @@
     let unreadCount = 0;
     let renderedMessageIds = new Set();
     let pendingMatchedBooking = null;
+    let isAvailable = false;
 
     function log(message, payload = null, target = loginLog) {
         const detail = payload ? `\n${JSON.stringify(payload, null, 2)}` : '';
@@ -637,6 +703,62 @@
             log('Accept order failed.', error, eventLog);
             $('#order-alert-accept-button').disabled = false;
             $('#order-alert-dismiss-button').disabled = false;
+        }
+    }
+
+    function setAvailabilityUI(value) {
+        isAvailable = Boolean(value);
+        const label = isAvailable ? 'Aktif' : 'Tidak Aktif';
+        const cls = isAvailable ? 'is-active' : 'is-inactive';
+
+        availabilityToggle.checked = isAvailable;
+        statAvailabilityToggle.checked = isAvailable;
+
+        const statusText = $('#availability-status-text');
+        statusText.textContent = label;
+        statusText.className = `availability-status ${cls}`;
+
+        const statValue = $('#stat-availability-value');
+        statValue.textContent = label;
+        statValue.className = `stat-availability-value ${cls}`;
+    }
+
+    async function loadProfile() {
+        try {
+            const payload = await apiFetch('/api/mitra/profile');
+            const profile = payload.data?.partner_profile;
+            if (profile !== undefined && profile !== null) {
+                setAvailabilityUI(profile.is_available);
+            }
+            availabilityToggle.disabled = false;
+            statAvailabilityToggle.disabled = false;
+        } catch (error) {
+            log('Load profile failed.', error, eventLog);
+        }
+    }
+
+    async function toggleAvailability(newValue) {
+        availabilityToggle.disabled = true;
+        statAvailabilityToggle.disabled = true;
+        const prev = isAvailable;
+
+        // Optimistic update
+        setAvailabilityUI(newValue);
+
+        try {
+            const payload = await apiFetch('/api/mitra/profile/availability', {
+                method: 'PATCH',
+                body: JSON.stringify({ is_available: newValue }),
+            });
+            setAvailabilityUI(payload.data.is_available);
+            log(`Availability diubah: ${payload.message}`, null, eventLog);
+        } catch (error) {
+            // Rollback jika gagal
+            setAvailabilityUI(prev);
+            log('Toggle availability gagal.', error, eventLog);
+        } finally {
+            availabilityToggle.disabled = false;
+            statAvailabilityToggle.disabled = false;
         }
     }
 
@@ -962,7 +1084,7 @@
             loginCard.style.display = 'none';
             app.classList.add('active');
             bootPusher();
-            await loadAll();
+            await Promise.all([loadAll(), loadProfile()]);
         } catch (error) {
             log('Login failed.', error);
         } finally {
@@ -979,6 +1101,9 @@
     $('#logout-button').addEventListener('click', logout);
     $('#order-alert-accept-button').addEventListener('click', acceptPendingMatchedBooking);
     $('#order-alert-dismiss-button').addEventListener('click', hideOrderAlert);
+
+    availabilityToggle.addEventListener('change', () => toggleAvailability(availabilityToggle.checked));
+    statAvailabilityToggle.addEventListener('change', () => toggleAvailability(statAvailabilityToggle.checked));
 
     $('#consultation-status-filter').addEventListener('change', loadConsultations);
     $('#consultation-search').addEventListener('input', () => { window.clearTimeout($('#consultation-search')._timer); $('#consultation-search')._timer = window.setTimeout(loadConsultations, 350); });

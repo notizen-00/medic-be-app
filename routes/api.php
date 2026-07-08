@@ -203,6 +203,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::prefix('profile')->controller(MitraProfileController::class)->group(function () {
             Route::get('/', 'show');
             Route::patch('/', 'update');
+            Route::patch('/availability', 'toggleAvailability');
         });
 
         Route::prefix('service-applications')->controller(PartnerServiceController::class)->group(function () {
