@@ -530,6 +530,56 @@ class ServiceBookingController extends Controller
         ]);
     }
 
+    public function tracking(ServiceBooking $serviceBooking)
+    {
+        if ($serviceBooking->patient_user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses ke tracking booking ini',
+            ], 403);
+        }
+
+        $serviceBooking->load(['assignedPartner.partnerProfile', 'patientMember', 'address']);
+        $serviceBooking->useServiceAddressRelation();
+
+        $address = $serviceBooking->serviceAddress();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'service_booking_id' => $serviceBooking->id,
+                'booking_code' => $serviceBooking->booking_code,
+                'status' => $serviceBooking->status,
+                'assigned_partner_user_id' => $serviceBooking->assigned_partner_user_id,
+                'partner' => $serviceBooking->assignedPartner ? [
+                    'id' => $serviceBooking->assignedPartner->id,
+                    'name' => $serviceBooking->assignedPartner->name,
+                    'phone' => $serviceBooking->assignedPartner->phone,
+                    'partner_profile' => $serviceBooking->assignedPartner->partnerProfile,
+                ] : null,
+                'partner_location' => [
+                    'latitude' => $serviceBooking->partner_current_latitude,
+                    'longitude' => $serviceBooking->partner_current_longitude,
+                    'accuracy_meters' => $serviceBooking->partner_location_accuracy_meters,
+                    'heading' => $serviceBooking->partner_location_heading,
+                    'speed_mps' => $serviceBooking->partner_location_speed_mps,
+                    'updated_at' => $serviceBooking->partner_location_updated_at?->toISOString(),
+                ],
+                'destination' => $address ? [
+                    'id' => $address->id,
+                    'label' => $address->label,
+                    'recipient_name' => $address->recipient_name,
+                    'recipient_phone' => $address->recipient_phone,
+                    'address' => $address->address,
+                    'latitude' => $address->latitude,
+                    'longitude' => $address->longitude,
+                ] : null,
+                'channel' => 'private-service-booking.'.$serviceBooking->id.'.tracking',
+                'event' => 'service-booking.location.updated',
+            ],
+        ]);
+    }
+
     private function resolveBookingSchedule(array $validated): array
     {
         $bookingType = $validated['booking_type'] ?? 'scheduled';

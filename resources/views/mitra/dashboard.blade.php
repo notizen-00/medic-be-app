@@ -181,7 +181,7 @@
         .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; }
 
         .content { padding: 18px 20px 24px; }
-        .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+        .stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
         .stat { padding: 14px; border: 1px solid #dfe7f1; border-radius: 8px; background: #fff; }
         .stat span { color: #64748b; font-size: 12px; font-weight: 750; }
         .stat b { display: block; margin-top: 6px; font-size: 24px; }
@@ -253,6 +253,14 @@
         .notifications-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 14px; }
         .notification-item { display: grid; gap: 6px; padding: 12px; border-bottom: 1px solid #e5ebf3; }
         .notification-item.unread { background: #f0fdfa; }
+        .balance-grid { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 14px; }
+        .balance-summary { display: grid; gap: 10px; padding: 14px; }
+        .balance-amount { font-size: 28px; font-weight: 900; color: #0f766e; }
+        .transaction-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .transaction-table th, .transaction-table td { padding: 10px; border-bottom: 1px solid #e5ebf3; text-align: left; vertical-align: top; }
+        .transaction-table th { color: #475569; font-size: 12px; font-weight: 800; background: #f8fafc; }
+        .amount-in { color: #0f766e; font-weight: 850; }
+        .amount-out { color: #b91c1c; font-weight: 850; }
         .empty { padding: 18px; color: #64748b; font-size: 13px; }
         .log { max-height: 120px; overflow: auto; margin-top: 14px; padding: 10px; border-radius: 8px; background: #0f172a; color: #dbeafe; font-size: 12px; white-space: pre-wrap; }
 
@@ -302,7 +310,7 @@
             .app.active { grid-template-columns: 1fr; }
             .sidebar { min-height: auto; border-right: 0; border-bottom: 1px solid #dfe7f1; }
             .nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-            .workspace, .notifications-grid { grid-template-columns: 1fr; }
+            .workspace, .notifications-grid, .balance-grid { grid-template-columns: 1fr; }
             .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
         }
 
@@ -350,6 +358,7 @@
         <nav class="nav" aria-label="Menu dashboard">
             <button type="button" class="nav-button active" data-view="consultations"><span class="nav-icon">K</span><span>Konsultasi</span><span id="nav-consultation-count" class="badge">0</span></button>
             <button type="button" class="nav-button" data-view="orders"><span class="nav-icon">O</span><span>Order</span><span id="nav-order-count" class="badge">0</span></button>
+            <button type="button" class="nav-button" data-view="balance"><span class="nav-icon">S</span><span>Saldo</span><span id="nav-balance-amount" class="badge">Rp0</span></button>
             <button type="button" class="nav-button" data-view="notifications"><span class="nav-icon">N</span><span>Notifikasi</span><span id="nav-notification-count" class="badge">0</span></button>
         </nav>
         <button id="logout-button" type="button" class="secondary-button">Logout</button>
@@ -371,6 +380,7 @@
             <div class="stats">
                 <div class="stat"><span>Konsultasi Aktif</span><b id="stat-active-consultations">0</b></div>
                 <div class="stat"><span>Order Aktif</span><b id="stat-active-orders">0</b></div>
+                <div class="stat"><span>Saldo Mitra</span><b id="stat-balance">Rp0</b></div>
                 <div class="stat"><span>Notif Belum Dibaca</span><b id="stat-unread-notifications">0</b></div>
                 <div class="stat"><span>Status Socket</span><b id="stat-socket">Idle</b></div>
                 <div class="stat stat-availability">
@@ -432,6 +442,49 @@
                             <span id="order-badge" class="badge">-</span>
                         </div>
                         <div id="order-detail" class="detail-body"><div class="empty">Pilih salah satu order dari list.</div></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-balance" class="view">
+                <div class="balance-grid">
+                    <div class="panel">
+                        <div class="panel-head"><h2 class="panel-title">Saldo Mitra</h2><button id="refresh-balance-button" type="button" class="ghost-button">Refresh</button></div>
+                        <div class="balance-summary">
+                            <div>
+                                <span class="muted">Saldo tersedia</span>
+                                <div id="balance-current" class="balance-amount">Rp0</div>
+                            </div>
+                            <div class="info"><span>Saldo ditahan</span><b id="balance-reserved">Rp0</b></div>
+                            <div class="info"><span>Total topup</span><b id="balance-total-topup">Rp0</b></div>
+                            <div class="info"><span>Total refund</span><b id="balance-total-refund">Rp0</b></div>
+                            <div class="info"><span>Total keluar</span><b id="balance-total-deduction">Rp0</b></div>
+                            <div class="info"><span>Status</span><b id="balance-status">-</b></div>
+                        </div>
+                    </div>
+                    <div class="panel">
+                        <div class="panel-head">
+                            <h2 class="panel-title">History Transaksi</h2>
+                            <div class="topbar-actions">
+                                <select id="balance-type-filter" aria-label="Filter tipe transaksi">
+                                    <option value="">Semua tipe</option>
+                                    <option value="topup">Topup</option>
+                                    <option value="refund">Refund</option>
+                                    <option value="deduction">Deduction</option>
+                                    <option value="adjustment">Adjustment</option>
+                                    <option value="transfer">Transfer</option>
+                                    <option value="payment">Payment</option>
+                                </select>
+                                <select id="balance-status-filter" aria-label="Filter status transaksi">
+                                    <option value="">Semua status</option>
+                                    <option value="pending">Pending</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="failed">Failed</option>
+                                    <option value="cancelled">Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="balance-history"><div class="empty">Belum ada transaksi.</div></div>
                     </div>
                 </div>
             </section>
@@ -498,7 +551,7 @@
     const loginLog = $('#login-log');
     const eventLog = $('#event-log');
     const navButtons = [...document.querySelectorAll('.nav-button')];
-    const views = { consultations: $('#view-consultations'), orders: $('#view-orders'), notifications: $('#view-notifications') };
+    const views = { consultations: $('#view-consultations'), orders: $('#view-orders'), balance: $('#view-balance'), notifications: $('#view-notifications') };
     const availabilityToggle = $('#availability-toggle');
     const statAvailabilityToggle = $('#stat-availability-toggle');
 
@@ -512,6 +565,8 @@
     let bookingChannel = null;
     let consultations = [];
     let bookings = [];
+    let balanceSummary = null;
+    let balanceTransactions = [];
     let notifications = [];
     let unreadCount = 0;
     let renderedMessageIds = new Set();
@@ -564,6 +619,7 @@
         const titles = {
             consultations: ['Konsultasi', 'Kelola konsultasi dan chat pasien.'],
             orders: ['Order', 'Kelola order layanan homecare dan tindakan.'],
+            balance: ['Saldo', 'Pantau saldo mitra dan history transaksi.'],
             notifications: ['Notifikasi', 'Pantau notifikasi realtime dari sistem.'],
         };
         $('#page-title').textContent = titles[view][0];
@@ -575,9 +631,11 @@
         const activeOrders = bookings.filter((item) => !['completed', 'cancelled'].includes(item.status)).length;
         $('#nav-consultation-count').textContent = String(activeConsultations);
         $('#nav-order-count').textContent = String(activeOrders);
+        $('#nav-balance-amount').textContent = money(balanceSummary?.available_balance ?? 0);
         $('#nav-notification-count').textContent = String(unreadCount);
         $('#stat-active-consultations').textContent = String(activeConsultations);
         $('#stat-active-orders').textContent = String(activeOrders);
+        $('#stat-balance').textContent = money(balanceSummary?.available_balance ?? 0);
         $('#stat-unread-notifications').textContent = String(unreadCount);
     }
 
@@ -763,7 +821,7 @@
     }
 
     async function loadAll() {
-        await Promise.allSettled([loadConsultations(), loadBookings(), loadNotifications()]);
+        await Promise.allSettled([loadConsultations(), loadBookings(), loadBalance(), loadNotifications()]);
         updateStats();
     }
 
@@ -924,6 +982,83 @@
         }
     }
 
+    async function loadBalance() {
+        $('#balance-history').innerHTML = '<div class="empty">Memuat transaksi...</div>';
+        const params = new URLSearchParams({ per_page: '30' });
+        if ($('#balance-type-filter').value) params.set('type', $('#balance-type-filter').value);
+        if ($('#balance-status-filter').value) params.set('status', $('#balance-status-filter').value);
+
+        try {
+            const [summaryPayload, historyPayload] = await Promise.all([
+                apiFetch('/api/mitra/balance'),
+                apiFetch(`/api/mitra/balance/history?${params.toString()}`),
+            ]);
+
+            balanceSummary = summaryPayload.data.summary || summaryPayload.data;
+            balanceTransactions = historyPayload.data.data || [];
+            renderBalance();
+            updateStats();
+        } catch (error) {
+            $('#balance-history').innerHTML = '<div class="empty">Gagal memuat transaksi saldo.</div>';
+            log('Load balance failed.', error, eventLog);
+        }
+    }
+
+    function renderBalance() {
+        const summary = balanceSummary || {};
+        $('#balance-current').textContent = money(summary.available_balance ?? summary.current_balance ?? 0);
+        $('#balance-reserved').textContent = money(summary.reserved_balance ?? 0);
+        $('#balance-total-topup').textContent = money(summary.total_topup ?? 0);
+        $('#balance-total-refund').textContent = money(summary.total_refund ?? 0);
+        $('#balance-total-deduction').textContent = money(summary.total_deduction ?? 0);
+        $('#balance-status').textContent = summary.status || '-';
+
+        if (!balanceTransactions.length) {
+            $('#balance-history').innerHTML = '<div class="empty">Belum ada transaksi saldo.</div>';
+            return;
+        }
+
+        $('#balance-history').innerHTML = `
+            <table class="transaction-table">
+                <thead>
+                    <tr>
+                        <th>Waktu</th>
+                        <th>Tipe</th>
+                        <th>Deskripsi</th>
+                        <th>Nominal</th>
+                        <th>Saldo Akhir</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${balanceTransactions.map(transactionRow).join('')}
+                </tbody>
+            </table>
+        `;
+    }
+
+    function transactionRow(transaction) {
+        const amount = Number(transaction.amount || 0);
+        const amountClass = amount >= 0 ? 'amount-in' : 'amount-out';
+        const reference = transaction.reference_type && transaction.reference_id
+            ? `<div class="muted">${escapeHtml(transaction.reference_type)} #${escapeHtml(transaction.reference_id)}</div>`
+            : '';
+
+        return `
+            <tr>
+                <td>${escapeHtml(formatDate(transaction.created_at))}</td>
+                <td><span class="badge">${escapeHtml(transaction.type || '-')}</span></td>
+                <td>
+                    <b>${escapeHtml(transaction.description || transaction.reference_number || '-')}</b>
+                    ${reference}
+                </td>
+                <td class="${amountClass}">${escapeHtml(money(amount))}</td>
+                <td>${escapeHtml(money(transaction.balance_after))}</td>
+                <td><span class="badge ${transaction.status === 'completed' ? 'green' : transaction.status === 'failed' ? 'red' : ''}">${escapeHtml(transaction.status || '-')}</span></td>
+            </tr>
+        `;
+    }
+
     function renderBookings() {
         if (!bookings.length) {
             $('#order-list').innerHTML = '<div class="empty">Belum ada order layanan.</div>';
@@ -1058,7 +1193,7 @@
 
         if (pusher) pusher.disconnect();
         token = null; user = null; pusher = null; notificationChannel = null; bookingChannel = null; activeChatChannel = null;
-        activeConsultation = null; activeBooking = null; consultations = []; bookings = []; notifications = []; unreadCount = 0;
+        activeConsultation = null; activeBooking = null; consultations = []; bookings = []; balanceSummary = null; balanceTransactions = []; notifications = []; unreadCount = 0;
         hideOrderAlert();
         eventLog.textContent = '';
         loginCard.style.display = 'block';
@@ -1096,6 +1231,7 @@
     $('#refresh-all-button').addEventListener('click', loadAll);
     $('#refresh-consultations-button').addEventListener('click', loadConsultations);
     $('#refresh-orders-button').addEventListener('click', loadBookings);
+    $('#refresh-balance-button').addEventListener('click', loadBalance);
     $('#refresh-notifications-button').addEventListener('click', loadNotifications);
     $('#mark-all-read-button').addEventListener('click', markAllNotificationsRead);
     $('#logout-button').addEventListener('click', logout);
@@ -1109,6 +1245,8 @@
     $('#consultation-search').addEventListener('input', () => { window.clearTimeout($('#consultation-search')._timer); $('#consultation-search')._timer = window.setTimeout(loadConsultations, 350); });
     $('#order-status-filter').addEventListener('change', loadBookings);
     $('#order-search').addEventListener('input', () => { window.clearTimeout($('#order-search')._timer); $('#order-search')._timer = window.setTimeout(loadBookings, 350); });
+    $('#balance-type-filter').addEventListener('change', loadBalance);
+    $('#balance-status-filter').addEventListener('change', loadBalance);
     $('#message-form').addEventListener('submit', (event) => { event.preventDefault(); sendMessage(); });
 </script>
 </body>

@@ -671,6 +671,50 @@ Body opsional:
 
 Endpoint ini hanya dapat dipakai pasien pemilik booking. Syaratnya booking sudah ditugaskan ke mitra, status booking `confirmed`, `scheduled`, `on_the_way`, atau `completed`, dan `payment.status = paid`. Saat berhasil, backend menandai booking `completed`, membuat histori konfirmasi pasien, dan mengirim saldo layanan ke wallet mitra. Endpoint aman dipanggil ulang karena payout tidak akan dibuat dua kali jika `partner_balance_transaction_id` sudah ada.
 
+Tracking lokasi mitra:
+
+```http
+GET /api/patient/service-bookings/{serviceBooking}/tracking
+```
+
+Endpoint ini mengambil snapshot lokasi terakhir mitra untuk booking milik pasien login. Pakai endpoint ini saat membuka layar map, lalu subscribe ke channel WebSocket tracking untuk update berikutnya.
+
+Contoh response tracking:
+
+```json
+{
+  "success": true,
+  "data": {
+    "service_booking_id": 25,
+    "booking_code": "SVC-ABCDEFGH",
+    "status": "on_the_way",
+    "assigned_partner_user_id": 12,
+    "partner": {
+      "id": 12,
+      "name": "Nurse Andi",
+      "phone": "081234567890"
+    },
+    "partner_location": {
+      "latitude": "-8.1723570",
+      "longitude": "113.7003020",
+      "accuracy_meters": "12.50",
+      "heading": "90.00",
+      "speed_mps": "4.20",
+      "updated_at": "2026-07-08T03:00:00.000000Z"
+    },
+    "destination": {
+      "id": 10,
+      "label": "Rumah",
+      "address": "Jl. Jawa No. 10",
+      "latitude": "-8.1700000",
+      "longitude": "113.7000000"
+    },
+    "channel": "private-service-booking.25.tracking",
+    "event": "service-booking.location.updated"
+  }
+}
+```
+
 Status booking yang muncul di response:
 
 ```text
@@ -1260,6 +1304,53 @@ private-user.7.notifications
 
 Setelah menerima event realtime, aplikasi tetap bisa memanggil `GET /api/shared/notifications/unread-count` untuk sinkronisasi badge.
 
+### Service Booking Tracking
+
+Laravel channel:
+
+```text
+service-booking.{serviceBookingId}.tracking
+```
+
+Pusher channel name:
+
+```text
+private-service-booking.{serviceBookingId}.tracking
+```
+
+Event:
+
+```text
+service-booking.location.updated
+```
+
+Payload:
+
+```json
+{
+  "service_booking_id": 25,
+  "booking_code": "SVC-ABCDEFGH",
+  "status": "on_the_way",
+  "patient_user_id": 7,
+  "assigned_partner_user_id": 12,
+  "partner": {
+    "id": 12,
+    "name": "Nurse Andi",
+    "phone": "081234567890"
+  },
+  "location": {
+    "latitude": "-8.1723570",
+    "longitude": "113.7003020",
+    "accuracy_meters": "12.50",
+    "heading": "90.00",
+    "speed_mps": "4.20",
+    "updated_at": "2026-07-08T03:00:00.000000Z"
+  }
+}
+```
+
+Pasien hanya bisa subscribe ke channel tracking booking miliknya. Gunakan payload ini untuk menggeser marker mitra di map.
+
 ### Booking Matchmaking Mitra
 
 Channel ini untuk aplikasi mitra, bukan aplikasi pasien:
@@ -1408,6 +1499,12 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `accepted_at` | datetime/null | waktu diterima mitra |
 | `started_at` | datetime/null | waktu mulai/perjalanan |
 | `completed_at` | datetime/null | waktu selesai |
+| `partner_current_latitude` | decimal string/null | latitude lokasi realtime mitra terakhir |
+| `partner_current_longitude` | decimal string/null | longitude lokasi realtime mitra terakhir |
+| `partner_location_accuracy_meters` | decimal string/null | akurasi GPS dalam meter |
+| `partner_location_heading` | decimal string/null | arah gerak derajat 0-360 |
+| `partner_location_speed_mps` | decimal string/null | kecepatan meter/detik |
+| `partner_location_updated_at` | datetime/null | waktu lokasi terakhir diterima backend |
 | `total_amount` | decimal string | total akhir |
 | `notes` | string/null | catatan |
 | `promo_code` | string/null | kode promo |
@@ -1566,12 +1663,13 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 9. Buat booking via `POST /api/patient/service-bookings`.
 10. Tampilkan status `Menunggu konfirmasi mitra`; response awal punya `assigned_partner_user_id` dan `matchmaking_status=waiting_partner_acceptance`.
 11. Bayar booking via `PATCH /api/patient/service-bookings/{id}/pay`.
-12. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
-13. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
-14. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
-15. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
-16. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
-17. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
+12. Saat status `on_the_way`, buka map dengan snapshot `GET /api/patient/service-bookings/{id}/tracking`, lalu subscribe ke `private-service-booking.{id}.tracking`.
+13. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
+14. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
+15. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+16. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
+17. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+18. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 

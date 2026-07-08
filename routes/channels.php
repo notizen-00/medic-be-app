@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Consultation;
+use App\Models\ServiceBooking;
 use App\Models\User;
 use Illuminate\Support\Facades\Broadcast;
 
@@ -76,5 +77,26 @@ Broadcast::channel('partner.{partnerId}.service-bookings', function (User $user,
         'id' => $user->id,
         'name' => $user->name,
         'role' => $user->role,
+    ];
+});
+
+// Channel private untuk tracking lokasi mitra pada booking layanan.
+// Hanya pasien pemilik booking, mitra yang ditugaskan, atau admin yang boleh subscribe.
+Broadcast::channel('service-booking.{serviceBookingId}.tracking', function (User $user, int $serviceBookingId) {
+    $booking = ServiceBooking::find($serviceBookingId);
+
+    if (! $booking) {
+        return false;
+    }
+
+    if (! in_array($user->id, [$booking->patient_user_id, $booking->assigned_partner_user_id], true) && $user->role !== 'admin') {
+        return false;
+    }
+
+    return [
+        'id' => $user->id,
+        'name' => $user->name,
+        'role' => $user->role,
+        'service_booking_id' => $booking->id,
     ];
 });

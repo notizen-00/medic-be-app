@@ -44,6 +44,8 @@ Pemisahan akses service booking:
 - Endpoint pasien berada di `App\Http\Controllers\Api\Patient\ServiceBookingController` dan dipakai untuk katalog layanan, cek promo, membuat booking, melihat booking pasien, dan pembayaran.
 - Pasien dapat mengonfirmasi layanan selesai lewat `PATCH /api/patient/service-bookings/{serviceBooking}/confirm-completion`; setelah pembayaran lunas, endpoint ini menandai booking `completed` dan mengirim saldo layanan ke wallet mitra secara idempotent.
 - Endpoint mitra berada di `App\Http\Controllers\Api\Mitra\ServiceBookingController` dan dipakai untuk melihat pesanan milik mitra, menerima pesanan, berangkat, menambah catatan penanganan, menyelesaikan pesanan, dan update status operasional.
+- Saat mitra sudah berangkat (`on_the_way`), aplikasi mitra dapat mengirim lokasi berkala ke `PATCH /api/mitra/service-bookings/{serviceBooking}/location`. Backend menyimpan lokasi terakhir dan broadcast event `service-booking.location.updated` ke channel private `private-service-booking.{serviceBookingId}.tracking` untuk pasien.
+- Dashboard mitra menampilkan saldo dan history transaksi melalui `GET /api/mitra/balance` dan `GET /api/mitra/balance/history`.
 - Route `/api/patient/*` memakai middleware `role:pasien`, sedangkan `/api/mitra/*` memakai middleware `role:mitra`, sehingga token pasien tidak dapat mengakses endpoint mitra dan token mitra tidak dapat mengakses endpoint pasien.
 - Endpoint `PATCH /api/patient/service-bookings/{serviceBooking}/status` sudah tidak digunakan; perubahan status layanan dilakukan dari endpoint mitra sesuai alur pesanan.
 

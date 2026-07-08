@@ -43,6 +43,7 @@ use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
 use App\Http\Controllers\Api\Mitra\ConsultationsController as MitraConsultationsController;
 use App\Http\Controllers\Api\Mitra\ServiceBookingController as MitraServiceBookingController;
+use App\Http\Controllers\Api\Mitra\BalanceController as MitraBalanceController;
 use App\Http\Controllers\Api\Shared\PartnerDocumentController;
 use App\Http\Controllers\Api\Shared\NotificationController;
 use Illuminate\Http\Request;
@@ -154,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::get('/', 'indexBookings');
                 Route::patch('/{serviceBooking}/pay', 'pay');
                 Route::patch('/{serviceBooking}/confirm-completion', 'confirmCompletion');
+                Route::get('/{serviceBooking}/tracking', 'tracking');
                 Route::get('/{serviceBooking}', 'showBooking');
             });
         });
@@ -216,9 +218,15 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/{serviceBooking}', 'show');
             Route::patch('/{serviceBooking}/accept', 'accept');
             Route::patch('/{serviceBooking}/start-journey', 'startJourney');
+            Route::patch('/{serviceBooking}/location', 'updateLocation');
             Route::post('/{serviceBooking}/histories', 'addTreatmentHistory');
             Route::patch('/{serviceBooking}/complete', 'complete');
             Route::patch('/{serviceBooking}/status', 'updateStatus');
+        });
+
+        Route::prefix('balance')->group(function () {
+            Route::get('/', [MitraBalanceController::class, 'show']);
+            Route::get('/history', [MitraBalanceController::class, 'history']);
         });
 
         Route::prefix('consultations')->group(function () {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\Mitra;
 
+use App\Events\ServiceBookingPartnerLocationUpdated;
 use App\Http\Controllers\Controller;
 use App\Models\PartnerService;
 use App\Models\Service;
@@ -216,6 +217,58 @@ class ServiceBookingController extends Controller
             'message' => 'Catatan penanganan berhasil ditambahkan.',
             'data' => $history,
         ], 201);
+    }
+
+    public function updateLocation(Request $request, ServiceBooking $serviceBooking): JsonResponse
+    {
+        $partner = $this->resolveAuthenticatedMedicalPartner($request);
+        $this->ensureAssignedPartner($partner, $serviceBooking);
+
+        if ($serviceBooking->status !== 'on_the_way') {
+            throw ValidationException::withMessages([
+                'status' => ['Lokasi realtime hanya dapat dikirim saat mitra sedang menuju lokasi pasien.'],
+            ]);
+        }
+
+        $validated = $request->validate([
+            'latitude' => ['required', 'numeric', 'between:-90,90'],
+            'longitude' => ['required', 'numeric', 'between:-180,180'],
+            'accuracy_meters' => ['nullable', 'numeric', 'min:0', 'max:10000'],
+            'heading' => ['nullable', 'numeric', 'min:0', 'max:360'],
+            'speed_mps' => ['nullable', 'numeric', 'min:0', 'max:200'],
+            'recorded_at' => ['nullable', 'date'],
+        ]);
+
+        $serviceBooking->update([
+            'partner_current_latitude' => $validated['latitude'],
+            'partner_current_longitude' => $validated['longitude'],
+            'partner_location_accuracy_meters' => $validated['accuracy_meters'] ?? null,
+            'partner_location_heading' => $validated['heading'] ?? null,
+            'partner_location_speed_mps' => $validated['speed_mps'] ?? null,
+            'partner_location_updated_at' => isset($validated['recorded_at'])
+                ? Carbon::parse($validated['recorded_at'])
+                : now(),
+        ]);
+
+        $serviceBooking->refresh();
+
+        ServiceBookingPartnerLocationUpdated::dispatch($serviceBooking);
+
+        return response()->json([
+            'message' => 'Lokasi realtime mitra berhasil diperbarui.',
+            'data' => [
+                'service_booking_id' => $serviceBooking->id,
+                'status' => $serviceBooking->status,
+                'location' => [
+                    'latitude' => $serviceBooking->partner_current_latitude,
+                    'longitude' => $serviceBooking->partner_current_longitude,
+                    'accuracy_meters' => $serviceBooking->partner_location_accuracy_meters,
+                    'heading' => $serviceBooking->partner_location_heading,
+                    'speed_mps' => $serviceBooking->partner_location_speed_mps,
+                    'updated_at' => $serviceBooking->partner_location_updated_at?->toISOString(),
+                ],
+            ],
+        ]);
     }
 
     public function complete(Request $request, ServiceBooking $serviceBooking): JsonResponse
