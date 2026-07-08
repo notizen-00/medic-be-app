@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api\Patient;
 
 use App\Http\Controllers\Controller;
+use App\Events\ServiceBookingMatched;
 use App\Models\PatientAddress;
 use App\Models\PatientMember;
 use App\Models\Payment;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Services\AppNotificationService;
 use App\Services\MidtransService;
 use App\Services\ServicePartnerSelectionService;
 use Carbon\Carbon;
@@ -22,7 +24,8 @@ use Throwable;
 class ServiceBookingController extends Controller
 {
     public function __construct(
-        private readonly ServicePartnerSelectionService $servicePartnerSelectionService
+        private readonly ServicePartnerSelectionService $servicePartnerSelectionService,
+        private readonly AppNotificationService $notifications
     ) {
     }
 
@@ -171,6 +174,10 @@ class ServiceBookingController extends Controller
             ]);
         }
 
+        $address = $this->resolveBookingAddress($validated, $patientMember);
+        $selectedPartnerService = $this->servicePartnerSelectionService
+            ->resolveNearestPartnerForBooking($service, $address);
+
         // Get markup setting
         $markupSetting = \App\Models\ServiceMarkupSetting::getActiveSetting($service->id);
         $markupAmount = 0;
@@ -209,13 +216,13 @@ class ServiceBookingController extends Controller
         }
         $finalPrice = $subtotal - $discountAmount;
 
-        $booking = DB::transaction(function () use ($validated, $user, $schedule, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice): ServiceBooking {
+        $booking = DB::transaction(function () use ($validated, $user, $schedule, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice, $selectedPartnerService): ServiceBooking {
             $booking = ServiceBooking::create([
                 'booking_code' => 'SVC-' . strtoupper(Str::random(8)),
                 'service_id' => $validated['service_id'],
                 'patient_user_id' => $user->id,
                 'patient_member_id' => $validated['patient_member_id'] ?? null,
-                'assigned_partner_user_id' => null,
+                'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
                 'patient_address_id' => null,
                 'booking_type' => $schedule['booking_type'],
                 'scheduled_at' => $schedule['scheduled_at'],
@@ -244,12 +251,39 @@ class ServiceBookingController extends Controller
             return $booking;
         });
 
-        $booking->load(['service', 'patientMember', 'address', 'assignedPartner.partnerProfile', 'payment']);
+        $booking->load(['service', 'patient', 'patientMember', 'address', 'assignedPartner.partnerProfile', 'payment']);
         $booking->useServiceAddressRelation();
+
+        $matchmaking = [
+            'partner_service_id' => $selectedPartnerService->id,
+            'partner_user_id' => $selectedPartnerService->partner_user_id,
+            'distance_km' => $selectedPartnerService->distance_km,
+            'match_score' => $selectedPartnerService->match_score,
+            'quality_score' => $selectedPartnerService->quality_score,
+        ];
+
+        ServiceBookingMatched::dispatch($booking, $matchmaking);
+        $this->notifications->send($booking->assigned_partner_user_id, [
+            'type' => 'service_booking.matched',
+            'title' => 'Pesanan layanan baru',
+            'body' => 'Ada pesanan layanan baru yang cocok untuk Anda. Terima pesanan, lalu tunggu pasien menyelesaikan pembayaran.',
+            'action_url' => '/mitra/service-bookings/'.$booking->id,
+            'reference_type' => 'service_booking',
+            'reference_id' => $booking->id,
+            'data' => [
+                'service_booking_id' => $booking->id,
+                'booking_code' => $booking->booking_code,
+                'patient_user_id' => $booking->patient_user_id,
+                'assigned_partner_user_id' => $booking->assigned_partner_user_id,
+                'status' => $booking->status,
+                'payment_status' => $booking->payment?->status,
+                'matchmaking' => $matchmaking,
+            ],
+        ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'Service booking berhasil dibuat. Lanjutkan pembayaran agar sistem mencarikan mitra.',
+            'message' => 'Service booking berhasil dibuat dan dikirim ke mitra. Lanjutkan pembayaran setelah mitra menerima pesanan.',
             'data' => [
                 'booking' => $booking,
                 'pricing' => [
@@ -260,8 +294,8 @@ class ServiceBookingController extends Controller
                     'total_amount' => $finalPrice,
                     'duration_days' => $schedule['duration_days'],
                 ],
-                'matchmaking' => null,
-                'matchmaking_status' => $service->requires_matchmaking ? 'waiting_payment' : 'not_required',
+                'matchmaking' => $matchmaking,
+                'matchmaking_status' => 'waiting_partner_acceptance',
             ],
         ], 201);
     }

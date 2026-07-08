@@ -3,23 +3,18 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Events\ServiceBookingMatched;
 use App\Models\Payment;
 use App\Services\AppNotificationService;
-use App\Services\ServicePartnerSelectionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
-use Throwable;
 
 class MidtransCallbackController extends Controller
 {
     public function __construct(
-        private readonly AppNotificationService $notifications,
-        private readonly ServicePartnerSelectionService $servicePartnerSelectionService
+        private readonly AppNotificationService $notifications
     ) {
     }
 
@@ -101,38 +96,18 @@ class MidtransCallbackController extends Controller
             return;
         }
 
-        if ($paymentStatus === 'paid' && $booking->status === 'pending') {
-            $booking->update([
-                'status' => $booking->scheduled_at ? 'scheduled' : 'pending',
-            ]);
-
-            $matchmaking = null;
-
-            if (! $booking->assigned_partner_user_id) {
-                try {
-                    $matchmaking = $this->servicePartnerSelectionService->matchBookingAfterPayment($booking);
-                    $booking->refresh();
-                    $booking->loadMissing(['service', 'patient', 'assignedPartner.partnerProfile', 'address']);
-                } catch (Throwable $exception) {
-                    Log::warning('Service booking paid but matchmaking failed.', [
-                        'service_booking_id' => $booking->id,
-                        'payment_id' => $payment->id,
-                        'error' => $exception->getMessage(),
-                    ]);
-                }
-            }
-
-            if ($matchmaking && empty($matchmaking['already_assigned'])) {
-                ServiceBookingMatched::dispatch($booking, $matchmaking);
+        if ($paymentStatus === 'paid' && in_array($booking->status, ['pending', 'confirmed', 'scheduled'], true)) {
+            if ($booking->status === 'pending' && $booking->scheduled_at) {
+                $booking->update([
+                    'status' => 'scheduled',
+                ]);
             }
 
             if ($booking->assigned_partner_user_id) {
                 $this->notifications->send($booking->assigned_partner_user_id, [
-                    'type' => $matchmaking ? 'service_booking.matched' : 'service_booking.paid',
-                    'title' => $matchmaking ? 'Pesanan layanan baru' : 'Pembayaran layanan diterima',
-                    'body' => $matchmaking
-                        ? 'Ada pesanan layanan baru yang cocok untuk Anda.'
-                        : 'Pembayaran untuk pesanan '.$booking->booking_code.' sudah diterima.',
+                    'type' => 'service_booking.paid',
+                    'title' => 'Pembayaran layanan diterima',
+                    'body' => 'Pembayaran untuk pesanan '.$booking->booking_code.' sudah diterima. Anda bisa mulai berangkat sesuai jadwal.',
                     'action_url' => '/mitra/service-bookings/'.$booking->id,
                     'reference_type' => 'service_booking',
                     'reference_id' => $booking->id,
@@ -140,7 +115,7 @@ class MidtransCallbackController extends Controller
                         'service_booking_id' => $booking->id,
                         'booking_code' => $booking->booking_code,
                         'status' => $booking->status,
-                        'matchmaking' => $matchmaking,
+                        'payment_status' => 'paid',
                     ],
                 ]);
             }

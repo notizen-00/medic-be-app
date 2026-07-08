@@ -340,7 +340,6 @@ class ServiceBookingController extends Controller
     {
         $partner = $this->resolveAuthenticatedMedicalPartner($request);
         $this->ensurePartnerCanHandleBooking($partner, $serviceBooking);
-        $this->ensureServiceBookingPaymentCompleted($serviceBooking);
 
         if (! in_array($serviceBooking->status, ['pending', 'scheduled'], true)) {
             throw ValidationException::withMessages([
@@ -374,7 +373,7 @@ class ServiceBookingController extends Controller
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.accepted',
             'title' => 'Pesanan layanan diterima',
-            'body' => $partner->name.' menerima pesanan layanan Anda.',
+            'body' => $partner->name.' menerima pesanan layanan Anda. Silakan lanjutkan pembayaran agar mitra dapat berangkat.',
             'action_url' => '/patient/service-bookings/'.$serviceBooking->id,
             'reference_type' => 'service_booking',
             'reference_id' => $serviceBooking->id,

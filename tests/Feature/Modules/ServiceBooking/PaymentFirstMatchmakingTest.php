@@ -7,7 +7,7 @@ use App\Models\Service;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
 
-it('matches a service booking to a partner only after payment is paid', function () {
+it('matches a service booking before payment and lets the partner accept before departure', function () {
     config(['midtrans.server_key' => 'test-server-key']);
 
     $patient = User::factory()->create(['role' => 'pasien']);
@@ -68,10 +68,18 @@ it('matches a service booking to a partner only after payment is paid', function
 
     $bookingResponse
         ->assertCreated()
-        ->assertJsonPath('data.booking.assigned_partner_user_id', null)
-        ->assertJsonPath('data.matchmaking_status', 'waiting_payment');
+        ->assertJsonPath('data.booking.assigned_partner_user_id', $partner->id)
+        ->assertJsonPath('data.matchmaking_status', 'waiting_partner_acceptance');
 
+    $bookingId = $bookingResponse->json('data.booking.id');
     $paymentCode = $bookingResponse->json('data.booking.payment.payment_code');
+
+    Sanctum::actingAs($partner);
+
+    $this->patchJson("/api/mitra/service-bookings/{$bookingId}/accept", [
+        'notes' => 'Mitra menerima pesanan sebelum pasien bayar.',
+    ])->assertOk()
+        ->assertJsonPath('data.status', 'confirmed');
 
     $this->postJson('/api/midtrans/callback', [
         'order_id' => $paymentCode,
@@ -89,9 +97,10 @@ it('matches a service booking to a partner only after payment is paid', function
     ]);
 
     $this->assertDatabaseHas('service_bookings', [
-        'id' => $bookingResponse->json('data.booking.id'),
+        'id' => $bookingId,
         'patient_member_id' => $patientMember->id,
         'patient_address_id' => null,
         'assigned_partner_user_id' => $partner->id,
+        'status' => 'confirmed',
     ]);
 });
