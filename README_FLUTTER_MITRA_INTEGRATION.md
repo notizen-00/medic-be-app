@@ -306,6 +306,7 @@ GET /api/mitra/service-bookings
 GET /api/mitra/service-bookings/{serviceBooking}
 PATCH /api/mitra/service-bookings/{serviceBooking}/accept
 PATCH /api/mitra/service-bookings/{serviceBooking}/start-journey
+PATCH /api/mitra/service-bookings/{serviceBooking}/location
 POST /api/mitra/service-bookings/{serviceBooking}/histories
 PATCH /api/mitra/service-bookings/{serviceBooking}/complete
 PATCH /api/mitra/service-bookings/{serviceBooking}/status
@@ -377,6 +378,51 @@ Status booking berubah menjadi:
 on_the_way
 ```
 
+Setelah status `on_the_way`, app mitra dapat mulai mengirim lokasi realtime berkala.
+
+### Update Lokasi Realtime
+
+```http
+PATCH /api/mitra/service-bookings/{serviceBooking}/location
+```
+
+Body:
+
+```json
+{
+  "latitude": -8.172357,
+  "longitude": 113.700302,
+  "accuracy_meters": 12.5,
+  "heading": 90,
+  "speed_mps": 4.2,
+  "recorded_at": "2026-07-08 10:00:00"
+}
+```
+
+Field:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `latitude` | Ya | numeric | -90 sampai 90 |
+| `longitude` | Ya | numeric | -180 sampai 180 |
+| `accuracy_meters` | Tidak | numeric | akurasi GPS meter, min 0 |
+| `heading` | Tidak | numeric | arah derajat 0-360 |
+| `speed_mps` | Tidak | numeric | meter/detik |
+| `recorded_at` | Tidak | datetime | waktu dari device; default backend `now()` |
+
+Syarat:
+
+- akun login adalah mitra yang ditugaskan ke booking;
+- status booking sudah `on_the_way`.
+
+Saat berhasil, backend menyimpan lokasi terakhir di booking dan broadcast event `service-booking.location.updated` ke channel pasien:
+
+```text
+private-service-booking.{serviceBookingId}.tracking
+```
+
+Rekomendasi Flutter mitra: mulai background/location stream setelah `start-journey`, kirim lokasi tiap 5-10 detik atau saat perpindahan signifikan, hentikan saat status `completed` atau `cancelled`. Tetap minta izin lokasi foreground/background sesuai kebutuhan platform.
+
 ### Tambah Catatan Penanganan
 
 ```http
@@ -447,6 +493,51 @@ Status tersedia:
 ```text
 pending, confirmed, scheduled, on_the_way, completed, cancelled
 ```
+
+## Saldo Mitra
+
+Endpoint saldo mitra dipakai oleh dashboard mitra dan bisa dipakai Flutter untuk halaman wallet. Route `/api/mitra/*` dilindungi middleware role mitra, sehingga token pasien tidak dapat membaca saldo mitra.
+
+```http
+GET /api/mitra/balance
+GET /api/mitra/balance/history
+```
+
+Response `GET /api/mitra/balance`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "balance": {
+      "id": 1,
+      "user_id": 12,
+      "balance": "250000.00",
+      "reserved_balance": "50000.00",
+      "status": "active"
+    },
+    "summary": {
+      "current_balance": 250000,
+      "reserved_balance": 50000,
+      "available_balance": 200000,
+      "total_topup": 250000,
+      "total_refund": 0,
+      "total_deduction": 0,
+      "status": "active"
+    }
+  }
+}
+```
+
+Query `GET /api/mitra/balance/history`:
+
+| Query | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `per_page` | Tidak | integer | default 20, max 100 |
+| `type` | Tidak | string | contoh `topup`, `refund`, `deduction`, `adjustment`, `transfer`, `payment` |
+| `status` | Tidak | string | contoh `pending`, `completed`, `failed`, `cancelled` |
+
+Payout dari service booking masuk ke history saldo setelah pasien mengonfirmasi layanan selesai atau saat endpoint mitra complete berhasil mengkredit saldo. Gunakan `available_balance` untuk nominal yang bisa ditampilkan sebagai saldo tersedia.
 
 ## Konsultasi Mitra
 
@@ -1011,6 +1102,12 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `accepted_at` | datetime/null | waktu diterima |
 | `started_at` | datetime/null | waktu mulai/perjalanan |
 | `completed_at` | datetime/null | waktu selesai |
+| `partner_current_latitude` | decimal string/null | latitude lokasi realtime terakhir |
+| `partner_current_longitude` | decimal string/null | longitude lokasi realtime terakhir |
+| `partner_location_accuracy_meters` | decimal string/null | akurasi GPS meter |
+| `partner_location_heading` | decimal string/null | arah derajat 0-360 |
+| `partner_location_speed_mps` | decimal string/null | kecepatan meter/detik |
+| `partner_location_updated_at` | datetime/null | waktu lokasi terakhir diterima backend |
 | `total_amount` | decimal string | total |
 | `notes` | string/null | catatan |
 | `service` | object/null | layanan |
@@ -1109,8 +1206,9 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 6. Subscribe ke `private-partner.{userId}.service-bookings` untuk booking match realtime.
 7. Subscribe ke `private-user.{userId}.notifications` untuk notifikasi realtime.
 8. Saat event booking masuk, panggil detail booking dan tampilkan tombol aksi sesuai status/payment.
-9. Untuk chat konsultasi, ambil list via `GET /api/mitra/consultations`, subscribe ke `private-consultation.{consultationId}`, lalu kirim pesan via endpoint messages.
-10. Untuk apotik, kelola produk dari endpoint `/api/mitra/apotik/products`.
+9. Saat mulai berangkat, panggil `PATCH /api/mitra/service-bookings/{id}/start-journey`, lalu kirim lokasi berkala ke `PATCH /api/mitra/service-bookings/{id}/location`.
+10. Untuk chat konsultasi, ambil list via `GET /api/mitra/consultations`, subscribe ke `private-consultation.{consultationId}`, lalu kirim pesan via endpoint messages.
+11. Untuk apotik, kelola produk dari endpoint `/api/mitra/apotik/products`.
 
 ## Debug WebSocket
 
