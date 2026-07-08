@@ -299,7 +299,7 @@ bidan   -> bidan_homecare, konsultasi_tindakan
 
 ## Booking Layanan Mitra
 
-Endpoint ini untuk menerima dan memproses booking layanan yang ditugaskan ke mitra. Booking baru tidak langsung muncul ke mitra saat dibuat pasien; backend baru menjalankan matchmaking dan mengirim event realtime setelah payment booking menjadi `paid`.
+Endpoint ini untuk menerima dan memproses booking layanan yang ditugaskan ke mitra. Route `/api/mitra/*` dilindungi middleware role mitra, sehingga token pasien tidak dapat memakai endpoint mitra. Saat pasien membuat booking, backend langsung memilih mitra yang cocok dan mengirim event realtime ke mitra tersebut.
 
 ```http
 GET /api/mitra/service-bookings
@@ -315,16 +315,14 @@ Query `GET /api/mitra/service-bookings`:
 
 | Query | Required | Type | Rule/Catatan |
 | --- | --- | --- | --- |
-| `patient_user_id` | Tidak | integer | filter pasien |
-| `assigned_partner_user_id` | Tidak | integer | untuk app mitra biasanya isi ID user login |
 | `service_id` | Tidak | integer | filter layanan |
 | `status` | Tidak | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
 | `per_page` | Tidak | integer | 1-100 |
 
-Catatan: endpoint list umum belum otomatis memfilter milik user login. Untuk app mitra, kirim:
+List otomatis dibatasi ke:
 
 ```text
-assigned_partner_user_id={currentUser.id}
+assigned_partner_user_id = user login
 ```
 
 ### Accept Booking
@@ -347,13 +345,9 @@ Syarat:
 - booking ditugaskan ke mitra tersebut atau belum punya assigned partner;
 - layanan sesuai profesi mitra;
 - partner service aktif dan terverifikasi;
-- `payment.status = paid`.
+- status booking masih `pending` atau `scheduled`.
 
-Jika pembayaran belum lunas, backend mengembalikan error:
-
-```text
-Pesanan layanan belum dapat diproses karena pembayaran belum lunas.
-```
+Accept bisa dilakukan sebelum pembayaran lunas. Setelah accept, pasien melanjutkan pembayaran. Aksi berikutnya seperti `start-journey`, `histories`, dan `complete` membutuhkan `payment.status = paid`.
 
 ### Start Journey
 
@@ -829,7 +823,8 @@ Setelah menerima event ini, app mitra sebaiknya:
 
 1. tampilkan notifikasi/order baru;
 2. panggil `GET /api/mitra/service-bookings/{id}` untuk detail penuh;
-3. tampilkan tombol accept hanya jika `payment.status = paid`.
+3. tampilkan tombol accept jika status booking `pending` atau `scheduled`;
+4. tampilkan tombol berangkat/selesai hanya jika `payment.status = paid`.
 
 ### User Notifications
 

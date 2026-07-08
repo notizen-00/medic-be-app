@@ -37,12 +37,12 @@ use App\Http\Controllers\Api\Patient\ConsultationController as PatientConsultati
 use App\Http\Controllers\Api\OrderController;
 use App\Http\Controllers\Api\PartnerServiceController;
 use App\Http\Controllers\Api\ProductController;
-use App\Http\Controllers\Api\ServiceBookingController;
 use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\ShipmentController;
 use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\Mitra\ProfileController as MitraProfileController;
 use App\Http\Controllers\Api\Mitra\ConsultationsController as MitraConsultationsController;
+use App\Http\Controllers\Api\Mitra\ServiceBookingController as MitraServiceBookingController;
 use App\Http\Controllers\Api\Shared\PartnerDocumentController;
 use App\Http\Controllers\Api\Shared\NotificationController;
 use Illuminate\Http\Request;
@@ -123,7 +123,7 @@ Route::middleware('auth:sanctum')->group(function () {
     | Patient Mobile App
     |--------------------------------------------------------------------------
     */
-    Route::prefix('patient')->group(function () {
+    Route::prefix('patient')->middleware('role:pasien')->group(function () {
         Route::post('/logout', [SessionController::class, 'logout']);
         Route::get('/doctors', [DoctorController::class, 'index']);
         Route::get('/nurses', [NurseController::class, 'index']);
@@ -155,8 +155,6 @@ Route::middleware('auth:sanctum')->group(function () {
                 Route::patch('/{serviceBooking}/pay', 'pay');
                 Route::get('/{serviceBooking}', 'showBooking');
             });
-
-            Route::patch('/{serviceBooking}/status', [ServiceBookingController::class, 'updateStatus']);
         });
 
         Route::prefix('products')->controller(ProductController::class)->group(function () {
@@ -199,7 +197,7 @@ Route::middleware('auth:sanctum')->group(function () {
     | Healthcare Partner Mobile App
     |--------------------------------------------------------------------------
     */
-    Route::prefix('mitra')->group(function () {
+    Route::prefix('mitra')->middleware('role:mitra')->group(function () {
         Route::prefix('profile')->controller(MitraProfileController::class)->group(function () {
             Route::get('/', 'show');
             Route::patch('/', 'update');
@@ -212,7 +210,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::patch('/{partnerService}', 'update');
         });
 
-        Route::prefix('service-bookings')->controller(ServiceBookingController::class)->group(function () {
+        Route::prefix('service-bookings')->controller(MitraServiceBookingController::class)->group(function () {
             Route::get('/', 'index');
             Route::get('/{serviceBooking}', 'show');
             Route::patch('/{serviceBooking}/accept', 'accept');

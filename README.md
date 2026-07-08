@@ -40,6 +40,12 @@ Endpoint pesanan cepat:
 - response awal menyertakan `matchmaking_status = waiting_payment` dan `assigned_partner_user_id = null`.
 - setelah pembayaran `paid`, callback Midtrans menjalankan matchmaking dan mengisi `assigned_partner_user_id`.
 
+Pemisahan akses service booking:
+- Endpoint pasien berada di `App\Http\Controllers\Api\Patient\ServiceBookingController` dan dipakai untuk katalog layanan, cek promo, membuat booking, melihat booking pasien, dan pembayaran.
+- Endpoint mitra berada di `App\Http\Controllers\Api\Mitra\ServiceBookingController` dan dipakai untuk melihat pesanan milik mitra, menerima pesanan, berangkat, menambah catatan penanganan, menyelesaikan pesanan, dan update status operasional.
+- Route `/api/patient/*` memakai middleware `role:pasien`, sedangkan `/api/mitra/*` memakai middleware `role:mitra`, sehingga token pasien tidak dapat mengakses endpoint mitra dan token mitra tidak dapat mengakses endpoint pasien.
+- Endpoint `PATCH /api/patient/service-bookings/{serviceBooking}/status` sudah tidak digunakan; perubahan status layanan dilakukan dari endpoint mitra sesuai alur pesanan.
+
 Endpoint admin master service:
 - `GET|POST /api/admin/service-categories`
 - `GET|PATCH|DELETE /api/admin/service-categories/{serviceCategory}`
