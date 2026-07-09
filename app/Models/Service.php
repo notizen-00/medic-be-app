@@ -17,6 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
     'category',
     'description',
     'base_price',
+    'image',
     'duration_minutes',
     'requires_address',
     'requires_schedule',
@@ -38,6 +39,22 @@ class Service extends Model
             'is_active' => 'boolean',
             'is_homecare' => 'boolean',
         ];
+    }
+
+
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        if (! $this->image) {
+            return null;
+        }
+
+        if (str_starts_with($this->image, 'http://') || str_starts_with($this->image, 'https://')) {
+            return $this->image;
+        }
+
+        return asset('storage/' . ltrim($this->image, '/'));
     }
 
     public function serviceCategory(): BelongsTo

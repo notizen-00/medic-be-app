@@ -8,6 +8,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Storage;
 
 class ServicesController extends Controller
 {
@@ -48,13 +49,13 @@ class ServicesController extends Controller
 
         $query = Service::query()
             ->with('serviceCategory')
-            ->when($categoryId, fn ($query) => $query->where('service_category_id', $categoryId))
-            ->when(isset($validated['service_type']), fn ($query) => $query->where('service_type', $validated['service_type']))
-            ->when(isset($validated['service_mode']), fn ($query) => $query->where('service_mode', $validated['service_mode']))
-            ->when(array_key_exists('is_active', $validated), fn ($query) => $query->where('is_active', $validated['is_active']))
-            ->when(array_key_exists('requires_address', $validated), fn ($query) => $query->where('requires_address', $validated['requires_address']))
-            ->when(array_key_exists('requires_schedule', $validated), fn ($query) => $query->where('requires_schedule', $validated['requires_schedule']))
-            ->when(array_key_exists('requires_matchmaking', $validated), fn ($query) => $query->where('requires_matchmaking', $validated['requires_matchmaking']))
+            ->when($categoryId, fn($query) => $query->where('service_category_id', $categoryId))
+            ->when(isset($validated['service_type']), fn($query) => $query->where('service_type', $validated['service_type']))
+            ->when(isset($validated['service_mode']), fn($query) => $query->where('service_mode', $validated['service_mode']))
+            ->when(array_key_exists('is_active', $validated), fn($query) => $query->where('is_active', $validated['is_active']))
+            ->when(array_key_exists('requires_address', $validated), fn($query) => $query->where('requires_address', $validated['requires_address']))
+            ->when(array_key_exists('requires_schedule', $validated), fn($query) => $query->where('requires_schedule', $validated['requires_schedule']))
+            ->when(array_key_exists('requires_matchmaking', $validated), fn($query) => $query->where('requires_matchmaking', $validated['requires_matchmaking']))
             ->when(isset($validated['search']), function ($query) use ($validated) {
                 $query->where(function ($query) use ($validated) {
                     $query->where('name', 'like', '%' . $validated['search'] . '%')
@@ -85,6 +86,7 @@ class ServicesController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate($this->rules());
+        $imagePath = $this->resolveServiceImage($request, $validated);
 
         $service = Service::create([
             'service_code' => $validated['service_code'] ?? $this->generateServiceCode(),
@@ -103,6 +105,7 @@ class ServicesController extends Controller
             'sort_order' => $validated['sort_order'] ?? 0,
             'is_active' => $validated['is_active'] ?? true,
             'is_homecare' => $validated['is_homecare'] ?? (($validated['service_mode'] ?? 'visit') === 'visit'),
+            'image' => $imagePath,
         ]);
 
         return response()->json([
@@ -124,6 +127,20 @@ class ServicesController extends Controller
         if (array_key_exists('name', $validated) && empty($validated['slug']) && blank($service->slug)) {
             $validated['slug'] = Str::slug($validated['name']);
         }
+
+        if ($request->hasFile('image')) {
+            $this->deleteServiceImage($service);
+            $validated['image'] = $request->file('image')->store('services', 'public');
+        } else {
+            unset($validated['image']);
+        }
+
+        if ($request->boolean('remove_image')) {
+            $this->deleteServiceImage($service);
+            $validated['image'] = null;
+        }
+
+        unset($validated['remove_image'], $validated['image_path']);
 
         $service->update($validated);
 
@@ -176,6 +193,9 @@ class ServicesController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'is_homecare' => ['nullable', 'boolean'],
+            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            'image_path' => ['nullable', 'string', 'max:255'],
+            'remove_image' => ['nullable', 'boolean'],
         ];
     }
 
@@ -186,5 +206,33 @@ class ServicesController extends Controller
         } while (Service::where('service_code', $code)->exists());
 
         return $code;
+    }
+
+
+    private function resolveServiceImage(Request $request, array $validated, ?Service $service = null): ?string
+    {
+        if ($validated['remove_image'] ?? false) {
+            $this->deleteServiceImage($service);
+            return null;
+        }
+
+        if ($request->hasFile('image')) {
+            $this->deleteServiceImage($service);
+
+            return $request->file('image')->store('services', 'public');
+        }
+
+        return $validated['image_path'] ?? $service?->image;
+    }
+
+    private function deleteServiceImage(?Service $service): void
+    {
+        if (! $service?->image) {
+            return;
+        }
+
+        if (! str_starts_with($service->image, 'http://') && ! str_starts_with($service->image, 'https://')) {
+            Storage::disk('public')->delete($service->image);
+        }
     }
 }
