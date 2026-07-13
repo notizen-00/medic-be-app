@@ -12,6 +12,7 @@ use App\Http\Controllers\Api\Admin\PromoCodeController as AdminPromoCodeControll
 use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
 use App\Http\Controllers\Api\Admin\ReportsController as AdminReportsController;
 use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
+use App\Http\Controllers\Api\Admin\ServiceBookingFeeSettingController as AdminServiceBookingFeeSettingController;
 use App\Http\Controllers\Api\Admin\ServiceCategoriesController as AdminServiceCategoriesController;
 use App\Http\Controllers\Api\Admin\ServiceMarkupController as AdminServiceMarkupController;
 use App\Http\Controllers\Api\Admin\ServicesController as AdminServicesController;
@@ -294,6 +295,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/payments', [AdminPaymentsController::class, 'index']);
         Route::get('/transactions', [AdminTransactionsController::class, 'index']);
         Route::get('/service-bookings', [AdminServiceBookingsController::class, 'index']);
+        Route::get('/service-booking-fees', [AdminServiceBookingFeeSettingController::class, 'show']);
+        Route::put('/service-booking-fees', [AdminServiceBookingFeeSettingController::class, 'update']);
         Route::get('/partner-services', [AdminPartnerServicesController::class, 'index']);
         Route::get('/shipments', [AdminShipmentsController::class, 'index']);
 

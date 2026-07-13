@@ -14,6 +14,7 @@ use App\Services\BalanceService;
 use App\Services\AppNotificationService;
 use App\Services\MidtransService;
 use App\Services\ServicePartnerSelectionService;
+use App\Services\ServiceBookingFeeCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -28,7 +29,8 @@ class ServiceBookingController extends Controller
     public function __construct(
         private readonly ServicePartnerSelectionService $servicePartnerSelectionService,
         private readonly AppNotificationService $notifications,
-        private readonly BalanceService $balanceService
+        private readonly BalanceService $balanceService,
+        private readonly ServiceBookingFeeCalculator $feeCalculator
     ) {
     }
 
@@ -142,6 +144,11 @@ class ServiceBookingController extends Controller
             'patient_member_id' => 'required|exists:patient_members,id',
             'patient_address_id' => 'nullable|exists:patient_addresses,id',
             'booking_type' => 'nullable|in:scheduled,daily',
+            'visit_plan' => 'nullable|in:once,recurring',
+            'recurrence' => 'nullable|required_if:visit_plan,recurring|in:weekly,monthly',
+            'visit_count' => 'nullable|integer|min:1|max:52',
+            'care_mode' => 'nullable|in:visit,live_in',
+            'location_type' => 'nullable|in:home,hospital',
             'scheduled_at' => 'nullable|date|after:now',
             'schedule_start_at' => 'nullable|date|after:now',
             'schedule_end_at' => 'nullable|date|after_or_equal:schedule_start_at',
@@ -151,6 +158,28 @@ class ServiceBookingController extends Controller
         ]);
 
         $user = Auth::user();
+        $visitPlan = $validated['visit_plan'] ?? 'once';
+        $visitCount = $visitPlan === 'recurring'
+            ? (int) ($validated['visit_count'] ?? 0)
+            : (($validated['booking_type'] ?? null) === 'daily' ? (int) ($validated['duration_days'] ?? 1) : 1);
+
+        if ($visitPlan === 'recurring' && $visitCount < 2) {
+            throw ValidationException::withMessages([
+                'visit_count' => ['Booking terjadwal wajib memiliki minimal 2 kunjungan.'],
+            ]);
+        }
+
+        if ($visitPlan === 'recurring' && ! isset($validated['scheduled_at']) && ! isset($validated['schedule_start_at'])) {
+            throw ValidationException::withMessages([
+                'scheduled_at' => ['Tanggal kunjungan pertama wajib diisi untuk booking terjadwal.'],
+            ]);
+        }
+
+        if (($validated['care_mode'] ?? 'visit') === 'live_in' && $visitPlan !== 'recurring') {
+            throw ValidationException::withMessages([
+                'care_mode' => ['Live-in hanya tersedia untuk booking terjadwal.'],
+            ]);
+        }
         $patientMember = isset($validated['patient_member_id'])
             ? $this->resolvePatientMember((int) $validated['patient_member_id'], $user->id)
             : null;
@@ -180,6 +209,14 @@ class ServiceBookingController extends Controller
         $address = $this->resolveBookingAddress($validated, $patientMember);
         $selectedPartnerService = $this->servicePartnerSelectionService
             ->resolveNearestPartnerForBooking($service, $address);
+        $schedule = $this->resolveBookingSchedule($validated);
+        $fees = $this->feeCalculator->calculate([
+            'visit_plan' => $visitPlan,
+            'visit_count' => $visitCount,
+            'care_mode' => $validated['care_mode'] ?? 'visit',
+            'location_type' => $validated['location_type'] ?? 'home',
+            'distance_km' => $selectedPartnerService->distance_km,
+        ]);
 
         // Get markup setting
         $markupSetting = \App\Models\ServiceMarkupSetting::getActiveSetting($service->id);
@@ -212,14 +249,13 @@ class ServiceBookingController extends Controller
             $promoCodeData = $result;
         }
 
-        $schedule = $this->resolveBookingSchedule($validated);
-        $subtotal = $subtotal * $schedule['duration_days'];
+        $subtotal = $subtotal * $visitCount;
         if (($promoCodeData['discount_type'] ?? null) === 'percentage') {
-            $discountAmount = $discountAmount * $schedule['duration_days'];
+            $discountAmount = $discountAmount * $visitCount;
         }
-        $finalPrice = $subtotal - $discountAmount;
+        $finalPrice = $subtotal - $discountAmount + $fees['transport_fee'] + $fees['meal_fee'];
 
-        $booking = DB::transaction(function () use ($validated, $user, $schedule, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice, $selectedPartnerService): ServiceBooking {
+        $booking = DB::transaction(function () use ($validated, $user, $schedule, $visitPlan, $visitCount, $fees, $discountAmount, $promoCodeData, $subtotal, $markupAmount, $finalPrice, $selectedPartnerService): ServiceBooking {
             $booking = ServiceBooking::create([
                 'booking_code' => 'SVC-' . strtoupper(Str::random(8)),
                 'service_id' => $validated['service_id'],
@@ -228,6 +264,12 @@ class ServiceBookingController extends Controller
                 'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
                 'patient_address_id' => null,
                 'booking_type' => $schedule['booking_type'],
+                'visit_plan' => $visitPlan,
+                'recurrence' => $visitPlan === 'recurring' ? $validated['recurrence'] : null,
+                'visit_count' => $visitCount,
+                'care_mode' => $validated['care_mode'] ?? 'visit',
+                'location_type' => $validated['location_type'] ?? 'home',
+                'distance_km' => $selectedPartnerService->distance_km,
                 'scheduled_at' => $schedule['scheduled_at'],
                 'schedule_start_at' => $schedule['schedule_start_at'],
                 'schedule_end_at' => $schedule['schedule_end_at'],
@@ -238,7 +280,10 @@ class ServiceBookingController extends Controller
                 'discount_amount' => $discountAmount,
                 'discount_type' => $promoCodeData['discount_type'] ?? null,
                 'subtotal' => $subtotal,
-                'markup_amount' => $markupAmount * $schedule['duration_days'],
+                'markup_amount' => $markupAmount * $visitCount,
+                'transport_fee' => $fees['transport_fee'],
+                'meal_fee' => $fees['meal_fee'],
+                'fee_policy_snapshot' => $fees['policy_snapshot'],
                 'total_amount' => $finalPrice,
             ]);
 
@@ -294,8 +339,10 @@ class ServiceBookingController extends Controller
                     'markup_amount' => $booking->markup_amount,
                     'subtotal' => $subtotal,
                     'discount_amount' => $discountAmount,
+                    'transport_fee' => $booking->transport_fee,
+                    'meal_fee' => $booking->meal_fee,
                     'total_amount' => $finalPrice,
-                    'duration_days' => $schedule['duration_days'],
+                    'visit_count' => $visitCount,
                 ],
                 'matchmaking' => $matchmaking,
                 'matchmaking_status' => 'waiting_partner_acceptance',
@@ -619,11 +666,21 @@ class ServiceBookingController extends Controller
             ];
         }
 
+        $visitPlan = $validated['visit_plan'] ?? 'once';
+        $visitCount = $visitPlan === 'recurring' ? (int) ($validated['visit_count'] ?? 1) : 1;
+        $endAt = $scheduledAt?->copy();
+
+        if ($endAt && $visitPlan === 'recurring') {
+            $endAt = ($validated['recurrence'] ?? null) === 'monthly'
+                ? $endAt->addMonthsNoOverflow($visitCount - 1)
+                : $endAt->addWeeks($visitCount - 1);
+        }
+
         return [
             'booking_type' => 'scheduled',
             'scheduled_at' => $scheduledAt,
             'schedule_start_at' => $scheduledAt,
-            'schedule_end_at' => $scheduledAt,
+            'schedule_end_at' => $endAt,
             'duration_days' => 1,
         ];
     }

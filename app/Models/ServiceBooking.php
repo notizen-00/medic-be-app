@@ -17,6 +17,12 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'patient_address_id',
     'status',
     'booking_type',
+    'visit_plan',
+    'recurrence',
+    'visit_count',
+    'care_mode',
+    'location_type',
+    'distance_km',
     'scheduled_at',
     'schedule_start_at',
     'schedule_end_at',
@@ -33,6 +39,9 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
     'discount_type',
     'subtotal',
     'markup_amount',
+    'transport_fee',
+    'meal_fee',
+    'fee_policy_snapshot',
 ])]
 class ServiceBooking extends Model
 {
@@ -43,6 +52,8 @@ class ServiceBooking extends Model
             'schedule_start_at' => 'datetime',
             'schedule_end_at' => 'datetime',
             'duration_days' => 'integer',
+            'visit_count' => 'integer',
+            'distance_km' => 'decimal:2',
             'accepted_at' => 'datetime',
             'started_at' => 'datetime',
             'completed_at' => 'datetime',
@@ -51,6 +62,9 @@ class ServiceBooking extends Model
             'discount_amount' => 'decimal:2',
             'subtotal' => 'decimal:2',
             'markup_amount' => 'decimal:2',
+            'transport_fee' => 'decimal:2',
+            'meal_fee' => 'decimal:2',
+            'fee_policy_snapshot' => 'array',
         ];
     }
 
