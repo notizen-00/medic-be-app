@@ -653,7 +653,7 @@
         return bookingPayoutBreakdown(booking).partnerPayout;
     }
 
-    function bookingPayoutBreakdownHtml(booking, compact = false) {
+    function bookingPayoutBreakdownHtml(booking) {
         const amount = bookingPayoutBreakdown(booking);
         const rows = [
             `<div class="amount-breakdown-row"><span>Biaya layanan</span><b>${escapeHtml(money(amount.serviceBase))}</b></div>`,
@@ -665,10 +665,6 @@
 
         if (amount.mealApplied) {
             rows.push(`<div class="amount-breakdown-row"><span>Uang makan</span><b>${escapeHtml(money(amount.mealFee))}</b></div>`);
-        }
-
-        if (!compact && amount.patientTotal > 0) {
-            rows.push(`<div class="amount-breakdown-row"><span>Total bayar pasien</span><b>${escapeHtml(money(amount.patientTotal))}</b></div>`);
         }
 
         rows.push(`<div class="amount-breakdown-row total"><span>Diterima mitra</span><b>${escapeHtml(money(amount.partnerPayout))}</b></div>`);
@@ -1150,7 +1146,7 @@
                 <div class="muted">${escapeHtml(booking.service?.name || '-')}</div>
                 <div class="muted">${escapeHtml(booking.patient_member?.name || booking.patient?.name || '-')}</div>
                 <div class="badge-row"><span class="badge ${statusClass(booking.status)}">${escapeHtml(booking.status)}</span><span class="badge">Diterima ${escapeHtml(money(bookingPayoutAmount(booking)))}</span></div>
-                <div class="amount-breakdown">${bookingPayoutBreakdownHtml(booking, true)}</div>
+                <div class="amount-breakdown">${bookingPayoutBreakdownHtml(booking)}</div>
             </button>
         `).join('');
         document.querySelectorAll('[data-booking-id]').forEach((button) => button.addEventListener('click', () => openBooking(Number(button.dataset.bookingId))));
@@ -1180,7 +1176,6 @@
                 <div class="info"><span>Layanan</span><b>${escapeHtml(b.service?.name || '-')}</b></div>
                 <div class="info"><span>Jadwal</span><b>${escapeHtml(formatDate(b.scheduled_at))}</b></div>
                 <div class="info"><span>Diterima Mitra</span><b>${escapeHtml(money(bookingPayoutAmount(b)))}</b></div>
-                <div class="info"><span>Total Bayar Pasien</span><b>${escapeHtml(money(bookingPayoutBreakdown(b).patientTotal || b.patient_total_amount || b.total_amount))}</b></div>
                 <div class="info"><span>Alamat</span><b>${escapeHtml(b.address?.address || '-')}</b></div>
                 <div class="info"><span>Dibuat</span><b>${escapeHtml(formatDate(b.created_at))}</b></div>
             </div>
