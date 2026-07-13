@@ -301,8 +301,33 @@
         statusEl.querySelector('span:last-child').textContent = label;
     }
 
+    function money(value) {
+        return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
+    }
+
+    function numberValue(value) {
+        const parsed = Number(value || 0);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function payoutBreakdown(booking) {
+        const breakdown = booking?.partner_payout_breakdown || {};
+        const transportFee = numberValue(breakdown.transport_fee ?? booking?.transport_fee);
+        const mealFee = numberValue(breakdown.meal_fee ?? booking?.meal_fee);
+
+        return {
+            serviceBase: numberValue(breakdown.service_base_amount ?? (numberValue(booking?.subtotal) - numberValue(booking?.markup_amount))),
+            transportFee,
+            mealFee,
+            partnerPayout: numberValue(breakdown.partner_payout_amount ?? booking?.partner_payout_amount ?? booking?.total_amount),
+            transportApplied: Boolean(breakdown.transport_fee_applied ?? transportFee > 0),
+            mealApplied: Boolean(breakdown.meal_fee_applied ?? mealFee > 0),
+        };
+    }
+
     function renderBooking(payload) {
         const booking = payload.booking || payload;
+        const amount = payoutBreakdown(booking);
         const item = document.createElement('div');
         item.className = 'booking';
         item.innerHTML = `
@@ -310,7 +335,10 @@
             <div class="row"><span>Layanan</span><b>${booking.service?.name || '-'}</b></div>
             <div class="row"><span>Pasien</span><b>${booking.patient?.name || '-'}</b></div>
             <div class="row"><span>Status</span><b>${booking.status || '-'}</b></div>
-            <div class="row"><span>Total</span><b>${booking.total_amount || '-'}</b></div>
+            <div class="row"><span>Biaya layanan</span><b>${money(amount.serviceBase)}</b></div>
+            ${amount.transportApplied ? `<div class="row"><span>Transportasi</span><b>${money(amount.transportFee)}</b></div>` : ''}
+            ${amount.mealApplied ? `<div class="row"><span>Uang makan</span><b>${money(amount.mealFee)}</b></div>` : ''}
+            <div class="row"><span>Diterima mitra</span><b>${money(amount.partnerPayout)}</b></div>
             <button type="button" data-accept="${booking.id}">Accept</button>
         `;
         bookingsEl.prepend(item);
