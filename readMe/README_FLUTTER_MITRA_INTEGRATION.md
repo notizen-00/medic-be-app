@@ -468,7 +468,7 @@ Saat berhasil:
 - status menjadi `completed`;
 - `completed_at` terisi;
 - saldo mitra dikreditkan jika `partner_payout_amount > 0` dan belum pernah dibayarkan ke mitra.
-- Dashboard mitra harus menampilkan `partner_payout_amount` sebagai uang diterima. Pada endpoint mitra dan event `service-booking.matched`, `total_amount` juga sudah dinormalisasi menjadi nominal mitra untuk kompatibilitas UI lama. Total bayar pasien tersedia di `patient_total_amount`.
+- Dashboard mitra harus menampilkan `partner_payout_amount` sebagai uang diterima. Nilai ini berisi harga dasar layanan untuk mitra ditambah `transport_fee` jika ada; markup aplikasi tetap milik platform dan tidak masuk saldo mitra. Pada endpoint mitra dan event `service-booking.matched`, `total_amount` juga sudah dinormalisasi menjadi nominal mitra untuk kompatibilitas UI lama. Total bayar pasien tersedia di `patient_total_amount`.
 
 ### Update Status Manual
 
@@ -1113,7 +1113,7 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `partner_location_updated_at` | datetime/null | waktu lokasi terakhir diterima backend |
 | `total_amount` | decimal string | nominal mitra pada endpoint mitra; disamakan dengan `partner_payout_amount` untuk kompatibilitas dashboard lama |
 | `patient_total_amount` | decimal/number | total bayar pasien, bisa termasuk markup dan biaya tambahan |
-| `partner_payout_amount` | decimal/number | uang yang diterima mitra; gunakan ini untuk dashboard pendapatan |
+| `partner_payout_amount` | decimal/number | uang yang diterima mitra; base layanan + `transport_fee` jika ada, tanpa markup aplikasi |
 | `transport_fee` | decimal string | total transport seluruh kunjungan; nol untuk live-in |
 | `meal_fee` | decimal string | total uang makan jika lokasi rumah sakit |
 | `fee_policy_snapshot` | object/null | snapshot aturan biaya ketika pasien booking |

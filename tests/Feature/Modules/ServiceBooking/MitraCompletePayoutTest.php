@@ -32,9 +32,10 @@ it('credits mitra with service base payout instead of patient markup total when 
         'patient_user_id' => $patient->id,
         'assigned_partner_user_id' => $partner->id,
         'status' => 'on_the_way',
-        'total_amount' => 203500,
+        'total_amount' => 228500,
         'subtotal' => 203500,
         'markup_amount' => 18500,
+        'transport_fee' => 25000,
     ]);
 
     Payment::create([
@@ -42,7 +43,7 @@ it('credits mitra with service base payout instead of patient markup total when 
         'patient_user_id' => $patient->id,
         'payment_code' => 'PAY-MITRA-COMPLETE-001',
         'status' => 'paid',
-        'amount' => 203500,
+        'amount' => 228500,
         'paid_at' => now(),
     ]);
 
@@ -50,23 +51,23 @@ it('credits mitra with service base payout instead of patient markup total when 
 
     $this->getJson("/api/mitra/service-bookings/{$booking->id}")
         ->assertOk()
-        ->assertJsonPath('data.total_amount', '185000.00')
-        ->assertJsonPath('data.patient_total_amount', 203500)
-        ->assertJsonPath('data.partner_payout_amount', 185000);
+        ->assertJsonPath('data.total_amount', '210000.00')
+        ->assertJsonPath('data.patient_total_amount', 228500)
+        ->assertJsonPath('data.partner_payout_amount', 210000);
 
     $this->patchJson("/api/mitra/service-bookings/{$booking->id}/complete", [
         'summary' => 'Layanan selesai.',
     ])->assertOk()
         ->assertJsonPath('data.status', 'completed')
-        ->assertJsonPath('data.partner_balance_transaction.amount', '185000.00');
+        ->assertJsonPath('data.partner_balance_transaction.amount', '210000.00');
 
     $this->assertDatabaseHas('user_balances', [
         'user_id' => $partner->id,
-        'balance' => 185000,
+        'balance' => 210000,
     ]);
 });
 
-it('broadcasts mitra matched booking amount as base payout instead of patient markup total', function () {
+it('broadcasts mitra matched booking amount as base payout plus transport instead of patient markup total', function () {
     $patient = User::factory()->create(['role' => 'pasien']);
     $partner = User::factory()->create(['role' => 'mitra']);
 
@@ -84,14 +85,15 @@ it('broadcasts mitra matched booking amount as base payout instead of patient ma
         'patient_user_id' => $patient->id,
         'assigned_partner_user_id' => $partner->id,
         'status' => 'pending',
-        'total_amount' => 203500,
+        'total_amount' => 228500,
         'subtotal' => 203500,
         'markup_amount' => 18500,
+        'transport_fee' => 25000,
     ]);
 
     $payload = (new ServiceBookingMatched($booking))->broadcastWith();
 
-    expect($payload['booking']['total_amount'])->toBe(185000.0)
-        ->and($payload['booking']['patient_total_amount'])->toBe(203500.0)
-        ->and($payload['booking']['partner_payout_amount'])->toBe(185000.0);
+    expect($payload['booking']['total_amount'])->toBe(210000.0)
+        ->and($payload['booking']['patient_total_amount'])->toBe(228500.0)
+        ->and($payload['booking']['partner_payout_amount'])->toBe(210000.0);
 });

@@ -145,9 +145,10 @@ class ServiceBooking extends Model
     {
         $subtotal = (float) ($this->subtotal ?? 0);
         $markupAmount = (float) ($this->markup_amount ?? 0);
+        $transportFee = (float) ($this->transport_fee ?? 0);
 
         if ($subtotal > 0) {
-            return max(0, $subtotal - $markupAmount);
+            return max(0, $subtotal - $markupAmount + $transportFee);
         }
 
         $service = $this->relationLoaded('service')
@@ -158,7 +159,7 @@ class ServiceBooking extends Model
         $visitCount = max(1, (int) ($this->visit_count ?? 1));
 
         if ($basePrice > 0) {
-            return $basePrice * $visitCount;
+            return ($basePrice * $visitCount) + $transportFee;
         }
 
         return max(0, (float) ($this->total_amount ?? 0));
