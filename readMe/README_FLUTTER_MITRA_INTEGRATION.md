@@ -352,7 +352,7 @@ Payout saldo mitra juga dapat terjadi saat pasien mengonfirmasi layanan selesai 
 PATCH /api/patient/service-bookings/{serviceBooking}/confirm-completion
 ```
 
-Jika booking sudah lunas dan belum pernah dibayarkan ke mitra, backend mengkredit wallet mitra dan mengisi `partner_paid_at` serta `partner_balance_transaction_id`. Endpoint ini idempotent, jadi konfirmasi ulang pasien tidak menggandakan saldo.
+Jika booking sudah lunas dan belum pernah dibayarkan ke mitra, backend mengkredit wallet mitra sebesar `partner_payout_amount` dan mengisi `partner_paid_at` serta `partner_balance_transaction_id`. Endpoint ini idempotent, jadi konfirmasi ulang pasien tidak menggandakan saldo.
 
 ### Start Journey
 
@@ -467,7 +467,8 @@ Saat berhasil:
 
 - status menjadi `completed`;
 - `completed_at` terisi;
-- saldo mitra dikreditkan jika `total_amount > 0` dan belum pernah dibayarkan ke mitra.
+- saldo mitra dikreditkan jika `partner_payout_amount > 0` dan belum pernah dibayarkan ke mitra.
+- Dashboard mitra harus menampilkan `partner_payout_amount` sebagai uang diterima. `total_amount` adalah total bayar pasien dan dapat berisi markup aplikasi, transport, atau biaya lain.
 
 ### Update Status Manual
 
@@ -1110,7 +1111,8 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `partner_location_heading` | decimal string/null | arah derajat 0-360 |
 | `partner_location_speed_mps` | decimal string/null | kecepatan meter/detik |
 | `partner_location_updated_at` | datetime/null | waktu lokasi terakhir diterima backend |
-| `total_amount` | decimal string | total |
+| `total_amount` | decimal string | total bayar pasien, bisa termasuk markup dan biaya tambahan |
+| `partner_payout_amount` | decimal/number | uang yang diterima mitra; gunakan ini untuk dashboard pendapatan |
 | `transport_fee` | decimal string | total transport seluruh kunjungan; nol untuk live-in |
 | `meal_fee` | decimal string | total uang makan jika lokasi rumah sakit |
 | `fee_policy_snapshot` | object/null | snapshot aturan biaya ketika pasien booking |

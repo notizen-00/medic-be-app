@@ -45,6 +45,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 ])]
 class ServiceBooking extends Model
 {
+    protected $appends = [
+        'partner_payout_amount',
+    ];
+
     protected function casts(): array
     {
         return [
@@ -135,6 +139,34 @@ class ServiceBooking extends Model
     public function partnerLocation(): HasOne
     {
         return $this->hasOne(ServiceBookingPartnerLocation::class);
+    }
+
+    public function partnerPayoutAmount(): float
+    {
+        $subtotal = (float) ($this->subtotal ?? 0);
+        $markupAmount = (float) ($this->markup_amount ?? 0);
+
+        if ($subtotal > 0) {
+            return max(0, $subtotal - $markupAmount);
+        }
+
+        $service = $this->relationLoaded('service')
+            ? $this->service
+            : Service::find($this->service_id);
+
+        $basePrice = (float) ($service?->base_price ?? 0);
+        $visitCount = max(1, (int) ($this->visit_count ?? 1));
+
+        if ($basePrice > 0) {
+            return $basePrice * $visitCount;
+        }
+
+        return max(0, (float) ($this->total_amount ?? 0));
+    }
+
+    public function getPartnerPayoutAmountAttribute(): float
+    {
+        return $this->partnerPayoutAmount();
     }
 
     /**

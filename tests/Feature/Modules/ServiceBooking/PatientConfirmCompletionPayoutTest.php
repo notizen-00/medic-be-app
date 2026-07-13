@@ -22,7 +22,7 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'service_code' => 'SVC-CONFIRM-PAYOUT',
         'name' => 'Homecare Payout Test',
         'service_type' => 'procedure',
-        'base_price' => 150000,
+        'base_price' => 185000,
         'is_active' => true,
     ]);
 
@@ -32,8 +32,9 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'patient_user_id' => $patient->id,
         'assigned_partner_user_id' => $partner->id,
         'status' => 'on_the_way',
-        'total_amount' => 150000,
-        'subtotal' => 150000,
+        'total_amount' => 203500,
+        'subtotal' => 203500,
+        'markup_amount' => 18500,
     ]);
 
     Payment::create([
@@ -41,7 +42,7 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'patient_user_id' => $patient->id,
         'payment_code' => 'PAY-CONFIRM-001',
         'status' => 'paid',
-        'amount' => 150000,
+        'amount' => 203500,
         'paid_at' => now(),
     ]);
 
@@ -51,11 +52,11 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'notes' => 'Layanan sudah selesai.',
     ])->assertOk()
         ->assertJsonPath('data.status', 'completed')
-        ->assertJsonPath('data.partner_balance_transaction.amount', '150000.00');
+        ->assertJsonPath('data.partner_balance_transaction.amount', '185000.00');
 
     $this->assertDatabaseHas('user_balances', [
         'user_id' => $partner->id,
-        'balance' => 150000,
+        'balance' => 185000,
     ]);
 
     $this->assertDatabaseHas('service_bookings', [

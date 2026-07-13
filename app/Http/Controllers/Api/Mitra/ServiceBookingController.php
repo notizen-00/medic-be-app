@@ -323,12 +323,16 @@ class ServiceBookingController extends Controller
                 ['status' => 'completed']
             );
 
-            if ((float) $lockedBooking->total_amount > 0 && $lockedBooking->partner_balance_transaction_id === null) {
+            $partnerPayoutAmount = $lockedBooking->partnerPayoutAmount();
+
+            if ($partnerPayoutAmount > 0 && $lockedBooking->partner_balance_transaction_id === null) {
                 $balance = $this->balanceService->getOrCreateBalance($partner);
-                $transaction = $this->balanceService->credit($balance, (float) $lockedBooking->total_amount, [
+                $transaction = $this->balanceService->credit($balance, $partnerPayoutAmount, [
                     'reference_type' => 'service_booking',
                     'reference_id' => $lockedBooking->id,
                     'booking_code' => $lockedBooking->booking_code,
+                    'patient_paid_amount' => (float) $lockedBooking->total_amount,
+                    'partner_payout_amount' => $partnerPayoutAmount,
                     'idempotency_key' => 'service_booking:'.$lockedBooking->id.':partner_payout',
                     'description' => 'Pendapatan layanan '.$lockedBooking->booking_code,
                 ]);
