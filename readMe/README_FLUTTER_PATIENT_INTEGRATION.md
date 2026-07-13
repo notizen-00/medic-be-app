@@ -707,6 +707,24 @@ Detail booking:
 GET /api/patient/service-bookings/{serviceBooking}
 ```
 
+Batalkan booking sebelum dibayar dan sebelum diterima mitra:
+
+```http
+PATCH /api/patient/service-bookings/{serviceBooking}/cancel
+```
+
+Field `PATCH /api/patient/service-bookings/{serviceBooking}/cancel`:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `notes` | Tidak | string | alasan pembatalan, maksimal 1000 karakter |
+
+Catatan:
+- Hanya bisa dipakai oleh pasien pemilik booking.
+- Hanya bisa saat `status=pending`, `accepted_at=null`, dan payment belum `paid`.
+- Jika payment masih `pending`, backend mengubah payment menjadi `expired`.
+- Setelah sukses, booking menjadi `cancelled` dan tidak bisa dibayar lagi.
+
 Bayar booking layanan:
 
 ```http
@@ -1771,14 +1789,15 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 8. Tampilkan form jadwal jika `requires_schedule=true`.
 9. Buat booking via `POST /api/patient/service-bookings`.
 10. Tampilkan status `Menunggu konfirmasi mitra`; response awal punya `assigned_partner_user_id` dan `matchmaking_status=waiting_partner_acceptance`.
-11. Bayar booking via `PATCH /api/patient/service-bookings/{id}/pay`.
-12. Saat status `on_the_way`, buka map dengan snapshot `GET /api/patient/service-bookings/{id}/tracking`, lalu subscribe ke `private-service-booking.{id}.tracking`.
-13. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
-14. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
-15. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
-16. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
-17. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
-18. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
+11. Jika pasien ingin batal sebelum mitra menerima dan sebelum bayar, panggil `PATCH /api/patient/service-bookings/{id}/cancel`.
+12. Bayar booking via `PATCH /api/patient/service-bookings/{id}/pay`.
+13. Saat status `on_the_way`, buka map dengan snapshot `GET /api/patient/service-bookings/{id}/tracking`, lalu subscribe ke `private-service-booking.{id}.tracking`.
+14. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
+15. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
+16. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+17. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
+18. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+19. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 

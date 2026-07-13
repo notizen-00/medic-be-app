@@ -406,7 +406,7 @@ class ServiceBookingController extends Controller
         return (bool) ($service->requires_address ?? $service->is_homecare);
     }
 
-    public function pay(Request $request, ServiceBooking $serviceBooking, MidtransService $midtransService)
+    public function pay(Request $request, ServiceBooking $serviceBooking)
     {
         if ($serviceBooking->patient_user_id !== Auth::id()) {
             return response()->json([
@@ -419,6 +419,13 @@ class ServiceBookingController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
+        if ($serviceBooking->status === 'cancelled') {
+            throw ValidationException::withMessages([
+                'service_booking' => ['Booking yang sudah dibatalkan tidak dapat dibayar.'],
+            ]);
+        }
+
+        $midtransService = app(MidtransService::class);
         $payment = $serviceBooking->payment;
 
         if (! $payment) {
@@ -475,6 +482,98 @@ class ServiceBookingController extends Controller
                 'payment' => $payment->fresh(),
                 'midtrans' => $snap,
             ],
+        ]);
+    }
+
+    public function cancel(Request $request, ServiceBooking $serviceBooking)
+    {
+        if ($serviceBooking->patient_user_id !== Auth::id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses untuk membatalkan booking ini',
+            ], 403);
+        }
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $serviceBooking = DB::transaction(function () use ($serviceBooking, $validated): ServiceBooking {
+            $lockedBooking = ServiceBooking::query()
+                ->with(['payment'])
+                ->lockForUpdate()
+                ->findOrFail($serviceBooking->id);
+
+            $payment = $lockedBooking->payment()->lockForUpdate()->first();
+
+            if ($lockedBooking->status !== 'pending') {
+                throw ValidationException::withMessages([
+                    'status' => ['Booking hanya dapat dibatalkan pasien sebelum mitra menerima pesanan.'],
+                ]);
+            }
+
+            if ($lockedBooking->accepted_at !== null) {
+                throw ValidationException::withMessages([
+                    'service_booking' => ['Booking sudah diterima mitra dan tidak dapat dibatalkan dari flow ini.'],
+                ]);
+            }
+
+            if ($payment && $payment->status === 'paid') {
+                throw ValidationException::withMessages([
+                    'payment' => ['Booking yang sudah dibayar tidak dapat dibatalkan dari flow ini.'],
+                ]);
+            }
+
+            $lockedBooking->update([
+                'status' => 'cancelled',
+                'notes' => $validated['notes'] ?? $lockedBooking->notes,
+                'completed_at' => $lockedBooking->completed_at ?? now(),
+            ]);
+
+            if ($payment && $payment->status === 'pending') {
+                $payment->update([
+                    'status' => 'expired',
+                    'notes' => trim(($payment->notes ? $payment->notes."\n" : '').'Dibatalkan pasien sebelum mitra menerima pesanan.'),
+                ]);
+            }
+
+            ServiceBookingHistory::create([
+                'service_booking_id' => $lockedBooking->id,
+                'actor_user_id' => Auth::id(),
+                'type' => 'status',
+                'title' => 'Pasien membatalkan booking',
+                'description' => $validated['notes'] ?? 'Pasien membatalkan booking sebelum mitra menerima pesanan.',
+                'meta' => ['status' => 'cancelled', 'payment_status' => $payment?->fresh()?->status],
+                'handled_at' => now(),
+            ]);
+
+            return $lockedBooking;
+        });
+
+        $serviceBooking->load(['service', 'patientMember', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'payment']);
+        $serviceBooking->useServiceAddressRelation();
+
+        if ($serviceBooking->assigned_partner_user_id) {
+            $this->notifications->send($serviceBooking->assigned_partner_user_id, [
+                'type' => 'service_booking.cancelled',
+                'title' => 'Pesanan layanan dibatalkan',
+                'body' => 'Pasien membatalkan pesanan '.$serviceBooking->booking_code.' sebelum Anda menerima pesanan.',
+                'action_url' => '/mitra/service-bookings/'.$serviceBooking->id,
+                'reference_type' => 'service_booking',
+                'reference_id' => $serviceBooking->id,
+                'data' => [
+                    'service_booking_id' => $serviceBooking->id,
+                    'booking_code' => $serviceBooking->booking_code,
+                    'status' => $serviceBooking->status,
+                    'payment_status' => $serviceBooking->payment?->status,
+                ],
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Booking layanan berhasil dibatalkan.',
+            'data' => $serviceBooking,
         ]);
     }
 
