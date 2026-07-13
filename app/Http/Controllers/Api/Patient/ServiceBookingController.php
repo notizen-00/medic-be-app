@@ -493,9 +493,10 @@ class ServiceBookingController extends Controller
 
         $serviceBooking = DB::transaction(function () use ($serviceBooking, $validated): ServiceBooking {
             $lockedBooking = ServiceBooking::query()
-                ->with(['payment', 'assignedPartner'])
+                ->with(['assignedPartner'])
                 ->lockForUpdate()
                 ->findOrFail($serviceBooking->id);
+            $payment = $lockedBooking->payment()->lockForUpdate()->first();
 
             if (! $lockedBooking->assigned_partner_user_id || ! $lockedBooking->assignedPartner) {
                 throw ValidationException::withMessages([
@@ -509,7 +510,7 @@ class ServiceBookingController extends Controller
                 ]);
             }
 
-            if (! $lockedBooking->payment || $lockedBooking->payment->status !== 'paid') {
+            if (! $payment || $payment->status !== 'paid') {
                 throw ValidationException::withMessages([
                     'payment' => ['Booking hanya dapat dikonfirmasi selesai setelah pembayaran lunas.'],
                 ]);
@@ -537,6 +538,7 @@ class ServiceBookingController extends Controller
                     'reference_type' => 'service_booking',
                     'reference_id' => $lockedBooking->id,
                     'booking_code' => $lockedBooking->booking_code,
+                    'idempotency_key' => 'service_booking:'.$lockedBooking->id.':partner_payout',
                     'description' => 'Pendapatan layanan '.$lockedBooking->booking_code,
                     'confirmed_by_patient' => true,
                 ]);

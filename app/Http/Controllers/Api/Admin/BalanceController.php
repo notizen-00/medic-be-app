@@ -99,6 +99,7 @@ class BalanceController extends Controller
             'reference_type' => 'nullable|string',
             'reference_id' => 'nullable|integer',
             'description' => 'nullable|string|max:500',
+            'idempotency_key' => 'required|string|max:255',
         ]);
 
         $balance = $this->balanceService->getOrCreateBalance($user);
@@ -110,6 +111,7 @@ class BalanceController extends Controller
                 'reference_type' => $validated['reference_type'] ?? null,
                 'reference_id' => $validated['reference_id'] ?? null,
                 'description' => $validated['description'] ?? 'Refund oleh admin',
+                'idempotency_key' => 'admin_refund:'.$validated['idempotency_key'],
             ]
         );
 
@@ -118,7 +120,7 @@ class BalanceController extends Controller
             'message' => 'Refund berhasil dilakukan',
             'data' => [
                 'transaction' => $transaction,
-                'new_balance' => $balance->balance,
+                'new_balance' => $balance->fresh()->balance,
             ],
         ]);
     }

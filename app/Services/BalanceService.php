@@ -51,6 +51,21 @@ class BalanceService
                 throw new \RuntimeException("Saldo tidak aktif: {$balance->status}");
             }
 
+            $idempotencyKey = $meta['idempotency_key'] ?? null;
+            if ($idempotencyKey) {
+                $existing = BalanceTransaction::query()
+                    ->where('idempotency_key', $idempotencyKey)
+                    ->first();
+
+                if ($existing) {
+                    if ($existing->balance_id !== $balance->id || abs((float) $existing->amount - $amount) > 0.01) {
+                        throw new \LogicException('Idempotency key sudah digunakan untuk transaksi saldo yang berbeda.');
+                    }
+
+                    return $existing;
+                }
+            }
+
             // Generate reference number
             $referenceNumber = BalanceTransaction::generateReferenceNumber('topup');
             $transactionUuid = BalanceTransaction::generateTransactionUuid();
@@ -63,6 +78,7 @@ class BalanceService
                 'user_id' => $balance->user_id,
                 'balance_id' => $balance->id,
                 'transaction_uuid' => $transactionUuid,
+                'idempotency_key' => $idempotencyKey,
                 'type' => 'topup',
                 'status' => 'completed',
                 'amount' => $amount,
@@ -115,6 +131,17 @@ class BalanceService
                 throw new \RuntimeException("Saldo tidak aktif: {$balance->status}");
             }
 
+            $idempotencyKey = $meta['idempotency_key'] ?? null;
+            if ($idempotencyKey) {
+                $existing = BalanceTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
+                if ($existing) {
+                    if ($existing->balance_id !== $balance->id || abs((float) $existing->amount - $amount) > 0.01) {
+                        throw new \LogicException('Idempotency key sudah digunakan untuk refund yang berbeda.');
+                    }
+                    return $existing;
+                }
+            }
+
             // Generate reference number
             $referenceNumber = BalanceTransaction::generateReferenceNumber('refund');
             $transactionUuid = BalanceTransaction::generateTransactionUuid();
@@ -127,6 +154,7 @@ class BalanceService
                 'user_id' => $balance->user_id,
                 'balance_id' => $balance->id,
                 'transaction_uuid' => $transactionUuid,
+                'idempotency_key' => $idempotencyKey,
                 'type' => 'refund',
                 'status' => 'completed',
                 'amount' => $amount,
@@ -353,7 +381,7 @@ class BalanceService
     /**
      * Dapatkan history transaksi user
      */
-    public function getTransactionHistory(User $user, int $perPage = 20, string $type = null, string $status = null)
+    public function getTransactionHistory(User $user, int $perPage = 20, ?string $type = null, ?string $status = null)
     {
         $query = BalanceTransaction::where('user_id', $user->id);
 

@@ -294,10 +294,17 @@ class ServiceBookingController extends Controller
 
         $serviceBooking = DB::transaction(function () use ($serviceBooking, $partner, $validated): ServiceBooking {
             $lockedBooking = ServiceBooking::lockForUpdate()->findOrFail($serviceBooking->id);
+            $payment = $lockedBooking->payment()->lockForUpdate()->first();
 
             if ($lockedBooking->status === 'completed') {
                 throw ValidationException::withMessages([
                     'status' => ['Pesanan layanan sudah selesai.'],
+                ]);
+            }
+
+            if (! $payment || $payment->status !== 'paid') {
+                throw ValidationException::withMessages([
+                    'payment' => ['Pesanan hanya dapat diselesaikan setelah pembayaran lunas.'],
                 ]);
             }
 
@@ -322,6 +329,7 @@ class ServiceBookingController extends Controller
                     'reference_type' => 'service_booking',
                     'reference_id' => $lockedBooking->id,
                     'booking_code' => $lockedBooking->booking_code,
+                    'idempotency_key' => 'service_booking:'.$lockedBooking->id.':partner_payout',
                     'description' => 'Pendapatan layanan '.$lockedBooking->booking_code,
                 ]);
 
@@ -369,33 +377,56 @@ class ServiceBookingController extends Controller
             'notes' => ['nullable', 'string'],
         ]);
 
-        if (in_array($validated['status'], ['confirmed', 'scheduled', 'on_the_way', 'completed'], true)) {
-            $this->ensureServiceBookingPaymentCompleted($serviceBooking);
-        }
+        $serviceBooking = DB::transaction(function () use ($serviceBooking, $partner, $validated): ServiceBooking {
+            $lockedBooking = ServiceBooking::query()->lockForUpdate()->findOrFail($serviceBooking->id);
+            $payment = $lockedBooking->payment()->lockForUpdate()->first();
+            $target = $validated['status'];
 
-        $payload = [
-            'status' => $validated['status'],
-            'scheduled_at' => $validated['scheduled_at'] ?? $serviceBooking->scheduled_at,
-            'notes' => $validated['notes'] ?? $serviceBooking->notes,
-        ];
+            if ($target === 'completed') {
+                throw ValidationException::withMessages([
+                    'status' => ['Gunakan endpoint complete agar penyelesaian dan payout diproses secara atomik.'],
+                ]);
+            }
 
-        if ($validated['status'] === 'on_the_way' && $serviceBooking->started_at === null) {
-            $payload['started_at'] = now();
-        }
+            if (in_array($lockedBooking->status, ['completed', 'cancelled'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => ['Status booking final tidak dapat diubah kembali.'],
+                ]);
+            }
 
-        if (in_array($validated['status'], ['completed', 'cancelled'], true) && $serviceBooking->completed_at === null) {
-            $payload['completed_at'] = now();
-        }
+            if ($target === 'cancelled' && ($payment?->status === 'paid' || $lockedBooking->partner_balance_transaction_id !== null)) {
+                throw ValidationException::withMessages([
+                    'status' => ['Booking yang sudah dibayar atau sudah payout tidak dapat dibatalkan langsung. Gunakan proses refund.'],
+                ]);
+            }
 
-        $serviceBooking->update($payload);
-        $this->recordHistory(
-            $serviceBooking,
-            $partner,
-            'status',
-            'Status booking diperbarui',
-            $validated['notes'] ?? null,
-            ['status' => $validated['status']]
-        );
+            $allowed = [
+                'pending' => ['confirmed', 'cancelled'],
+                'confirmed' => ['scheduled', 'on_the_way', 'cancelled'],
+                'scheduled' => ['on_the_way', 'cancelled'],
+                'on_the_way' => [],
+            ];
+
+            if ($target !== $lockedBooking->status && ! in_array($target, $allowed[$lockedBooking->status] ?? [], true)) {
+                throw ValidationException::withMessages(['status' => ['Transisi status booking tidak diizinkan.']]);
+            }
+
+            if (in_array($target, ['scheduled', 'on_the_way'], true) && $payment?->status !== 'paid') {
+                throw ValidationException::withMessages(['payment' => ['Pesanan belum dapat diproses karena pembayaran belum lunas.']]);
+            }
+
+            $lockedBooking->update([
+                'status' => $target,
+                'scheduled_at' => $validated['scheduled_at'] ?? $lockedBooking->scheduled_at,
+                'notes' => $validated['notes'] ?? $lockedBooking->notes,
+                'started_at' => $target === 'on_the_way' ? ($lockedBooking->started_at ?? now()) : $lockedBooking->started_at,
+                'completed_at' => $target === 'cancelled' ? ($lockedBooking->completed_at ?? now()) : $lockedBooking->completed_at,
+            ]);
+
+            $this->recordHistory($lockedBooking, $partner, 'status', 'Status booking diperbarui', $validated['notes'] ?? null, ['status' => $target]);
+
+            return $lockedBooking;
+        });
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
         $serviceBooking->useServiceAddressRelation();

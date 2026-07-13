@@ -1095,6 +1095,12 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `patient_address_id` | integer/null | alamat layanan |
 | `status` | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
 | `booking_type` | enum | `scheduled`, `daily` |
+| `visit_plan` | enum | `once`, `recurring` |
+| `recurrence` | enum/null | `weekly`, `monthly`; null untuk sekali visit |
+| `visit_count` | integer | jumlah kunjungan dalam paket |
+| `care_mode` | enum | `visit`, `live_in` |
+| `location_type` | enum | `home`, `hospital` |
+| `distance_km` | decimal string/null | snapshot jarak saat matchmaking |
 | `scheduled_at` | datetime/null | jadwal |
 | `schedule_start_at` | datetime/null | mulai layanan harian |
 | `schedule_end_at` | datetime/null | selesai layanan harian |
@@ -1109,6 +1115,9 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `partner_location_speed_mps` | decimal string/null | kecepatan meter/detik |
 | `partner_location_updated_at` | datetime/null | waktu lokasi terakhir diterima backend |
 | `total_amount` | decimal string | total |
+| `transport_fee` | decimal string | total transport seluruh kunjungan; nol untuk live-in |
+| `meal_fee` | decimal string | total uang makan jika lokasi rumah sakit |
+| `fee_policy_snapshot` | object/null | snapshot aturan biaya ketika pasien booking |
 | `notes` | string/null | catatan |
 | `service` | object/null | layanan |
 | `patient` | object/null | user pasien |

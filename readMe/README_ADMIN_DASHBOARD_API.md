@@ -407,11 +407,14 @@ POST /api/admin/balance/users/{user_id}/refund
 ```json
 {
   "amount": 50000,
+  "idempotency_key": "refund-order-12-v1",
   "reference_type": "order",         // opsional
   "reference_id": 12,                // opsional
   "description": "Refund pesanan batal" // opsional
 }
 ```
+
+`idempotency_key` wajib dan harus dibuat unik oleh client untuk satu aksi refund. Retry dengan key dan nominal yang sama mengembalikan transaksi yang sama tanpa menambah saldo dua kali. Jangan membuat key baru ketika hanya mengulang request akibat timeout.
 
 ### Adjustment saldo
 ```
@@ -531,7 +534,34 @@ GET /api/admin/registrations/mitra
 
 ---
 
-## 21. Contoh Integrasi Nuxt (`$fetch`)
+## 21. Pengaturan Biaya Service Booking (`service-booking-fees`)
+
+### Ambil kebijakan aktif
+
+```http
+GET /api/admin/service-booking-fees
+```
+
+### Ubah kebijakan
+
+```http
+PUT /api/admin/service-booking-fees
+```
+
+```json
+{
+  "transport_distance_threshold_km": 10,
+  "transport_fee_per_visit": 25000,
+  "hospital_meal_fee_per_visit": 15000,
+  "is_active": true
+}
+```
+
+Semua nominal menggunakan Rupiah. Transport dikenakan per visit hanya untuk booking recurring non-live-in dengan jarak lebih besar dari ambang. Uang makan dikenakan per visit jika lokasi rumah sakit. Perubahan setting hanya berlaku untuk booking baru karena booking menyimpan `fee_policy_snapshot`.
+
+Validasi: ambang 0–1000 km, seluruh nominal minimal 0, dan `is_active` boolean. Endpoint ini membutuhkan token admin.
+
+## 22. Contoh Integrasi Nuxt (`$fetch`)
 
 ```ts
 // composables/useAdminApi.ts

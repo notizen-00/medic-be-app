@@ -467,3 +467,33 @@ Event: .service-booking.matched
 Auth endpoint: POST /api/broadcasting/auth
 Presence channel: presence-online-users
 ```
+
+## Booking Sekali Visit dan Terjadwal
+
+Kontrak booking baru menggunakan field berikut:
+
+| Field | Nilai | Keterangan |
+| --- | --- | --- |
+| `visit_plan` | `once`, `recurring` | pola kunjungan |
+| `recurrence` | `weekly`, `monthly`, null | wajib untuk recurring |
+| `visit_count` | 1-52 | recurring minimal 2 |
+| `care_mode` | `visit`, `live_in` | live-in hanya untuk recurring |
+| `location_type` | `home`, `hospital` | rumah sakit mendapat uang makan |
+
+Booking recurring menyimpan kunjungan pertama pada `schedule_start_at`, kunjungan terakhir pada `schedule_end_at`, dan pola pada `recurrence`. Versi ini belum membuat lifecycle/status terpisah untuk setiap occurrence.
+
+Transport dihitung per visit jika jarak mitra lebih dari ambang admin dan `care_mode` bukan live-in. Uang makan dihitung per visit untuk rumah sakit. Booking menyimpan `distance_km`, `transport_fee`, `meal_fee`, serta `fee_policy_snapshot`; payment memakai `total_amount` hasil snapshot tersebut.
+
+Pengaturan admin:
+
+```http
+GET /api/admin/service-booking-fees
+PUT /api/admin/service-booking-fees
+```
+
+Dokumentasi aplikasi klien yang lebih lengkap:
+
+- `readMe/README_FLUTTER_PATIENT_INTEGRATION.md`
+- `readMe/README_FLUTTER_MITRA_INTEGRATION.md`
+- `readMe/README_ADMIN_DASHBOARD_API.md`
+- `readMe/PRD-service-booking-terjadwal-dan-biaya.md`

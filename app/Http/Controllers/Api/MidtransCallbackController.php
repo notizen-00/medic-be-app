@@ -4,12 +4,15 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Payment;
+use App\Models\Consultation;
+use App\Models\ServiceBooking;
 use App\Services\AppNotificationService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 
 class MidtransCallbackController extends Controller
 {
@@ -35,9 +38,12 @@ class MidtransCallbackController extends Controller
         $this->ensureValidSignature($payload);
 
         $payment = Payment::query()
-            ->with(['consultation', 'serviceBooking.assignedPartner'])
             ->where('payment_code', $payload['order_id'])
             ->firstOrFail();
+
+        if (abs((float) $payload['gross_amount'] - (float) $payment->amount) > 0.01) {
+            throw new AccessDeniedHttpException('Nominal callback Midtrans tidak sesuai dengan tagihan.');
+        }
 
         $paymentStatus = $this->resolvePaymentStatus(
             $payload['transaction_status'],
@@ -48,11 +54,27 @@ class MidtransCallbackController extends Controller
             ? $this->resolvePaidAt($payload['settlement_time'] ?? null, $payload['transaction_time'] ?? null)
             : null;
 
-        DB::transaction(function () use ($payment, $payload, $paymentStatus, $paidAt): void {
-            $payment->update([
+        $effectiveStatus = DB::transaction(function () use ($payment, $payload, $paymentStatus, $paidAt): string {
+            $consultation = $payment->consultation_id
+                ? Consultation::query()->lockForUpdate()->findOrFail($payment->consultation_id)
+                : null;
+            $booking = $payment->service_booking_id
+                ? ServiceBooking::query()->lockForUpdate()->findOrFail($payment->service_booking_id)
+                : null;
+            $lockedPayment = Payment::query()->lockForUpdate()->findOrFail($payment->id);
+
+            if ($lockedPayment->status === 'paid' && in_array($paymentStatus, ['pending', 'failed', 'expired'], true)) {
+                return 'paid';
+            }
+
+            if ($paymentStatus === 'refunded' && ($booking?->partner_balance_transaction_id || $consultation?->partner_balance_transaction_id)) {
+                throw new ConflictHttpException('Refund memerlukan rekonsiliasi karena dana sudah dikreditkan ke saldo mitra.');
+            }
+
+            $lockedPayment->update([
                 'payment_method' => $this->resolvePaymentMethod($payload['payment_type'] ?? null, $payment->payment_method),
                 'status' => $paymentStatus,
-                'paid_at' => $paidAt,
+                'paid_at' => $paymentStatus === 'paid' ? ($lockedPayment->paid_at ?? $paidAt) : $lockedPayment->paid_at,
                 'notes' => trim(sprintf(
                     'Midtrans %s via %s.',
                     $payload['transaction_status'],
@@ -60,30 +82,39 @@ class MidtransCallbackController extends Controller
                 )),
             ]);
 
-            if (! $payment->consultation) {
-                $this->handleServiceBookingPayment($payment, $paymentStatus);
+            if (! $consultation) {
+                if ($booking) {
+                    $lockedPayment->setRelation('serviceBooking', $booking);
+                    $this->handleServiceBookingPayment($lockedPayment, $paymentStatus);
+                }
 
-                return;
+                return $paymentStatus;
             }
 
-            if ($paymentStatus === 'paid' && $payment->consultation->status === 'pending') {
-                $payment->consultation->update([
+            if ($paymentStatus === 'paid' && in_array($consultation->status, ['pending', 'cancelled'], true)) {
+                $consultation->update([
                     'status' => 'confirmed',
                 ]);
             }
 
-            if (in_array($paymentStatus, ['failed', 'expired'], true) && $payment->consultation->status === 'pending') {
-                $payment->consultation->update([
+            if (in_array($paymentStatus, ['failed', 'expired'], true) && $consultation->status === 'pending') {
+                $consultation->update([
                     'status' => 'cancelled',
                 ]);
             }
-        });
+
+            if ($paymentStatus === 'refunded' && $consultation->status !== 'completed') {
+                $consultation->update(['status' => 'cancelled', 'ended_at' => $consultation->ended_at ?? now()]);
+            }
+
+            return $paymentStatus;
+        }, 5);
 
         return response()->json([
             'message' => 'Callback Midtrans berhasil diproses.',
             'data' => [
                 'payment_code' => $payment->payment_code,
-                'status' => $paymentStatus,
+                'status' => $effectiveStatus,
             ],
         ]);
     }
@@ -96,7 +127,14 @@ class MidtransCallbackController extends Controller
             return;
         }
 
-        if ($paymentStatus === 'paid' && in_array($booking->status, ['pending', 'confirmed', 'scheduled'], true)) {
+        if ($paymentStatus === 'paid' && in_array($booking->status, ['pending', 'confirmed', 'scheduled', 'cancelled'], true)) {
+            if ($booking->status === 'cancelled') {
+                $booking->update([
+                    'status' => $booking->scheduled_at ? 'scheduled' : 'confirmed',
+                    'completed_at' => null,
+                ]);
+            }
+
             if ($booking->status === 'pending' && $booking->scheduled_at) {
                 $booking->update([
                     'status' => 'scheduled',
@@ -125,6 +163,10 @@ class MidtransCallbackController extends Controller
             $booking->update([
                 'status' => 'cancelled',
             ]);
+        }
+
+        if ($paymentStatus === 'refunded' && $booking->status !== 'completed') {
+            $booking->update(['status' => 'cancelled', 'completed_at' => $booking->completed_at ?? now()]);
         }
     }
 

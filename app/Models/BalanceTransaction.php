@@ -17,6 +17,7 @@ class BalanceTransaction extends Model
         'user_id',
         'balance_id',
         'transaction_uuid',
+        'idempotency_key',
         'type',
         'status',
         'amount',

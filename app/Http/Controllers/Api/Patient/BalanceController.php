@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Api\Patient;
 
 use App\Http\Controllers\Controller;
-use App\Models\UserBalance;
 use Illuminate\Http\Request;
 use App\Services\BalanceService;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class BalanceController extends Controller
 {
@@ -111,37 +110,8 @@ class BalanceController extends Controller
      */
     public function confirmTopup(Request $request)
     {
-        $validated = $request->validate([
-            'transaction_uuid' => 'required|string',
-            'status' => 'required|in:success,completed',
+        throw ValidationException::withMessages([
+            'topup' => ['Top-up tidak dapat dikonfirmasi oleh aplikasi pasien. Saldo hanya boleh dikreditkan oleh callback payment gateway yang terverifikasi.'],
         ]);
-
-        $transaction = \App\Models\BalanceTransaction::where('transaction_uuid', $validated['transaction_uuid'])
-            ->where('type', 'topup')
-            ->where('status', 'pending')
-            ->firstOrFail();
-
-        return DB::transaction(function () use ($transaction, $validated) {
-            // Lock balance
-            $balance = UserBalance::lockForUpdate()->find($transaction->balance_id);
-
-            // Update transaksi
-            $transaction->status = 'completed';
-            $transaction->save();
-
-            // Update balance
-            $balance->balance += $transaction->amount;
-            $balance->balance_after = $balance->balance;
-            $balance->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Topup berhasil dikonfirmasi',
-                'data' => [
-                    'transaction_id' => $transaction->id,
-                    'new_balance' => $balance->balance,
-                ],
-            ]);
-        });
     }
 }

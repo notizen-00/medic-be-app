@@ -105,11 +105,19 @@ class ConsultationsController extends Controller
 
         $consultation = DB::transaction(function () use ($consultation, $partner, $payload, $validated): Consultation {
             $lockedConsultation = Consultation::query()
-                ->with('payment')
                 ->lockForUpdate()
                 ->findOrFail($consultation->id);
+            $payment = $lockedConsultation->payment()->lockForUpdate()->first();
 
-            if ($validated['status'] === 'completed' && (! $lockedConsultation->payment || $lockedConsultation->payment->status !== 'paid')) {
+            if (in_array($lockedConsultation->status, ['completed', 'cancelled'], true) && $validated['status'] !== $lockedConsultation->status) {
+                throw ValidationException::withMessages(['status' => ['Status konsultasi final tidak dapat diubah kembali.']]);
+            }
+
+            if ($validated['status'] === 'cancelled' && ($payment?->status === 'paid' || $lockedConsultation->partner_balance_transaction_id !== null)) {
+                throw ValidationException::withMessages(['status' => ['Konsultasi yang sudah dibayar atau payout harus melalui proses refund.']]);
+            }
+
+            if ($validated['status'] === 'completed' && $payment?->status !== 'paid') {
                 throw ValidationException::withMessages([
                     'payment' => ['Konsultasi hanya dapat diselesaikan setelah pembayaran lunas.'],
                 ]);

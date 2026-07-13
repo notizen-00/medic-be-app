@@ -23,6 +23,7 @@ class ConsultationPayoutService
             'reference_type' => 'consultation',
             'reference_id' => $consultation->id,
             'consultation_code' => $consultation->consultation_code,
+            'idempotency_key' => 'consultation:'.$consultation->id.':partner_payout',
             'description' => 'Pendapatan konsultasi '.$consultation->consultation_code,
             ...$meta,
         ]);

@@ -476,6 +476,11 @@ Field request `POST /api/patient/service-bookings`:
 | `schedule_start_at` | Tidak | datetime | wajib untuk `booking_type=daily` jika `scheduled_at` tidak dikirim |
 | `schedule_end_at` | Tidak | datetime | tanggal selesai `daily`; harus >= `schedule_start_at` |
 | `duration_days` | Tidak | integer | 1-30; dipakai untuk `daily` jika `schedule_end_at` tidak dikirim |
+| `visit_plan` | Tidak | enum | `once` atau `recurring`; default `once` untuk kompatibilitas |
+| `recurrence` | Kondisional | enum | wajib saat `visit_plan=recurring`; `weekly` atau `monthly` |
+| `visit_count` | Kondisional | integer | wajib saat recurring; minimal 2, maksimal 52 |
+| `care_mode` | Tidak | enum | `visit` atau `live_in`; live-in hanya untuk recurring |
+| `location_type` | Tidak | enum | `home` atau `hospital`; default `home` |
 | `notes` | Tidak | string | catatan pasien; max 1000 |
 | `promo_code` | Tidak | string | kode promo jika dipakai |
 
@@ -535,6 +540,99 @@ promo fixed = dipotong satu kali
 total_amount = subtotal - discount_amount
 ```
 
+#### Booking sekali visit dan terjadwal
+
+Untuk UI Flutter baru, gunakan `visit_plan` dan jangan menjadikan `booking_type` sebagai pilihan utama. `booking_type` tetap ada untuk kompatibilitas versi aplikasi lama.
+
+Contoh sekali visit:
+
+```json
+{
+  "service_id": 1,
+  "patient_member_id": 2,
+  "visit_plan": "once",
+  "scheduled_at": "2026-07-20 09:00:00",
+  "care_mode": "visit",
+  "location_type": "home"
+}
+```
+
+Contoh terjadwal mingguan empat kunjungan di rumah sakit:
+
+```json
+{
+  "service_id": 1,
+  "patient_member_id": 2,
+  "visit_plan": "recurring",
+  "recurrence": "weekly",
+  "visit_count": 4,
+  "scheduled_at": "2026-07-20 09:00:00",
+  "care_mode": "visit",
+  "location_type": "hospital"
+}
+```
+
+Contoh terjadwal bulanan live-in:
+
+```json
+{
+  "service_id": 1,
+  "patient_member_id": 2,
+  "visit_plan": "recurring",
+  "recurrence": "monthly",
+  "visit_count": 3,
+  "scheduled_at": "2026-07-20 09:00:00",
+  "care_mode": "live_in",
+  "location_type": "hospital"
+}
+```
+
+Aturan biaya:
+
+```text
+service_subtotal = (base_price + markup_per_visit) x visit_count
+transport_fee = transport_fee_per_visit x visit_count
+meal_fee = hospital_meal_fee_per_visit x visit_count
+total_amount = service_subtotal - discount_amount + transport_fee + meal_fee
+```
+
+Transport hanya dikenakan jika recurring, bukan live-in, koordinat tersedia, dan jarak mitra lebih besar dari ambang admin. Jarak tepat pada ambang tidak dikenai biaya. Lokasi rumah sakit selalu mendapat uang makan per visit. Nilai `distance_km` dan `fee_policy_snapshot` dari response harus dianggap snapshot/read-only.
+
+Rekomendasi state form Flutter:
+
+```dart
+enum VisitPlan { once, recurring }
+enum Recurrence { weekly, monthly }
+enum CareMode { visit, liveIn }
+enum BookingLocationType { home, hospital }
+
+Map<String, dynamic> buildBookingPayload({
+  required int serviceId,
+  required int patientMemberId,
+  required VisitPlan visitPlan,
+  Recurrence? recurrence,
+  int visitCount = 1,
+  required DateTime scheduledAt,
+  CareMode careMode = CareMode.visit,
+  BookingLocationType locationType = BookingLocationType.home,
+}) {
+  return {
+    'service_id': serviceId,
+    'patient_member_id': patientMemberId,
+    'visit_plan': visitPlan.name,
+    if (visitPlan == VisitPlan.recurring) ...{
+      'recurrence': recurrence!.name,
+      'visit_count': visitCount,
+    },
+    'scheduled_at': scheduledAt.toIso8601String(),
+    'care_mode': careMode == CareMode.liveIn ? 'live_in' : 'visit',
+    'location_type': locationType.name,
+  };
+}
+```
+
+Di layar konfirmasi, tampilkan breakdown dari response backend (`subtotal`, `discount_amount`, `transport_fee`, `meal_fee`, `total_amount`). Jangan menghitung total final hanya di Flutter karena tarif admin dan jarak mitra ditentukan backend.
+
 Response penting:
 
 ```json
@@ -551,23 +649,31 @@ Response penting:
       "assigned_partner_user_id": 12,
       "patient_address_id": null,
       "booking_type": "scheduled",
+      "visit_plan": "recurring",
+      "recurrence": "weekly",
+      "visit_count": 4,
+      "care_mode": "visit",
+      "location_type": "hospital",
+      "distance_km": "12.40",
       "status": "pending",
       "duration_days": 1,
-      "total_amount": "100000.00",
+      "total_amount": "560000.00",
       "payment": {
         "id": 50,
         "payment_code": "PAY-SVC-20260707120000-123",
         "status": "pending",
-        "amount": "100000.00"
+        "amount": "560000.00"
       }
     },
     "pricing": {
       "base_price": 100000,
       "markup_amount": 0,
-      "subtotal": 100000,
+      "subtotal": 400000,
       "discount_amount": 0,
-      "total_amount": 100000,
-      "duration_days": 1
+      "transport_fee": "100000.00",
+      "meal_fee": "60000.00",
+      "total_amount": 560000,
+      "visit_count": 4
     },
     "matchmaking": {
       "partner_service_id": 4,
@@ -991,7 +1097,6 @@ Response `data` order berisi field utama:
 GET /api/patient/balance
 GET /api/patient/balance/history
 POST /api/patient/balance/topup
-PATCH /api/patient/balance/topup/confirm
 ```
 
 Query `GET /api/patient/balance/history`:
@@ -1009,12 +1114,7 @@ Field `POST /api/patient/balance/topup`:
 | `amount` | Ya | numeric | minimal 10000 |
 | `payment_method` | Ya | enum | saat ini hanya `midtrans` |
 
-Field `PATCH /api/patient/balance/topup/confirm`:
-
-| Field | Required | Type | Rule/Catatan |
-| --- | --- | --- | --- |
-| `transaction_uuid` | Ya | string | UUID transaksi topup |
-| `status` | Ya | enum | `success`, `completed` |
+Endpoint lama `PATCH /api/patient/balance/topup/confirm` dinonaktifkan dan selalu ditolak. Flutter tidak boleh mengubah saldo berdasarkan hasil UI pembayaran. Saldo hanya boleh bertambah setelah backend menerima dan memverifikasi callback payment gateway. Setelah pembayaran, refresh `GET /api/patient/balance` dan history untuk memperoleh status server.
 
 ## Notifikasi
 
@@ -1492,6 +1592,12 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `patient_address_id` | integer/null | alamat layanan |
 | `status` | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
 | `booking_type` | enum | `scheduled`, `daily` |
+| `visit_plan` | enum | `once`, `recurring` |
+| `recurrence` | enum/null | `weekly`, `monthly`; null untuk sekali visit |
+| `visit_count` | integer | jumlah kunjungan |
+| `care_mode` | enum | `visit`, `live_in` |
+| `location_type` | enum | `home`, `hospital` |
+| `distance_km` | decimal string/null | snapshot jarak mitra ke lokasi pasien |
 | `scheduled_at` | datetime/null | jadwal |
 | `schedule_start_at` | datetime/null | tanggal mulai layanan |
 | `schedule_end_at` | datetime/null | tanggal selesai layanan |
@@ -1512,6 +1618,9 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `discount_type` | string/null | tipe diskon |
 | `subtotal` | decimal string/null | subtotal sebelum diskon |
 | `markup_amount` | decimal string/null | markup layanan |
+| `transport_fee` | decimal string | total biaya transport booking |
+| `meal_fee` | decimal string | total uang makan booking |
+| `fee_policy_snapshot` | object/null | tarif dan ambang admin saat booking dibuat |
 | `service` | object/null | data layanan |
 | `patient` | object/null | user pasien |
 | `patient_member` | object/null | profil pasien keluarga |

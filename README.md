@@ -12,13 +12,16 @@
 Backend Laravel untuk aplikasi layanan kesehatan Medic. Modul utama meliputi autentikasi pasien/mitra/admin, konsultasi, pemesanan layanan homecare, apotek, order produk, pengiriman, saldo, promo, pembayaran Midtrans, laporan, dan jurnal operasional.
 
 Dokumentasi tambahan:
-- [Environment files](README_ENV.md)
-- [Feature Testing](README_TESTING_FEATURE.md)
-- [WebSocket](README_WEBSOCKET.md)
-- [Flutter Mitra Integration](README_FLUTTER_MITRA_INTEGRATION.md)
-- [Docker](README_DOCKER.md)
-- [Reports & Journals](README_REPORTS_JOURNALS.md)
-- [Service Booking & Matchmaking](README_SERVICE_BOOKINGS.md)
+- [Environment files](readMe/README_ENV.md)
+- [Feature Testing](readMe/README_TESTING_FEATURE.md)
+- [WebSocket](readMe/README_WEBSOCKET.md)
+- [Flutter Patient Integration](readMe/README_FLUTTER_PATIENT_INTEGRATION.md)
+- [Flutter Mitra Integration](readMe/README_FLUTTER_MITRA_INTEGRATION.md)
+- [Admin Dashboard API](readMe/README_ADMIN_DASHBOARD_API.md)
+- [Docker](readMe/README_DOCKER.md)
+- [Reports & Journals](readMe/README_REPORTS_JOURNALS.md)
+- [Service Booking & Matchmaking](readMe/README_SERVICE_BOOKINGS.md)
+- [PRD Booking Terjadwal dan Biaya](readMe/PRD-service-booking-terjadwal-dan-biaya.md)
 
 ## Service Booking Matchmaking
 
@@ -54,6 +57,10 @@ Endpoint admin master service:
 - `GET|PATCH|DELETE /api/admin/service-categories/{serviceCategory}`
 - `GET|POST /api/admin/services`
 - `GET|PATCH|DELETE /api/admin/services/{service}`
+
+## Financial Transaction Safety
+
+Perubahan saldo memakai transaksi database dan row lock. Payout service booking/konsultasi memiliki `idempotency_key` unik sehingga retry tidak mengkredit saldo dua kali. Booking atau konsultasi yang sudah dibayar/payout tidak dapat dibatalkan langsung; harus melalui alur refund. Callback pembayaran lama tidak boleh menurunkan status `paid` menjadi `failed`/`expired`, nominal callback wajib sama dengan tagihan, dan konfirmasi top-up dari aplikasi pasien dinonaktifkan.
 
 Lihat detail payload dan contoh response di [README_SERVICE_BOOKINGS.md](README_SERVICE_BOOKINGS.md).
 
