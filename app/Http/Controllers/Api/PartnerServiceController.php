@@ -29,6 +29,7 @@ class PartnerServiceController extends Controller
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+        $applications->getCollection()->each(fn (PartnerService $partnerService) => $this->normalizePartnerVisiblePrice($partnerService));
 
         return response()->json([
             'message' => 'Daftar layanan mitra berhasil diambil.',
@@ -43,7 +44,6 @@ class PartnerServiceController extends Controller
         $validated = $request->validate([
             'service_id' => ['required', 'integer', 'exists:services,id'],
             'price' => ['nullable', 'numeric', 'min:0'],
-            'custom_price' => ['nullable', 'numeric', 'min:0'],
             'coverage_radius_km' => ['nullable', 'integer', 'min:1'],
             'notes' => ['nullable', 'string'],
         ]);
@@ -57,8 +57,7 @@ class PartnerServiceController extends Controller
                 'partner_user_id' => $partner->id,
             ],
             [
-                'price' => $validated['price'] ?? $validated['custom_price'] ?? null,
-                'custom_price' => $validated['custom_price'] ?? $validated['price'] ?? null,
+                'price' => $this->partnerVisiblePriceForService($service, $validated['price'] ?? null),
                 'coverage_radius_km' => $validated['coverage_radius_km'] ?? null,
                 'is_active' => true,
                 'is_available' => true,
@@ -68,6 +67,7 @@ class PartnerServiceController extends Controller
         );
 
         $application->load(['service', 'partner.partnerProfile']);
+        $this->normalizePartnerVisiblePrice($application);
 
         return response()->json([
             'message' => 'Pengajuan layanan mitra berhasil dibuat dan menunggu verifikasi admin.',
@@ -87,23 +87,24 @@ class PartnerServiceController extends Controller
 
         $validated = $request->validate([
             'price' => ['nullable', 'numeric', 'min:0'],
-            'custom_price' => ['nullable', 'numeric', 'min:0'],
             'coverage_radius_km' => ['nullable', 'integer', 'min:1'],
             'is_active' => ['sometimes', 'boolean'],
             'is_available' => ['sometimes', 'boolean'],
             'notes' => ['nullable', 'string'],
         ]);
 
-        if (array_key_exists('price', $validated) && ! array_key_exists('custom_price', $validated)) {
-            $validated['custom_price'] = $validated['price'];
-        }
+        $partnerService->loadMissing('service');
 
-        if (array_key_exists('custom_price', $validated) && ! array_key_exists('price', $validated)) {
-            $validated['price'] = $validated['custom_price'];
+        if (array_key_exists('price', $validated) || $partnerService->service) {
+            $validated['price'] = $this->partnerVisiblePriceForService(
+                $partnerService->service,
+                $validated['price'] ?? $partnerService->price
+            );
         }
 
         $partnerService->update($validated);
         $partnerService->load(['service', 'partner.partnerProfile']);
+        $this->normalizePartnerVisiblePrice($partnerService);
 
         return response()->json([
             'message' => 'Layanan mitra berhasil diperbarui.',
@@ -128,6 +129,7 @@ class PartnerServiceController extends Controller
         ]);
 
         $partnerService->load(['service', 'partner.partnerProfile']);
+        $this->normalizePartnerVisiblePrice($partnerService);
 
         return response()->json([
             'message' => 'Status verifikasi layanan mitra berhasil diperbarui.',
@@ -188,6 +190,33 @@ class PartnerServiceController extends Controller
                 'service_id' => ['Layanan ini tidak sesuai dengan profesi mitra yang sedang login.'],
             ]);
         }
+    }
+
+    private function partnerVisiblePriceForService(Service $service, mixed $requestedPrice = null): float
+    {
+        if ($this->serviceUsesPartnerCustomPrice($service)) {
+            return (float) ($requestedPrice ?? $service->base_price ?? 0);
+        }
+
+        return (float) ($service->base_price ?? 0);
+    }
+
+    private function normalizePartnerVisiblePrice(PartnerService $partnerService): void
+    {
+        if (! $partnerService->service) {
+            return;
+        }
+
+        $partnerService->setAttribute('price', $this->partnerVisiblePriceForService(
+            $partnerService->service,
+            $partnerService->price
+        ));
+    }
+
+    private function serviceUsesPartnerCustomPrice(Service $service): bool
+    {
+        return $service->service_type === 'consultation'
+            || in_array($service->service_mode, ['chat', 'voice', 'video'], true);
     }
 
     private function ensureAdminAccess(Request $request): void

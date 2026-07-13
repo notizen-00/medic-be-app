@@ -150,7 +150,7 @@ class User extends Authenticatable
             'partner_services',
             'partner_user_id',
             'service_id'
-        )->withPivot(['custom_price', 'coverage_radius_km', 'is_active', 'is_verified', 'notes'])
+        )->withPivot(['price', 'coverage_radius_km', 'is_active', 'is_verified', 'notes'])
             ->withTimestamps();
     }
 

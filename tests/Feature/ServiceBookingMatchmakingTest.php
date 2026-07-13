@@ -5,9 +5,11 @@ use App\Models\PartnerService;
 use App\Models\PatientAddress;
 use App\Models\Service;
 use App\Models\ServiceBooking;
+use App\Models\ServiceMarkupSetting;
 use App\Models\User;
 use App\Services\ServicePartnerSelectionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
 
 uses(RefreshDatabase::class);
 
@@ -133,7 +135,6 @@ it('uses admin service base price for non consultation service booking regardles
         'service_id' => $service->id,
         'partner_user_id' => $expensivePartner->id,
         'price' => 500000,
-        'custom_price' => 500000,
         'coverage_radius_km' => 30,
         'is_active' => true,
         'is_verified' => true,
@@ -144,7 +145,6 @@ it('uses admin service base price for non consultation service booking regardles
         'service_id' => $service->id,
         'partner_user_id' => $cheapPartner->id,
         'price' => 10000,
-        'custom_price' => 10000,
         'coverage_radius_km' => 30,
         'is_active' => true,
         'is_verified' => true,
@@ -189,7 +189,6 @@ it('keeps partner custom price for consultation services', function () {
         'service_id' => $service->id,
         'partner_user_id' => $doctor->id,
         'price' => 125000,
-        'custom_price' => 125000,
         'coverage_radius_km' => 30,
         'is_active' => true,
         'is_verified' => true,
@@ -200,4 +199,101 @@ it('keeps partner custom price for consultation services', function () {
         ->resolveBestPartnerForQuickBooking($service->fresh(), null);
 
     expect($selected->effective_price)->toBe(125000.0);
+});
+
+it('normalizes patient service booking catalog partner prices to admin base price for non consultation services', function () {
+    $patient = User::factory()->create(['role' => 'pasien']);
+    $partner = User::factory()->create(['role' => 'mitra']);
+
+    $service = Service::create([
+        'service_code' => 'SVC-CATALOG-ADMIN-PRICE',
+        'name' => 'Pasang Infus Catalog',
+        'service_type' => 'procedure',
+        'service_mode' => 'visit',
+        'base_price' => 185000,
+        'requires_address' => true,
+        'requires_matchmaking' => true,
+        'is_active' => true,
+        'is_homecare' => true,
+    ]);
+
+    PartnerProfile::create([
+        'user_id' => $partner->id,
+        'profession' => 'perawat',
+        'years_of_experience' => 3,
+        'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
+    ]);
+
+    PartnerService::create([
+        'service_id' => $service->id,
+        'partner_user_id' => $partner->id,
+        'price' => 500000,
+        'coverage_radius_km' => 30,
+        'is_active' => true,
+        'is_verified' => true,
+        'is_available' => true,
+    ]);
+
+    ServiceMarkupSetting::create([
+        'service_id' => $service->id,
+        'markup_type' => 'percentage',
+        'markup_value' => 10,
+        'is_active' => true,
+        'priority' => 1,
+    ]);
+
+    Sanctum::actingAs($patient);
+
+    $this->getJson("/api/patient/service-bookings/services/{$service->id}")
+        ->assertOk()
+        ->assertJsonPath('data.service.base_price', '185000.00')
+        ->assertJsonPath('data.service.partner_services.0.price', '185000.00')
+        ->assertJsonMissingPath('data.service.partner_services.0.custom_price')
+        ->assertJsonPath('data.pricing.base_price', 185000)
+        ->assertJsonPath('data.pricing.markup_amount', 18500)
+        ->assertJsonPath('data.pricing.final_price', 203500)
+        ->assertJsonPath('data.service.pricing.final_price', 203500);
+});
+
+it('locks mitra service application price to admin base price for non consultation services', function () {
+    $partner = User::factory()->create(['role' => 'mitra']);
+
+    PartnerProfile::create([
+        'user_id' => $partner->id,
+        'profession' => 'perawat',
+        'years_of_experience' => 3,
+        'is_available' => true,
+        'verification_status' => 'verified',
+        'verified_at' => now(),
+    ]);
+
+    $service = Service::create([
+        'service_code' => 'SVC-MITRA-BASE-PRICE',
+        'name' => 'Pasang Infus Mitra Price',
+        'service_type' => 'procedure',
+        'service_mode' => 'visit',
+        'base_price' => 185000,
+        'requires_address' => true,
+        'requires_matchmaking' => true,
+        'is_active' => true,
+        'is_homecare' => true,
+    ]);
+
+    Sanctum::actingAs($partner);
+
+    $this->postJson('/api/mitra/service-applications', [
+        'service_id' => $service->id,
+        'price' => 999999,
+        'coverage_radius_km' => 15,
+    ])->assertCreated()
+        ->assertJsonPath('data.price', '185000.00')
+        ->assertJsonMissingPath('data.custom_price');
+
+    $this->assertDatabaseHas('partner_services', [
+        'service_id' => $service->id,
+        'partner_user_id' => $partner->id,
+        'price' => 185000,
+    ]);
 });

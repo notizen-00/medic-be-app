@@ -296,8 +296,10 @@ Contoh UI data mapping:
 | Butuh jadwal | `service.requires_schedule` |
 
 Catatan harga service booking:
-- Untuk layanan non-konsultasi seperti homecare, perawat datang, bidan datang, caregiver, procedure, dan visit, harga pasien memakai `service.base_price` dari admin.
-- Harga custom di `partner_services.price` / `custom_price` tidak dipakai sebagai harga pasien untuk service booking non-konsultasi.
+- Untuk layanan non-konsultasi seperti homecare, perawat datang, bidan datang, caregiver, procedure, dan visit, harga dasar memakai `service.base_price` dari admin.
+- Harga yang tampil ke pasien sebaiknya memakai `pricing.final_price` karena sudah memasukkan Service Markup Setting.
+- `partner_services.price` hanya harga dasar yang terlihat di aplikasi mitra dan dikunci ke `service.base_price` untuk service booking non-konsultasi.
+- Field `partner_services.custom_price` sudah tidak dipakai.
 - Konsultasi dokter tetap memakai flow konsultasi dan harga custom dokter dari `partner_profile.consultation_fee`.
 
 Contoh user pilih category Nurse:

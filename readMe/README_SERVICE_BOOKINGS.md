@@ -91,7 +91,6 @@ PartnerService::updateOrCreate(
     ],
     [
         'price' => 185000,
-        'custom_price' => 185000,
         'coverage_radius_km' => 15,
         'is_active' => true,
         'is_verified' => true,
@@ -127,7 +126,7 @@ services.base_price -> markup aplikasi -> promo -> total_amount
 
 Catatan:
 - Untuk layanan non-konsultasi seperti homecare, perawat datang, bidan datang, caregiver, procedure, dan visit, harga pasien memakai `services.base_price` yang ditentukan admin.
-- `partner_services.price` dan `partner_services.custom_price` tidak dipakai sebagai harga pasien dan tidak menjadi pembeda ranking untuk service booking non-konsultasi.
+- `partner_services.price` dipakai sebagai harga yang terlihat di aplikasi mitra. Untuk service booking non-konsultasi, backend menguncinya ke `services.base_price`.
 - Untuk konsultasi dokter, flow konsultasi tetap memakai harga custom dokter dari `partner_profiles.consultation_fee`.
 
 ## Admin Master Service

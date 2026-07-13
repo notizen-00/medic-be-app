@@ -258,7 +258,6 @@ Body `POST /api/mitra/service-applications`:
 ```json
 {
   "service_id": 1,
-  "custom_price": 150000,
   "coverage_radius_km": 15,
   "notes": "Siap untuk homecare area Jember Kota"
 }
@@ -269,8 +268,7 @@ Field:
 | Field | Required | Type | Rule/Catatan |
 | --- | --- | --- | --- |
 | `service_id` | Ya | integer | harus ada di `services` |
-| `price` | Tidak | numeric | harga layanan mitra, field baru sesuai arsitektur marketplace |
-| `custom_price` | Tidak | numeric | min 0 |
+| `price` | Tidak | numeric | hanya dipakai untuk service konsultasi/chat jika tersedia; service booking non-konsultasi dikunci ke `service.base_price` |
 | `coverage_radius_km` | Tidak | integer | min 1 |
 | `notes` | Tidak | string | catatan pengajuan |
 
@@ -278,8 +276,6 @@ Body `PATCH /api/mitra/service-applications/{partnerService}`:
 
 ```json
 {
-  "price": 175000,
-  "custom_price": 175000,
   "coverage_radius_km": 20,
   "is_available": true,
   "is_active": true,
@@ -1075,7 +1071,7 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `id` | integer | ID pengajuan layanan |
 | `service_id` | integer | ID layanan |
 | `partner_user_id` | integer | ID mitra |
-| `custom_price` | decimal string/null | harga custom |
+| `price` | decimal string/null | harga yang terlihat di mitra; untuk service booking non-konsultasi mengikuti `service.base_price` |
 | `coverage_radius_km` | integer/null | radius layanan |
 | `is_active` | boolean | aktif/nonaktif |
 | `is_verified` | boolean | sudah diverifikasi admin |

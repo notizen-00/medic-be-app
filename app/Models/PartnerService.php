@@ -10,7 +10,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
     'service_id',
     'partner_user_id',
     'price',
-    'custom_price',
     'coverage_radius_km',
     'is_active',
     'is_verified',
@@ -23,7 +22,6 @@ class PartnerService extends Model
     {
         return [
             'price' => 'decimal:2',
-            'custom_price' => 'decimal:2',
             'is_active' => 'boolean',
             'is_verified' => 'boolean',
             'is_available' => 'boolean',

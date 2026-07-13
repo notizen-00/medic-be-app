@@ -10,6 +10,7 @@ use App\Models\Payment;
 use App\Models\Service;
 use App\Models\ServiceBooking;
 use App\Models\ServiceBookingHistory;
+use App\Models\ServiceMarkupSetting;
 use App\Services\BalanceService;
 use App\Services\AppNotificationService;
 use App\Services\MidtransService;
@@ -58,6 +59,10 @@ class ServiceBookingController extends Controller
         }
 
         $services = $query->orderBy('sort_order')->orderBy('name')->paginate($request->input('per_page', 20));
+        $services->getCollection()->each(function (Service $service) {
+            $this->normalizePublicPartnerServicePrices($service);
+            $this->attachPatientPricing($service);
+        });
 
         return response()->json([
             'success' => true,
@@ -71,10 +76,12 @@ class ServiceBookingController extends Controller
     public function show(Service $service)
     {
         $service->load(['serviceCategory', 'partnerServices']);
+        $this->normalizePublicPartnerServicePrices($service);
+        $this->attachPatientPricing($service);
 
         // Hitung harga dengan markup
         $pricing = [];
-        $markupSetting = \App\Models\ServiceMarkupSetting::getActiveSetting($service->id);
+        $markupSetting = ServiceMarkupSetting::getActiveSetting($service->id);
 
         if ($markupSetting && $markupSetting->is_active) {
             $pricing = [
@@ -219,7 +226,7 @@ class ServiceBookingController extends Controller
         ]);
 
         // Get markup setting
-        $markupSetting = \App\Models\ServiceMarkupSetting::getActiveSetting($service->id);
+            $markupSetting = ServiceMarkupSetting::getActiveSetting($service->id);
         $markupAmount = 0;
 
         if ($markupSetting && $markupSetting->is_active) {
@@ -399,6 +406,51 @@ class ServiceBookingController extends Controller
     private function basePriceFor(Service $service): float
     {
         return (float) ($service->base_price ?? $service->price ?? 0);
+    }
+
+    private function normalizePublicPartnerServicePrices(Service $service): void
+    {
+        if ($this->serviceUsesPartnerCustomPrice($service)) {
+            return;
+        }
+
+        $adminPrice = $this->basePriceFor($service);
+        $service->loadMissing('partnerServices');
+
+        $service->partnerServices->each(function ($partnerService) use ($adminPrice) {
+            $partnerService->setAttribute('price', $adminPrice);
+            $partnerService->setAttribute('effective_price', $adminPrice);
+        });
+    }
+
+    private function attachPatientPricing(Service $service): void
+    {
+        $basePrice = $this->basePriceFor($service);
+        $markupSetting = ServiceMarkupSetting::getActiveSetting($service->id);
+
+        if ($markupSetting && $markupSetting->is_active) {
+            $service->setAttribute('pricing', [
+                'base_price' => $basePrice,
+                'markup_type' => $markupSetting->markup_type,
+                'markup_value' => $markupSetting->markup_value,
+                'markup_amount' => $markupSetting->calculateMarkup($basePrice),
+                'final_price' => $markupSetting->calculateFinalPrice($basePrice),
+            ]);
+
+            return;
+        }
+
+        $service->setAttribute('pricing', [
+            'base_price' => $basePrice,
+            'markup_amount' => 0,
+            'final_price' => $basePrice,
+        ]);
+    }
+
+    private function serviceUsesPartnerCustomPrice(Service $service): bool
+    {
+        return $service->service_type === 'consultation'
+            || in_array($service->service_mode, ['chat', 'voice', 'video'], true);
     }
 
     private function serviceRequiresAddress(Service $service): bool

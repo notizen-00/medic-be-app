@@ -43,6 +43,7 @@ class ServicePartnerSelectionService
             ->orderBy('name')
             ->get()
             ->map(function (Service $service) use ($address) {
+                $this->normalizePublicPartnerServicePrices($service);
                 $eligiblePartners = $this->eligiblePartnerServices($service, $address);
                 $bestPartner = $eligiblePartners->first();
                 $nearestPartner = $eligiblePartners
@@ -138,6 +139,7 @@ class ServicePartnerSelectionService
     private function eligiblePartnerServices(Service $service, ?PatientAddress $address): Collection
     {
         $service->loadMissing('partnerServices.partner.partnerProfile');
+        $this->normalizePublicPartnerServicePrices($service);
 
         $bookingMetrics = $this->bookingMetricsForService($service);
         $maxDistanceKm = max(
@@ -199,7 +201,7 @@ class ServicePartnerSelectionService
     private function effectivePriceForPartnerService(Service $service, PartnerService $partnerService): float
     {
         if ($this->usesPartnerCustomPrice($service)) {
-            return (float) ($partnerService->price ?? $partnerService->custom_price ?? $this->adminPriceForService($service));
+            return (float) ($partnerService->price ?? $this->adminPriceForService($service));
         }
 
         return $this->adminPriceForService($service);
@@ -214,6 +216,21 @@ class ServicePartnerSelectionService
     {
         return $service->service_type === 'consultation'
             || in_array($service->service_mode, ['chat', 'voice', 'video'], true);
+    }
+
+    private function normalizePublicPartnerServicePrices(Service $service): void
+    {
+        if ($this->usesPartnerCustomPrice($service)) {
+            return;
+        }
+
+        $service->loadMissing('partnerServices');
+        $adminPrice = $this->adminPriceForService($service);
+
+        $service->partnerServices->each(function (PartnerService $partnerService) use ($adminPrice) {
+            $partnerService->setAttribute('price', $adminPrice);
+            $partnerService->setAttribute('effective_price', $adminPrice);
+        });
     }
 
     private function bookingMetricsForService(Service $service): Collection
