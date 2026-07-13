@@ -9,6 +9,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 
 class ServicesController extends Controller
 {
@@ -85,6 +87,7 @@ class ServicesController extends Controller
 
     public function store(Request $request): JsonResponse
     {
+        $this->validateIncomingImage($request);
         $validated = $request->validate($this->rules());
         $imagePath = $this->resolveServiceImage($request, $validated);
 
@@ -118,6 +121,7 @@ class ServicesController extends Controller
     {
         // PHP hanya menjamin parsing upload multipart ke UploadedFile pada request POST.
         // Route POST /services/{service} disediakan khusus update yang membawa image.
+        $this->validateIncomingImage($request);
         $validated = $request->validate($this->rules($service));
 
         if (array_key_exists('category_id', $validated) && ! array_key_exists('service_category_id', $validated)) {
@@ -195,7 +199,8 @@ class ServicesController extends Controller
             'sort_order' => ['nullable', 'integer', 'min:0'],
             'is_active' => ['nullable', 'boolean'],
             'is_homecare' => ['nullable', 'boolean'],
-            'image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
+            // Signature gambar dan MIME diperiksa dari isi file oleh validateIncomingImage().
+            'image' => ['nullable', 'file', 'max:2048'],
             'image_path' => ['nullable', 'string', 'max:255'],
             'remove_image' => ['nullable', 'boolean'],
         ];
@@ -208,6 +213,45 @@ class ServicesController extends Controller
         } while (Service::where('service_code', $code)->exists());
 
         return $code;
+    }
+
+    private function validateIncomingImage(Request $request): void
+    {
+        if (! $request->has('image') && ! $request->files->has('image')) {
+            return;
+        }
+
+        $file = $request->file('image');
+
+        if (! $file instanceof UploadedFile) {
+            throw ValidationException::withMessages([
+                'image' => ['Field image diterima sebagai teks, bukan file upload. Jangan set Content-Type manual dan pastikan FormData berisi File/Blob binary.'],
+            ]);
+        }
+
+        if (! $file->isValid()) {
+            throw ValidationException::withMessages([
+                'image' => [sprintf(
+                    'Upload gambar gagal sebelum diproses aplikasi (upload error code %d). Periksa ukuran file dan konfigurasi proxy/PHP.',
+                    $file->getError()
+                )],
+            ]);
+        }
+
+        $imageInfo = @getimagesize($file->getRealPath());
+        $detectedMime = is_array($imageInfo) ? ($imageInfo['mime'] ?? null) : null;
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp'];
+
+        if (! in_array($detectedMime, $allowedMimes, true)) {
+            throw ValidationException::withMessages([
+                'image' => [sprintf(
+                    'Isi file bukan JPG, PNG, atau WEBP yang valid. Nama: %s; MIME browser: %s; MIME terdeteksi: %s.',
+                    $file->getClientOriginalName(),
+                    $file->getClientMimeType() ?: 'tidak ada',
+                    $detectedMime ?: 'tidak dikenali'
+                )],
+            ]);
+        }
     }
 
 
