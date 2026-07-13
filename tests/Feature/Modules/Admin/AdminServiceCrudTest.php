@@ -4,6 +4,8 @@ use App\Models\Service;
 use App\Models\ServiceCategory;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 it('lets admin manage service categories and services', function () {
     $admin = User::factory()->create([
@@ -86,4 +88,29 @@ it('blocks non admin users from admin service crud', function () {
 
     $this->getJson('/api/admin/services', apiHeaders())
         ->assertForbidden();
+});
+
+it('updates a service image through multipart post', function () {
+    Storage::fake('public');
+    $admin = User::factory()->create(['role' => 'admin']);
+    $service = Service::create([
+        'service_code' => 'SRV-IMAGE-TEST',
+        'name' => 'Service Image Test',
+        'service_type' => 'procedure',
+        'base_price' => 100000,
+        'is_active' => true,
+    ]);
+    Sanctum::actingAs($admin);
+
+    $response = $this->post("/api/admin/services/{$service->id}", [
+        'name' => 'Service Image Updated',
+        'image' => UploadedFile::fake()->image('service.webp', 400, 400),
+    ], apiHeaders());
+
+    $response->assertOk()
+        ->assertJsonPath('data.name', 'Service Image Updated');
+
+    $path = $service->fresh()->image;
+    expect($path)->toStartWith('services/');
+    Storage::disk('public')->assertExists($path);
 });

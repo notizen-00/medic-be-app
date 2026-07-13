@@ -132,7 +132,25 @@ Gunakan **`multipart/form-data`** bila mengirim gambar.
 ```
 PATCH /api/admin/services/{id}
 ```
-**Body:** field sama dengan create (semua opsional). Untuk ganti gambar kirim `image` (file). Untuk hapus gambar kirim `remove_image=true`.
+**Body:** field sama dengan create (semua opsional). Untuk ganti gambar, gunakan `POST /api/admin/services/{id}` dengan `multipart/form-data` dan kirim `image` sebagai binary file. `PATCH` tetap tersedia untuk update JSON/tanpa file. Untuk hapus gambar kirim `remove_image=true`.
+
+Jangan memakai request multipart dengan HTTP `PATCH` langsung. PHP dapat membaca field-nya sebagai teks dan tidak memasukkan gambar ke `UploadedFile`, yang menghasilkan error `The image field must be an image`. Jika client hanya menyediakan method update, gunakan POST langsung atau POST dengan `_method=PATCH`.
+
+```ts
+const form = new FormData()
+form.append('name', values.name)
+if (selectedFile instanceof File) {
+  form.append('image', selectedFile, selectedFile.name)
+}
+
+await $fetch(`${BASE}/services/${serviceId}`, {
+  method: 'POST',
+  headers: { Authorization: `Bearer ${token}` },
+  body: form,
+})
+```
+
+Jangan mengatur header `Content-Type` sendiri dan jangan append `image` ketika nilainya URL lama, string kosong, object preview, atau `undefined`.
 
 ### Delete
 ```

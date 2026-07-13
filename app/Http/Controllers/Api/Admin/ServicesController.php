@@ -116,6 +116,8 @@ class ServicesController extends Controller
 
     public function update(Request $request, Service $service): JsonResponse
     {
+        // PHP hanya menjamin parsing upload multipart ke UploadedFile pada request POST.
+        // Route POST /services/{service} disediakan khusus update yang membawa image.
         $validated = $request->validate($this->rules($service));
 
         if (array_key_exists('category_id', $validated) && ! array_key_exists('service_category_id', $validated)) {

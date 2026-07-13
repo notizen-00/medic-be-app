@@ -33,7 +33,8 @@ Endpoint admin yang sudah mendukung upload gambar:
 
 ```
 POST   /api/admin/services
-PATCH  /api/admin/services/{id}
+POST   /api/admin/services/{id} (update dengan file)
+PATCH  /api/admin/services/{id} (update JSON/tanpa file)
 ```
 
 Gunakan `multipart/form-data`.
@@ -136,3 +137,21 @@ CachedNetworkImage(
 ```
 
 Frontend tidak perlu membangun URL secara manual karena backend telah menyediakan field `image_url`.
+
+### Update gambar dari Flutter
+
+Gunakan `MultipartRequest('POST', ...)`, bukan multipart PATCH:
+
+```dart
+final request = http.MultipartRequest(
+  'POST',
+  Uri.parse('$baseUrl/api/admin/services/$serviceId'),
+)
+  ..headers['Authorization'] = 'Bearer $token'
+  ..headers['Accept'] = 'application/json'
+  ..files.add(await http.MultipartFile.fromPath('image', imageFile.path));
+
+final response = await request.send();
+```
+
+Field harus bernama tepat `image`. Jangan mengirim `image_url`, path lokal, hasil `XFile.toString()`, atau object JSON sebagai nilai `image`.

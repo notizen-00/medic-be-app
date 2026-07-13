@@ -312,6 +312,8 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::post('/', 'store');
             Route::get('/{service}', 'show');
+            // Gunakan POST untuk update multipart agar PHP mengisi UploadedFile dengan benar.
+            Route::post('/{service}', 'update');
             Route::patch('/{service}', 'update');
             Route::delete('/{service}', 'destroy');
         });
