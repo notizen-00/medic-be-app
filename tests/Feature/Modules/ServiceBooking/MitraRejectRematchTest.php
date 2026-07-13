@@ -165,13 +165,19 @@ it('keeps booking pending without assigned partner when no replacement partner i
     $this->patchJson("/api/mitra/service-bookings/{$bookingId}/reject")
         ->assertOk()
         ->assertJsonPath('matchmaking_status', 'waiting_partner_available')
-        ->assertJsonPath('data.assigned_partner_user_id', null);
+        ->assertJsonPath('data.assigned_partner_user_id', null)
+        ->assertJsonPath('data.payment', null);
 
     Event::assertNotDispatched(ServiceBookingMatched::class);
 
     $this->assertDatabaseHas('service_bookings', [
         'id' => $bookingId,
         'assigned_partner_user_id' => null,
+        'status' => 'pending',
+    ]);
+
+    $this->assertDatabaseMissing('payments', [
+        'service_booking_id' => $bookingId,
         'status' => 'pending',
     ]);
 

@@ -871,7 +871,7 @@ Body opsional:
 }
 ```
 
-Endpoint ini tidak menerima `service_id` dari mobile. Backend memakai `service_id`, alamat, jadwal, mode layanan, dan histori reject dari booking yang sama. Kandidat yang sudah pernah menolak booking tersebut tidak akan dipilih ulang, lalu backend memprioritaskan mitra aktif terdekat dari alamat pasien. Jika mitra pengganti ditemukan, response akan berisi `matchmaking_status=rematched_waiting_partner_acceptance`, `assigned_partner_user_id` baru, serta `payment.amount` terbaru. Jika belum ada, response tetap `matchmaking_status=waiting_partner_available`.
+Endpoint ini tidak menerima `service_id` dari mobile. Backend memakai `service_id`, alamat, jadwal, mode layanan, dan histori reject dari booking yang sama. Kandidat yang sudah pernah menolak booking tersebut tidak akan dipilih ulang, lalu backend memprioritaskan mitra aktif terdekat dari alamat pasien. Jika mitra pengganti ditemukan, response akan berisi `matchmaking_status=rematched_waiting_partner_acceptance`, `assigned_partner_user_id` baru, serta `payment.amount` terbaru. Jika payment sebelumnya sudah dihapus karena gagal matchmaking, backend akan membuat payment pending baru saat rematch berhasil. Jika belum ada, response tetap `matchmaking_status=waiting_partner_available`, `assigned_partner_user_id=null`, dan `payment=null`.
 
 State machine yang disarankan:
 
@@ -923,6 +923,8 @@ Copy UI yang disarankan:
 | `onTheWay` | Mitra sedang menuju lokasi |
 | `completed` | Layanan selesai |
 | `cancelled` | Booking dibatalkan |
+
+Saat `findingReplacementPartner`, backend menghapus transaksi/payment pending agar pasien tidak membayar booking tanpa mitra. Flutter jangan memanggil endpoint pay sampai rematch berhasil dan `payment` kembali tersedia.
 
 Saat rematch berhasil, backend dapat mengubah:
 

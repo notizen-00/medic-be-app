@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Mitra;
 use App\Events\ServiceBookingPartnerLocationUpdated;
 use App\Events\ServiceBookingMatched;
 use App\Http\Controllers\Controller;
+use App\Models\Payment;
 use App\Models\PartnerService;
 use App\Models\Service;
 use App\Models\ServiceBooking;
@@ -217,15 +218,7 @@ class ServiceBookingController extends Controller
                     'status' => 'pending',
                 ]);
 
-                if ($payment && $payment->status === 'pending') {
-                    $payment->update([
-                        'amount' => $finalPrice,
-                        'snap_token' => null,
-                        'snap_redirect_url' => null,
-                        'snap_token_created_at' => null,
-                        'notes' => trim(($payment->notes ? $payment->notes."\n" : '').'Nominal diperbarui setelah rematch mitra.'),
-                    ]);
-                }
+                $this->refreshPendingPaymentAfterMatchmaking($lockedBooking, $payment, $finalPrice, 'Transaksi pembayaran dibuat/diperbarui setelah rematch mitra.');
 
                 $rematch = [
                     'partner_service_id' => $selectedPartnerService->id,
@@ -275,15 +268,7 @@ class ServiceBookingController extends Controller
                     'status' => 'pending',
                 ]);
 
-                if ($payment && $payment->status === 'pending') {
-                    $payment->update([
-                        'amount' => $finalPrice,
-                        'snap_token' => null,
-                        'snap_redirect_url' => null,
-                        'snap_token_created_at' => null,
-                        'notes' => trim(($payment->notes ? $payment->notes."\n" : '').'Nominal diperbarui karena belum ada mitra pengganti.'),
-                    ]);
-                }
+                $this->deletePendingPaymentAfterMatchmakingFailure($payment);
 
                 $rematch = null;
 
@@ -743,6 +728,43 @@ class ServiceBookingController extends Controller
             ->unique()
             ->values()
             ->all();
+    }
+
+    private function refreshPendingPaymentAfterMatchmaking(ServiceBooking $serviceBooking, ?Payment $payment, float $amount, string $note): Payment
+    {
+        if ($payment && $payment->status === 'pending') {
+            $payment->update([
+                'amount' => $amount,
+                'snap_token' => null,
+                'snap_redirect_url' => null,
+                'snap_token_created_at' => null,
+                'notes' => trim(($payment->notes ? $payment->notes."\n" : '').$note),
+            ]);
+
+            $serviceBooking->setRelation('payment', $payment->fresh());
+
+            return $serviceBooking->payment;
+        }
+
+        $payment = Payment::create([
+            'service_booking_id' => $serviceBooking->id,
+            'patient_user_id' => $serviceBooking->patient_user_id,
+            'payment_code' => 'PAY-SVC-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
+            'status' => 'pending',
+            'amount' => $amount,
+            'notes' => $note,
+        ]);
+
+        $serviceBooking->setRelation('payment', $payment);
+
+        return $payment;
+    }
+
+    private function deletePendingPaymentAfterMatchmakingFailure(?Payment $payment): void
+    {
+        if ($payment && $payment->status === 'pending') {
+            $payment->delete();
+        }
     }
 
     private function ensurePartnerCanHandleBooking(User $partner, ServiceBooking $serviceBooking): void

@@ -393,9 +393,15 @@ Jika belum ada mitra pengganti:
 {
   "message": "Pesanan ditolak. Belum ada mitra pengganti yang tersedia.",
   "matchmaking_status": "waiting_partner_available",
-  "matchmaking": null
+  "matchmaking": null,
+  "data": {
+    "assigned_partner_user_id": null,
+    "payment": null
+  }
 }
 ```
+
+Pada kondisi `waiting_partner_available`, backend menghapus transaksi/payment pending agar pasien tidak bisa membayar booking yang belum memiliki mitra. Payment pending akan dibuat ulang otomatis jika pasien menekan rematch lagi dan backend menemukan mitra pengganti.
 
 Frontend mitra setelah reject sebaiknya menghapus order dari list mitra yang menolak. Mitra baru akan mendapat order lewat list API miliknya dan event realtime `service-booking.matched`.
 

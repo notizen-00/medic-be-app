@@ -216,6 +216,84 @@ it('prioritizes the nearest replacement partner during patient manual rematch af
     expect($fartherHighScoreReplacement->id)->not->toBe($nearestReplacement->id);
 });
 
+it('deletes pending payment when manual rematch fails and recreates it when a replacement is found', function () {
+    $patient = User::factory()->create(['role' => 'pasien']);
+    $rejectedPartner = User::factory()->create(['role' => 'mitra']);
+    $service = createManualRematchService();
+    $patientMember = createManualRematchPatientMember($patient);
+
+    $booking = ServiceBooking::create([
+        'booking_code' => 'SVC-MANUAL-REMATCH-004',
+        'service_id' => $service->id,
+        'patient_user_id' => $patient->id,
+        'patient_member_id' => $patientMember->id,
+        'assigned_partner_user_id' => null,
+        'status' => 'pending',
+        'visit_plan' => 'once',
+        'visit_count' => 1,
+        'care_mode' => 'visit',
+        'location_type' => 'home',
+        'subtotal' => 100000,
+        'discount_amount' => 0,
+        'markup_amount' => 0,
+        'total_amount' => 100000,
+    ]);
+
+    Payment::create([
+        'service_booking_id' => $booking->id,
+        'patient_user_id' => $patient->id,
+        'payment_code' => 'PAY-MANUAL-REMATCH-004',
+        'status' => 'pending',
+        'amount' => 100000,
+    ]);
+
+    ServiceBookingHistory::create([
+        'service_booking_id' => $booking->id,
+        'actor_user_id' => $rejectedPartner->id,
+        'type' => 'status',
+        'title' => 'Mitra menolak pesanan',
+        'description' => 'Mitra menolak pesanan layanan.',
+        'meta' => [
+            'status' => 'rejected_by_partner',
+            'type' => 'matchmaking',
+            'rejected_partner_user_id' => $rejectedPartner->id,
+        ],
+        'handled_at' => now(),
+    ]);
+
+    Event::fake([ServiceBookingMatched::class]);
+    Sanctum::actingAs($patient);
+
+    $this->postJson("/api/patient/service-bookings/{$booking->id}/rematch")
+        ->assertOk()
+        ->assertJsonPath('matchmaking_status', 'waiting_partner_available')
+        ->assertJsonPath('data.payment', null);
+
+    $this->assertDatabaseMissing('payments', [
+        'service_booking_id' => $booking->id,
+        'status' => 'pending',
+    ]);
+
+    $this->patchJson("/api/patient/service-bookings/{$booking->id}/pay")
+        ->assertUnprocessable()
+        ->assertJsonValidationErrors(['service_booking']);
+
+    $replacementPartner = createManualRematchPartner($service, -8.1750000, 113.7000000);
+
+    $this->postJson("/api/patient/service-bookings/{$booking->id}/rematch")
+        ->assertOk()
+        ->assertJsonPath('matchmaking_status', 'rematched_waiting_partner_acceptance')
+        ->assertJsonPath('data.assigned_partner_user_id', $replacementPartner->id)
+        ->assertJsonPath('data.payment.status', 'pending')
+        ->assertJsonPath('data.payment.amount', '100000.00');
+
+    $this->assertDatabaseHas('payments', [
+        'service_booking_id' => $booking->id,
+        'status' => 'pending',
+        'amount' => 100000,
+    ]);
+});
+
 it('prevents patient manual rematch while a partner is still assigned', function () {
     $patient = User::factory()->create(['role' => 'pasien']);
     $service = createManualRematchService();
