@@ -301,6 +301,7 @@ Endpoint ini untuk menerima dan memproses booking layanan yang ditugaskan ke mit
 GET /api/mitra/service-bookings
 GET /api/mitra/service-bookings/{serviceBooking}
 PATCH /api/mitra/service-bookings/{serviceBooking}/accept
+PATCH /api/mitra/service-bookings/{serviceBooking}/reject
 PATCH /api/mitra/service-bookings/{serviceBooking}/start-journey
 PATCH /api/mitra/service-bookings/{serviceBooking}/location
 POST /api/mitra/service-bookings/{serviceBooking}/histories
@@ -345,6 +346,58 @@ Syarat:
 - status booking masih `pending` atau `scheduled`.
 
 Accept bisa dilakukan sebelum pembayaran lunas. Setelah accept, pasien melanjutkan pembayaran. Aksi berikutnya seperti `start-journey`, `histories`, dan `complete` membutuhkan `payment.status = paid`.
+
+### Reject Booking
+
+```http
+PATCH /api/mitra/service-bookings/{serviceBooking}/reject
+```
+
+Body:
+
+```json
+{
+  "notes": "Jadwal tidak tersedia."
+}
+```
+
+Syarat:
+
+- booking masih ditugaskan ke mitra login;
+- status masih `pending` atau `scheduled`;
+- `accepted_at` masih null;
+- pembayaran belum `paid`.
+
+Saat mitra menolak, booking pasien tidak otomatis batal. Backend mencatat penolakan mitra, mengecualikan mitra tersebut dari kandidat, lalu mencari mitra lain untuk layanan yang sama. Jika mitra pengganti ditemukan, `assigned_partner_user_id`, `distance_km`, `transport_fee`, `meal_fee`, `total_amount`, dan payment pending akan disesuaikan dengan mitra baru, kemudian event `service-booking.matched` dikirim ke mitra pengganti.
+
+Response penting:
+
+```json
+{
+  "message": "Pesanan ditolak dan berhasil dialihkan ke mitra lain.",
+  "matchmaking_status": "rematched_waiting_partner_acceptance",
+  "matchmaking": {
+    "partner_service_id": 18,
+    "partner_user_id": 44,
+    "distance_km": 3.25,
+    "match_score": 78.4,
+    "quality_score": 82.5,
+    "rematched_from_partner_user_id": 12
+  }
+}
+```
+
+Jika belum ada mitra pengganti:
+
+```json
+{
+  "message": "Pesanan ditolak. Belum ada mitra pengganti yang tersedia.",
+  "matchmaking_status": "waiting_partner_available",
+  "matchmaking": null
+}
+```
+
+Frontend mitra setelah reject sebaiknya menghapus order dari list mitra yang menolak. Mitra baru akan mendapat order lewat list API miliknya dan event realtime `service-booking.matched`.
 
 Payout saldo mitra juga dapat terjadi saat pasien mengonfirmasi layanan selesai lewat:
 

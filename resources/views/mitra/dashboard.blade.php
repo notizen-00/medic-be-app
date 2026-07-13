@@ -558,7 +558,7 @@
             <p id="order-alert-notes" class="muted" style="margin-bottom:0;"></p>
         </div>
         <div class="order-alert-actions">
-            <button id="order-alert-dismiss-button" type="button" class="secondary-button">Tidak</button>
+            <button id="order-alert-dismiss-button" type="button" class="secondary-button">Tolak</button>
             <button id="order-alert-accept-button" type="button" class="primary-button">Terima</button>
         </div>
     </div>
@@ -642,7 +642,6 @@
             transportFee,
             mealFee,
             appMarkup: numberValue(breakdown.app_markup_amount ?? booking?.markup_amount),
-            patientTotal: numberValue(breakdown.patient_total_amount ?? booking?.patient_total_amount),
             partnerPayout,
             transportApplied: Boolean(breakdown.transport_fee_applied ?? transportFee > 0),
             mealApplied: Boolean(breakdown.meal_fee_applied ?? mealFee > 0),
@@ -835,6 +834,26 @@
             log('Order layanan diterima.', payload, eventLog);
         } catch (error) {
             log('Accept order failed.', error, eventLog);
+            $('#order-alert-accept-button').disabled = false;
+            $('#order-alert-dismiss-button').disabled = false;
+        }
+    }
+
+    async function rejectPendingMatchedBooking() {
+        if (!pendingMatchedBooking) return;
+
+        const bookingId = pendingMatchedBooking.id;
+        $('#order-alert-accept-button').disabled = true;
+        $('#order-alert-dismiss-button').disabled = true;
+
+        try {
+            const payload = await apiFetch(`/api/mitra/service-bookings/${bookingId}/reject`, { method: 'PATCH', body: JSON.stringify({ notes: 'Ditolak dari popup dashboard mitra.' }) });
+            hideOrderAlert();
+            setView('orders');
+            await loadBookings();
+            log('Order layanan ditolak dan diproses rematch.', payload, eventLog);
+        } catch (error) {
+            log('Reject order failed.', error, eventLog);
             $('#order-alert-accept-button').disabled = false;
             $('#order-alert-dismiss-button').disabled = false;
         }
@@ -1182,9 +1201,10 @@
             <div class="amount-breakdown">${bookingPayoutBreakdownHtml(b)}</div>
             <div class="actions">
                 <button type="button" class="primary-button" data-booking-action="accept" ${!['pending', 'scheduled'].includes(b.status) ? 'disabled' : ''}>Terima</button>
+                <button type="button" class="secondary-button" data-booking-action="reject" ${!['pending', 'scheduled'].includes(b.status) ? 'disabled' : ''}>Tolak</button>
                 <button type="button" class="primary-button" data-booking-action="start-journey" ${!['confirmed', 'scheduled'].includes(b.status) ? 'disabled' : ''}>Berangkat</button>
                 <button type="button" class="secondary-button" data-booking-action="complete" ${!['confirmed', 'on_the_way'].includes(b.status) ? 'disabled' : ''}>Selesai</button>
-                <button type="button" class="danger-button" data-booking-action="cancelled" ${['completed', 'cancelled'].includes(b.status) ? 'disabled' : ''}>Batalkan</button>
+                <button type="button" class="danger-button" data-booking-action="cancelled" ${['pending', 'scheduled', 'completed', 'cancelled'].includes(b.status) ? 'disabled' : ''}>Batalkan</button>
             </div>
             <p style="margin-top:14px;"><b>Catatan:</b> ${escapeHtml(b.notes || '-')}</p>
             <h3>Histori</h3>
@@ -1195,13 +1215,25 @@
 
     async function updateBooking(action) {
         if (!activeBooking) return;
-        const endpoint = action === 'cancelled' ? `/api/mitra/service-bookings/${activeBooking.id}/status` : `/api/mitra/service-bookings/${activeBooking.id}/${action}`;
-        const body = action === 'cancelled' ? { status: 'cancelled', notes: 'Dibatalkan dari dashboard mitra.' } : { notes: 'Diproses dari dashboard mitra.' };
+        const endpoint = action === 'cancelled'
+            ? `/api/mitra/service-bookings/${activeBooking.id}/status`
+            : `/api/mitra/service-bookings/${activeBooking.id}/${action}`;
+        const body = action === 'cancelled'
+            ? { status: 'cancelled', notes: 'Dibatalkan dari dashboard mitra.' }
+            : { notes: action === 'reject' ? 'Ditolak dari dashboard mitra.' : 'Diproses dari dashboard mitra.' };
         try {
             const payload = await apiFetch(endpoint, { method: 'PATCH', body: JSON.stringify(body) });
             activeBooking = payload.data;
             renderBookingDetail();
             await loadBookings();
+            if (action === 'reject') {
+                activeBooking = null;
+                $('#order-title').textContent = 'Pilih order';
+                $('#order-subtitle').textContent = 'Detail order layanan akan tampil di sini.';
+                $('#order-badge').textContent = '-';
+                $('#order-badge').className = 'badge';
+                $('#order-detail').innerHTML = '<div class="empty">Order ditolak dan dialihkan jika ada mitra pengganti.</div>';
+            }
         } catch (error) {
             log('Update order failed.', error, eventLog);
         }
@@ -1314,7 +1346,7 @@
     $('#mark-all-read-button').addEventListener('click', markAllNotificationsRead);
     $('#logout-button').addEventListener('click', logout);
     $('#order-alert-accept-button').addEventListener('click', acceptPendingMatchedBooking);
-    $('#order-alert-dismiss-button').addEventListener('click', hideOrderAlert);
+    $('#order-alert-dismiss-button').addEventListener('click', rejectPendingMatchedBooking);
 
     availabilityToggle.addEventListener('change', () => toggleAvailability(availabilityToggle.checked));
     statAvailabilityToggle.addEventListener('change', () => toggleAvailability(statAvailabilityToggle.checked));

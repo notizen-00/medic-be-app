@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Mitra;
 
 use App\Events\ServiceBookingPartnerLocationUpdated;
+use App\Events\ServiceBookingMatched;
 use App\Http\Controllers\Controller;
 use App\Models\PartnerService;
 use App\Models\Service;
@@ -11,6 +12,8 @@ use App\Models\ServiceBookingHistory;
 use App\Models\User;
 use App\Services\AppNotificationService;
 use App\Services\BalanceService;
+use App\Services\ServiceBookingFeeCalculator;
+use App\Services\ServicePartnerSelectionService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +24,9 @@ class ServiceBookingController extends Controller
 {
     public function __construct(
         private readonly BalanceService $balanceService,
-        private readonly AppNotificationService $notifications
+        private readonly AppNotificationService $notifications,
+        private readonly ServicePartnerSelectionService $servicePartnerSelectionService,
+        private readonly ServiceBookingFeeCalculator $feeCalculator
     ) {
     }
 
@@ -129,6 +134,220 @@ class ServiceBookingController extends Controller
         return response()->json([
             'message' => 'Pesanan layanan berhasil diterima.',
             'data' => $serviceBooking,
+        ]);
+    }
+
+    public function reject(Request $request, ServiceBooking $serviceBooking): JsonResponse
+    {
+        $partner = $this->resolveAuthenticatedMedicalPartner($request);
+        $this->ensureAssignedPartner($partner, $serviceBooking);
+
+        $validated = $request->validate([
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $rematch = null;
+        $serviceBooking = DB::transaction(function () use ($serviceBooking, $partner, $validated, &$rematch): ServiceBooking {
+            $lockedBooking = ServiceBooking::query()
+                ->with(['service.partnerServices.partner.partnerProfile', 'patientMember', 'address', 'histories', 'payment'])
+                ->lockForUpdate()
+                ->findOrFail($serviceBooking->id);
+            $payment = $lockedBooking->payment()->lockForUpdate()->first();
+
+            if (! in_array($lockedBooking->status, ['pending', 'scheduled'], true)) {
+                throw ValidationException::withMessages([
+                    'status' => ['Pesanan hanya dapat ditolak sebelum diterima mitra.'],
+                ]);
+            }
+
+            if ($lockedBooking->accepted_at !== null) {
+                throw ValidationException::withMessages([
+                    'service_booking' => ['Pesanan yang sudah diterima tidak dapat ditolak dari flow ini.'],
+                ]);
+            }
+
+            if ($payment && $payment->status === 'paid') {
+                throw ValidationException::withMessages([
+                    'payment' => ['Pesanan yang sudah dibayar tidak dapat ditolak langsung. Gunakan proses pembatalan/refund.'],
+                ]);
+            }
+
+            $rejectedPartnerIds = $this->rejectedPartnerUserIds($lockedBooking);
+            $rejectedPartnerIds[] = $partner->id;
+
+            $this->recordHistory(
+                $lockedBooking,
+                $partner,
+                'status',
+                'Mitra menolak pesanan',
+                $validated['notes'] ?? 'Mitra menolak pesanan layanan.',
+                [
+                    'status' => 'rejected_by_partner',
+                    'type' => 'matchmaking',
+                    'rejected_partner_user_id' => $partner->id,
+                    'previous_assigned_partner_user_id' => $lockedBooking->assigned_partner_user_id,
+                ]
+            );
+
+            try {
+                $selectedPartnerService = $this->servicePartnerSelectionService
+                    ->resolveNearestPartnerForBooking($lockedBooking->service, $lockedBooking->serviceAddress(), $rejectedPartnerIds);
+
+                $fees = $this->feeCalculator->calculate([
+                    'visit_plan' => $lockedBooking->visit_plan ?? 'once',
+                    'visit_count' => max(1, (int) ($lockedBooking->visit_count ?? 1)),
+                    'care_mode' => $lockedBooking->care_mode ?? 'visit',
+                    'location_type' => $lockedBooking->location_type ?? 'home',
+                    'distance_km' => $selectedPartnerService->distance_km,
+                ]);
+                $finalPrice = (float) $lockedBooking->subtotal
+                    - (float) $lockedBooking->discount_amount
+                    + $fees['transport_fee']
+                    + $fees['meal_fee'];
+
+                $lockedBooking->update([
+                    'assigned_partner_user_id' => $selectedPartnerService->partner_user_id,
+                    'accepted_at' => null,
+                    'distance_km' => $selectedPartnerService->distance_km,
+                    'transport_fee' => $fees['transport_fee'],
+                    'meal_fee' => $fees['meal_fee'],
+                    'fee_policy_snapshot' => $fees['policy_snapshot'],
+                    'total_amount' => $finalPrice,
+                    'status' => 'pending',
+                ]);
+
+                if ($payment && $payment->status === 'pending') {
+                    $payment->update([
+                        'amount' => $finalPrice,
+                        'snap_token' => null,
+                        'snap_redirect_url' => null,
+                        'snap_token_created_at' => null,
+                        'notes' => trim(($payment->notes ? $payment->notes."\n" : '').'Nominal diperbarui setelah rematch mitra.'),
+                    ]);
+                }
+
+                $rematch = [
+                    'partner_service_id' => $selectedPartnerService->id,
+                    'partner_user_id' => $selectedPartnerService->partner_user_id,
+                    'distance_km' => $selectedPartnerService->distance_km,
+                    'match_score' => $selectedPartnerService->match_score,
+                    'quality_score' => $selectedPartnerService->quality_score,
+                    'rematched_from_partner_user_id' => $partner->id,
+                ];
+
+                $this->recordHistory(
+                    $lockedBooking,
+                    null,
+                    'status',
+                    'Pesanan dialihkan ke mitra lain',
+                    'Sistem otomatis mencari mitra pengganti setelah penolakan.',
+                    [
+                        'status' => 'rematched',
+                        'type' => 'matchmaking',
+                        'new_partner_user_id' => $selectedPartnerService->partner_user_id,
+                        'rejected_partner_user_id' => $partner->id,
+                    ]
+                );
+
+                return $lockedBooking->fresh(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'payment']);
+            } catch (ValidationException) {
+                $fees = $this->feeCalculator->calculate([
+                    'visit_plan' => $lockedBooking->visit_plan ?? 'once',
+                    'visit_count' => max(1, (int) ($lockedBooking->visit_count ?? 1)),
+                    'care_mode' => $lockedBooking->care_mode ?? 'visit',
+                    'location_type' => $lockedBooking->location_type ?? 'home',
+                    'distance_km' => null,
+                ]);
+                $finalPrice = (float) $lockedBooking->subtotal
+                    - (float) $lockedBooking->discount_amount
+                    + $fees['transport_fee']
+                    + $fees['meal_fee'];
+
+                $lockedBooking->update([
+                    'assigned_partner_user_id' => null,
+                    'accepted_at' => null,
+                    'distance_km' => null,
+                    'transport_fee' => $fees['transport_fee'],
+                    'meal_fee' => $fees['meal_fee'],
+                    'fee_policy_snapshot' => $fees['policy_snapshot'],
+                    'total_amount' => $finalPrice,
+                    'status' => 'pending',
+                ]);
+
+                if ($payment && $payment->status === 'pending') {
+                    $payment->update([
+                        'amount' => $finalPrice,
+                        'snap_token' => null,
+                        'snap_redirect_url' => null,
+                        'snap_token_created_at' => null,
+                        'notes' => trim(($payment->notes ? $payment->notes."\n" : '').'Nominal diperbarui karena belum ada mitra pengganti.'),
+                    ]);
+                }
+
+                $rematch = null;
+
+                $this->recordHistory(
+                    $lockedBooking,
+                    null,
+                    'status',
+                    'Belum ada mitra pengganti',
+                    'Semua kandidat tersedia sudah menolak atau belum ada mitra aktif lain.',
+                    ['status' => 'waiting_partner_available', 'type' => 'matchmaking']
+                );
+
+                return $lockedBooking->fresh(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'payment']);
+            }
+        });
+
+        $serviceBooking->useServiceAddressRelation();
+        $this->normalizeMitraBookingAmounts($serviceBooking);
+
+        if ($rematch) {
+            ServiceBookingMatched::dispatch($serviceBooking, $rematch);
+
+            $this->notifications->send($serviceBooking->assigned_partner_user_id, [
+                'type' => 'service_booking.matched',
+                'title' => 'Pesanan layanan baru',
+                'body' => 'Ada pesanan layanan baru yang dialihkan ke Anda. Terima pesanan, lalu tunggu pasien menyelesaikan pembayaran.',
+                'action_url' => '/mitra/service-bookings/'.$serviceBooking->id,
+                'reference_type' => 'service_booking',
+                'reference_id' => $serviceBooking->id,
+                'data' => [
+                    'service_booking_id' => $serviceBooking->id,
+                    'booking_code' => $serviceBooking->booking_code,
+                    'patient_user_id' => $serviceBooking->patient_user_id,
+                    'assigned_partner_user_id' => $serviceBooking->assigned_partner_user_id,
+                    'status' => $serviceBooking->status,
+                    'payment_status' => $serviceBooking->payment?->status,
+                    'matchmaking' => $rematch,
+                ],
+            ]);
+        }
+
+        $this->notifications->send($serviceBooking->patient_user_id, [
+            'type' => $rematch ? 'service_booking.rematched' : 'service_booking.waiting_partner',
+            'title' => $rematch ? 'Mitra pengganti ditemukan' : 'Sedang mencari mitra pengganti',
+            'body' => $rematch
+                ? 'Pesanan layanan '.$serviceBooking->booking_code.' sudah dialihkan ke mitra lain.'
+                : 'Mitra sebelumnya menolak pesanan '.$serviceBooking->booking_code.'. Sistem akan mencari mitra lain yang tersedia.',
+            'action_url' => '/patient/service-bookings/'.$serviceBooking->id,
+            'reference_type' => 'service_booking',
+            'reference_id' => $serviceBooking->id,
+            'data' => [
+                'service_booking_id' => $serviceBooking->id,
+                'booking_code' => $serviceBooking->booking_code,
+                'status' => $serviceBooking->status,
+                'assigned_partner_user_id' => $serviceBooking->assigned_partner_user_id,
+            ],
+        ]);
+
+        return response()->json([
+            'message' => $rematch
+                ? 'Pesanan ditolak dan berhasil dialihkan ke mitra lain.'
+                : 'Pesanan ditolak. Belum ada mitra pengganti yang tersedia.',
+            'data' => $serviceBooking,
+            'matchmaking' => $rematch,
+            'matchmaking_status' => $rematch ? 'rematched_waiting_partner_acceptance' : 'waiting_partner_available',
         ]);
     }
 
@@ -510,6 +729,19 @@ class ServiceBookingController extends Controller
         $serviceBooking->setAttribute('partner_payout_amount', $partnerPayoutAmount);
         $serviceBooking->setAttribute('partner_payout_breakdown', $payoutBreakdown);
         $serviceBooking->setAttribute('total_amount', $partnerPayoutAmount);
+    }
+
+    private function rejectedPartnerUserIds(ServiceBooking $serviceBooking): array
+    {
+        $serviceBooking->loadMissing('histories');
+
+        return $serviceBooking->histories
+            ->map(fn (ServiceBookingHistory $history) => $history->meta['rejected_partner_user_id'] ?? null)
+            ->filter()
+            ->map(fn ($partnerUserId) => (int) $partnerUserId)
+            ->unique()
+            ->values()
+            ->all();
     }
 
     private function ensurePartnerCanHandleBooking(User $partner, ServiceBooking $serviceBooking): void

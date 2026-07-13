@@ -220,6 +220,7 @@ Route::middleware('auth:sanctum')->group(function () {
             Route::get('/', 'index');
             Route::get('/{serviceBooking}', 'show');
             Route::patch('/{serviceBooking}/accept', 'accept');
+            Route::patch('/{serviceBooking}/reject', 'reject');
             Route::patch('/{serviceBooking}/start-journey', 'startJourney');
             Route::patch('/{serviceBooking}/location', 'updateLocation');
             Route::post('/{serviceBooking}/histories', 'addTreatmentHistory');

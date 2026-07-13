@@ -79,14 +79,14 @@ class ServicePartnerSelectionService
             ->values();
     }
 
-    public function resolveNearestPartnerForBooking(Service $service, ?PatientAddress $address): PartnerService
+    public function resolveNearestPartnerForBooking(Service $service, ?PatientAddress $address, array $excludePartnerUserIds = []): PartnerService
     {
-        return $this->resolveBestPartnerForQuickBooking($service, $address);
+        return $this->resolveBestPartnerForQuickBooking($service, $address, $excludePartnerUserIds);
     }
 
-    public function resolveBestPartnerForQuickBooking(Service $service, ?PatientAddress $address): PartnerService
+    public function resolveBestPartnerForQuickBooking(Service $service, ?PatientAddress $address, array $excludePartnerUserIds = []): PartnerService
     {
-        $eligiblePartners = $this->eligiblePartnerServices($service, $address);
+        $eligiblePartners = $this->eligiblePartnerServices($service, $address, $excludePartnerUserIds);
 
         if ($eligiblePartners->isEmpty()) {
             throw ValidationException::withMessages([
@@ -136,10 +136,15 @@ class ServicePartnerSelectionService
         ];
     }
 
-    private function eligiblePartnerServices(Service $service, ?PatientAddress $address): Collection
+    private function eligiblePartnerServices(Service $service, ?PatientAddress $address, array $excludePartnerUserIds = []): Collection
     {
         $service->loadMissing('partnerServices.partner.partnerProfile');
         $this->normalizePublicPartnerServicePrices($service);
+        $excludedPartnerIds = collect($excludePartnerUserIds)
+            ->map(fn ($partnerUserId) => (int) $partnerUserId)
+            ->filter()
+            ->unique()
+            ->values();
 
         $bookingMetrics = $this->bookingMetricsForService($service);
         $maxDistanceKm = max(
@@ -157,7 +162,11 @@ class ServicePartnerSelectionService
         );
 
         return $service->partnerServices
-            ->filter(function (PartnerService $partnerService) use ($address, $service, $bookingMetrics, $maxDistanceKm, $maxPrice) {
+            ->filter(function (PartnerService $partnerService) use ($address, $service, $bookingMetrics, $maxDistanceKm, $maxPrice, $excludedPartnerIds) {
+                if ($excludedPartnerIds->contains((int) $partnerService->partner_user_id)) {
+                    return false;
+                }
+
                 if (! $partnerService->is_active || ! $partnerService->is_verified || ! $partnerService->is_available) {
                     return false;
                 }
