@@ -345,6 +345,24 @@ GET /api/admin/orders
 GET /api/admin/orders/{id}
 ```
 
+### Set Harga Katalog Produk
+```
+PATCH /api/admin/products/{product}/admin-price
+```
+
+Body:
+
+```json
+{
+  "admin_price": 12000
+}
+```
+
+Catatan:
+- Harga ini disimpan ke `products.admin_price`.
+- Update dilakukan untuk semua produk dengan SKU yang sama, sehingga harga checkout pasien sama rata walaupun apotik/mitra berbeda.
+- Order checkout memakai `admin_price` sebagai `order_items.unit_price`. Jika data lama belum punya `admin_price`, backend fallback ke harga aktif terendah per SKU.
+
 ---
 
 ## 11. Konsultasi (`consultations`)

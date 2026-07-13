@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\Admin\PatientController as AdminPatientController;
 use App\Http\Controllers\Api\Admin\PaymentsController as AdminPaymentsController;
 use App\Http\Controllers\Api\Admin\PharmaciesController as AdminPharmaciesController;
 use App\Http\Controllers\Api\Admin\PromoCodeController as AdminPromoCodeController;
+use App\Http\Controllers\Api\Admin\ProductCatalogController as AdminProductCatalogController;
 use App\Http\Controllers\Api\Admin\RegistrationsController as AdminRegistrationsController;
 use App\Http\Controllers\Api\Admin\ReportsController as AdminReportsController;
 use App\Http\Controllers\Api\Admin\ServiceBookingsController as AdminServiceBookingsController;
@@ -295,6 +296,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/apotiks', [AdminPharmaciesController::class, 'index']);
         Route::get('/payments', [AdminPaymentsController::class, 'index']);
         Route::get('/transactions', [AdminTransactionsController::class, 'index']);
+        Route::patch('/products/{product}/admin-price', [AdminProductCatalogController::class, 'updateAdminPrice']);
         Route::get('/service-bookings', [AdminServiceBookingsController::class, 'index']);
         Route::get('/service-booking-fees', [AdminServiceBookingFeeSettingController::class, 'show']);
         Route::put('/service-booking-fees', [AdminServiceBookingFeeSettingController::class, 'update']);

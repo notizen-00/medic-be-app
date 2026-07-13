@@ -52,7 +52,7 @@ class ServicePartnerSelectionService
                 return [
                     'service' => $service,
                     'available_partner_count' => $eligiblePartners->count(),
-                    'starting_price' => $eligiblePartners->min('effective_price') ?? $service->base_price,
+                    'starting_price' => $eligiblePartners->min('effective_price') ?? $this->adminPriceForService($service),
                     'best_partner' => $bestPartner ? [
                         'partner_service_id' => $bestPartner->id,
                         'partner_user_id' => $bestPartner->partner_user_id,
@@ -150,7 +150,7 @@ class ServicePartnerSelectionService
         $maxPrice = max(
             1,
             (float) $service->partnerServices
-                ->map(fn (PartnerService $partnerService) => $partnerService->price ?? $partnerService->custom_price ?? $service->base_price)
+                ->map(fn (PartnerService $partnerService) => $this->effectivePriceForPartnerService($service, $partnerService))
                 ->max()
         );
 
@@ -173,7 +173,7 @@ class ServicePartnerSelectionService
                 }
 
                 $partnerService->setAttribute('distance_km', $distanceKm);
-                $partnerService->setAttribute('effective_price', $partnerService->price ?? $partnerService->custom_price ?? $service->base_price);
+                $partnerService->setAttribute('effective_price', $this->effectivePriceForPartnerService($service, $partnerService));
                 $this->attachMatchScores(
                     $partnerService,
                     $bookingMetrics->get($partnerService->partner_user_id, [
@@ -194,6 +194,26 @@ class ServicePartnerSelectionService
                 (float) $partnerService->effective_price,
             ])
             ->values();
+    }
+
+    private function effectivePriceForPartnerService(Service $service, PartnerService $partnerService): float
+    {
+        if ($this->usesPartnerCustomPrice($service)) {
+            return (float) ($partnerService->price ?? $partnerService->custom_price ?? $this->adminPriceForService($service));
+        }
+
+        return $this->adminPriceForService($service);
+    }
+
+    private function adminPriceForService(Service $service): float
+    {
+        return (float) ($service->base_price ?? 0);
+    }
+
+    private function usesPartnerCustomPrice(Service $service): bool
+    {
+        return $service->service_type === 'consultation'
+            || in_array($service->service_mode, ['chat', 'voice', 'video'], true);
     }
 
     private function bookingMetricsForService(Service $service): Collection

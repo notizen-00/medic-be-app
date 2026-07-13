@@ -12,6 +12,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 class OrderController extends Controller
@@ -84,7 +85,7 @@ class OrderController extends Controller
             $subtotal = collect($selection['items'])->sum('total_price');
 
             $shippingCost = 10000;
-            $order = Order::create([
+            $orderData = [
                 'order_code' => 'ORD-' . now()->format('YmdHis') . '-' . str_pad((string) random_int(1, 999), 3, '0', STR_PAD_LEFT),
                 'patient_user_id' => $validated['patient_user_id'],
                 'pharmacy_id' => $selection['pharmacy']->id,
@@ -97,7 +98,13 @@ class OrderController extends Controller
                 'total_amount' => $subtotal + $shippingCost,
                 'notes' => trim(($validated['notes'] ?? '') . ' Dipilih otomatis dari apotik terdekat.'),
                 'ordered_at' => now(),
-            ]);
+            ];
+
+            if (Schema::hasColumn('orders', 'pharmacy_user_id')) {
+                $orderData['pharmacy_user_id'] = $selection['pharmacy']->owner_user_id;
+            }
+
+            $order = Order::create($orderData);
 
             foreach ($selection['items'] as $item) {
                 $product = Product::query()->lockForUpdate()->findOrFail($item['product']->id);
@@ -111,7 +118,7 @@ class OrderController extends Controller
                     'order_id' => $order->id,
                     'product_id' => $product->id,
                     'product_name' => $item['product']->name,
-                    'unit_price' => $item['product']->price,
+                    'unit_price' => $item['unit_price'],
                     'unit_cost' => $unitCost,
                     'quantity' => $item['quantity'],
                     'total_price' => $item['total_price'],

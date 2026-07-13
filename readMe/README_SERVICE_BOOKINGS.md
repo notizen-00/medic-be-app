@@ -81,7 +81,7 @@ Service::updateOrCreate(
 );
 ```
 
-Contoh harga mitra untuk service:
+Contoh ketersediaan mitra untuk service:
 
 ```php
 PartnerService::updateOrCreate(
@@ -119,12 +119,16 @@ ServiceMarkupSetting::updateOrCreate(
 );
 ```
 
-Harga yang dipakai saat booking:
+Harga yang dipakai saat booking service:
 
 ```text
-base_price service -> markup aplikasi -> promo -> total_amount
-partner_services.price dipakai untuk ranking partner dan harga efektif mitra.
+services.base_price -> markup aplikasi -> promo -> total_amount
 ```
+
+Catatan:
+- Untuk layanan non-konsultasi seperti homecare, perawat datang, bidan datang, caregiver, procedure, dan visit, harga pasien memakai `services.base_price` yang ditentukan admin.
+- `partner_services.price` dan `partner_services.custom_price` tidak dipakai sebagai harga pasien dan tidak menjadi pembeda ranking untuk service booking non-konsultasi.
+- Untuk konsultasi dokter, flow konsultasi tetap memakai harga custom dokter dari `partner_profiles.consultation_fee`.
 
 ## Admin Master Service
 
@@ -390,7 +394,7 @@ match_score = (distance_score * 0.50) + (quality_score * 0.40) + (price_score * 
 Komponen:
 - `distance_score`: semakin dekat semakin tinggi. Jika koordinat pasien atau mitra belum lengkap, sistem memberi skor default `60`.
 - `quality_score`: gabungan pengalaman mitra, completion rate, jumlah booking selesai, dan penalti booking cancelled.
-- `price_score`: harga lebih rendah mendapat skor lebih tinggi, dipakai sebagai pembeda ringan.
+- `price_score`: untuk layanan konsultasi/chat dapat memakai harga custom partner sebagai pembeda ringan. Untuk service booking non-konsultasi, semua mitra memakai harga admin dari `services.base_price`, sehingga harga tidak menjadi pembeda ranking.
 
 Quality score:
 
@@ -412,7 +416,7 @@ Detail:
 Urutan tie-breaker setelah `match_score`:
 - jarak terdekat;
 - `quality_score` lebih tinggi;
-- harga efektif lebih rendah.
+- harga efektif lebih rendah, hanya relevan untuk layanan yang masih memakai harga custom partner seperti konsultasi.
 
 ## Catalog Service
 
@@ -420,7 +424,7 @@ Catalog layanan memakai service yang sama untuk menghitung mitra tersedia.
 
 Field response penting:
 - `available_partner_count`: jumlah mitra eligible;
-- `starting_price`: harga efektif terendah;
+- `starting_price`: harga admin dari `services.base_price` untuk service booking non-konsultasi; untuk konsultasi dapat mengikuti harga custom partner;
 - `best_partner`: kandidat dengan `match_score` terbaik;
 - `nearest_partner`: kandidat terdekat secara jarak untuk kompatibilitas UI lama.
 

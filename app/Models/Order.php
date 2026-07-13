@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 #[Fillable([
     'order_code',
     'patient_user_id',
+    'pharmacy_user_id',
     'pharmacy_id',
     'patient_address_id',
     'prescription_id',

@@ -42,17 +42,18 @@ class PharmacySelectionService
             ->map(function (Collection $groupedProducts) use ($address) {
                 /** @var Product $sample */
                 $sample = $groupedProducts->first();
-                /** @var Product $cheapest */
-                $cheapest = $groupedProducts->sortBy('price')->first();
+                $catalogPrice = $this->catalogPriceForGroupedProducts($groupedProducts);
 
                 $pharmacyOptions = $groupedProducts
-                    ->map(function (Product $product) use ($address) {
+                    ->map(function (Product $product) use ($address, $catalogPrice) {
                         return [
                             'product_id' => $product->id,
                             'pharmacy_id' => $product->pharmacy_id,
                             'owner_user_id' => $product->pharmacy?->owner_user_id,
                             'pharmacy_name' => $product->pharmacy?->name,
-                            'price' => $product->price,
+                            'price' => $catalogPrice,
+                            'catalog_price' => $catalogPrice,
+                            'pharmacy_price' => $product->price,
                             'stock' => $product->stock,
                             'distance_km' => $this->distanceForAddressAndPharmacy($address, $product->pharmacy),
                             'requires_prescription' => $product->requires_prescription,
@@ -76,8 +77,9 @@ class PharmacySelectionService
                     'requires_prescription' => $sample->requires_prescription,
                     'pharmacy_count' => $groupedProducts->pluck('pharmacy_id')->unique()->count(),
                     'total_stock' => $groupedProducts->sum('stock'),
-                    'lowest_price' => $cheapest->price,
-                    'highest_price' => $groupedProducts->max('price'),
+                    'catalog_price' => $catalogPrice,
+                    'lowest_price' => $catalogPrice,
+                    'highest_price' => $catalogPrice,
                     'nearest_pharmacy' => $nearestOption,
                     'pharmacy_options' => $pharmacyOptions,
                 ];
@@ -193,15 +195,18 @@ class PharmacySelectionService
 
         $selected = $candidates->first();
         $selectedProductsBySku = $selected['products']->keyBy('sku');
+        $catalogPricesBySku = $this->catalogPricesForSkus($skus);
 
-        $resolvedItems = collect($normalizedItems)->map(function (array $item) use ($selectedProductsBySku) {
+        $resolvedItems = collect($normalizedItems)->map(function (array $item) use ($selectedProductsBySku, $catalogPricesBySku) {
             /** @var Product $product */
             $product = $selectedProductsBySku->get($item['sku']);
-            $totalPrice = (float) $product->price * $item['quantity'];
+            $unitPrice = (float) $catalogPricesBySku->get($item['sku'], (float) $product->price);
+            $totalPrice = $unitPrice * $item['quantity'];
 
             return [
                 'product' => $product,
                 'quantity' => $item['quantity'],
+                'unit_price' => $unitPrice,
                 'total_price' => $totalPrice,
             ];
         })->values();
@@ -212,6 +217,33 @@ class PharmacySelectionService
             'distance_km' => $selected['distance_km'],
             'items' => $resolvedItems,
         ];
+    }
+
+    private function catalogPricesForSkus(array $skus): Collection
+    {
+        return Product::query()
+            ->whereIn('sku', $skus)
+            ->where('is_active', true)
+            ->get(['sku', 'price', 'admin_price'])
+            ->groupBy('sku')
+            ->map(fn (Collection $products) => $this->catalogPriceForGroupedProducts($products));
+    }
+
+    private function catalogPriceForGroupedProducts(Collection $products): float
+    {
+        $adminPrices = $products
+            ->pluck('admin_price')
+            ->filter(fn ($price) => $price !== null)
+            ->map(fn ($price) => (float) $price);
+
+        if ($adminPrices->isNotEmpty()) {
+            return (float) $adminPrices->min();
+        }
+
+        return (float) $products
+            ->pluck('price')
+            ->map(fn ($price) => (float) $price)
+            ->min();
     }
 
     private function normalizeItems(array $items): array

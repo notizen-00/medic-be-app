@@ -295,6 +295,11 @@ Contoh UI data mapping:
 | Butuh alamat | `service.requires_address` |
 | Butuh jadwal | `service.requires_schedule` |
 
+Catatan harga service booking:
+- Untuk layanan non-konsultasi seperti homecare, perawat datang, bidan datang, caregiver, procedure, dan visit, harga pasien memakai `service.base_price` dari admin.
+- Harga custom di `partner_services.price` / `custom_price` tidak dipakai sebagai harga pasien untuk service booking non-konsultasi.
+- Konsultasi dokter tetap memakai flow konsultasi dan harga custom dokter dari `partner_profile.consultation_fee`.
+
 Contoh user pilih category Nurse:
 
 ```http
@@ -1034,6 +1039,12 @@ Query `GET /api/patient/products`:
 | `search` | Tidak | string | max 100 |
 | `per_page` | Tidak | integer | 1-100 |
 
+Catatan harga produk:
+- `GET /api/patient/products/global` menampilkan `catalog_price` sebagai harga jual seragam per SKU.
+- `catalog_price` berasal dari `products.admin_price` yang dikelola admin. Jika data lama belum punya `admin_price`, backend fallback ke harga aktif terendah per SKU.
+- `pharmacy_options.*.price` juga memakai harga katalog seragam. Harga custom apotik tetap tersedia sebagai `pharmacy_options.*.pharmacy_price` untuk audit/debug, bukan untuk checkout pasien.
+- Saat order dibuat, `order_items.unit_price` memakai harga katalog/admin, bukan `products.price` milik apotik yang terpilih matchmaking.
+
 Order:
 
 ```http
@@ -1694,7 +1705,8 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `type` | enum/string | `obat`, `produk_kesehatan`, `layanan`, `sewa_alat_kesehatan` |
 | `category` | string/null | kategori |
 | `description` | string/null | deskripsi |
-| `price` | decimal string | harga jual |
+| `price` | decimal string | harga input apotik/legacy; checkout pasien tidak memakai field ini sebagai harga final |
+| `admin_price` | decimal string/null | harga jual katalog dari admin untuk semua apotik dengan SKU yang sama |
 | `cost_price` | decimal string/null | harga modal |
 | `stock` | integer | stok |
 | `minimum_stock_alert` | integer/null | batas stok minimum |
@@ -1736,7 +1748,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `order_id` | integer | ID order |
 | `product_id` | integer/null | ID produk |
 | `product_name` | string | snapshot nama produk |
-| `unit_price` | decimal string | harga satuan |
+| `unit_price` | decimal string | snapshot harga katalog/admin saat order dibuat |
 | `unit_cost` | decimal string/null | modal satuan |
 | `quantity` | integer | jumlah |
 | `total_price` | decimal string | total harga item |
