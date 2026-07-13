@@ -41,9 +41,19 @@ class BalanceController extends Controller
             });
         }
 
-        $balances = $query->latest()->paginate($request->input('per_page', 20));
+        $balances = $query->latest()->paginate($request->input('per_page', 100));
+        $balances->getCollection()->transform(function (UserBalance $balance) {
+            $payload = $balance->toArray();
+            $payload['balance'] = (float) $balance->balance;
+            $payload['amount'] = (float) $balance->balance;
+            $payload['saldo'] = (float) $balance->balance;
+            $payload['reserved_balance'] = (float) $balance->reserved_balance;
+
+            return $payload;
+        });
 
         return response()->json([
+            'message' => 'OK',
             'success' => true,
             'data' => $balances,
         ]);
@@ -188,11 +198,27 @@ class BalanceController extends Controller
             $query->whereDate('created_at', '<=', $request->to_date);
         }
 
-        $transactions = $query->latest()->paginate($request->input('per_page', 20));
+        $transactions = $query->latest()->paginate($request->input('per_page', 100));
+        $transactions->getCollection()->transform(fn (BalanceTransaction $transaction) => $this->formatBalanceTransaction($transaction));
 
         return response()->json([
+            'message' => 'OK',
             'success' => true,
             'data' => $transactions,
         ]);
+    }
+
+    private function formatBalanceTransaction(BalanceTransaction $transaction): array
+    {
+        $payload = $transaction->toArray();
+        $payload['transaction_code'] = $transaction->reference_number ?? $transaction->transaction_uuid ?? (string) $transaction->id;
+        $payload['reference'] = $transaction->reference_number ?? $transaction->reference_type ?? (string) $transaction->id;
+        $payload['amount'] = (float) $transaction->amount;
+        $payload['value'] = (float) $transaction->amount;
+        $payload['balance_before'] = (float) $transaction->balance_before;
+        $payload['balance_after'] = (float) $transaction->balance_after;
+        $payload['transaction_date'] = $transaction->created_at?->toISOString();
+
+        return $payload;
     }
 }

@@ -16,9 +16,10 @@ class JournalsController extends Controller
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
             'status' => ['nullable', Rule::in(['draft', 'posted', 'void'])],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $query = JournalEntry::query()->withCount('lines')->latest('entry_date')->latest('id');
+        $query = JournalEntry::query()->with(['lines'])->withCount('lines')->latest('entry_date')->latest('id');
 
         if (!empty($validated['status'])) {
             $query->where('status', $validated['status']);
@@ -30,8 +31,25 @@ class JournalsController extends Controller
             $query->whereDate('entry_date', '<=', $validated['to']);
         }
 
+        $journals = $query->paginate($request->input('per_page', 100));
+        $journals->getCollection()->transform(function (JournalEntry $journalEntry) {
+            $totalDebit = (float) $journalEntry->lines->sum('debit');
+            $totalCredit = (float) $journalEntry->lines->sum('credit');
+
+            $journalEntry->setAttribute('totals', [
+                'debit' => $totalDebit,
+                'credit' => $totalCredit,
+            ]);
+            $journalEntry->setAttribute('total_debit', $totalDebit);
+            $journalEntry->setAttribute('total_credit', $totalCredit);
+            $journalEntry->setAttribute('is_balanced', round($totalDebit, 2) === round($totalCredit, 2));
+
+            return $journalEntry;
+        });
+
         return response()->json([
-            'data' => $query->paginate(20),
+            'message' => 'OK',
+            'data' => $journals,
         ]);
     }
 
@@ -130,4 +148,3 @@ class JournalsController extends Controller
         return response()->json(['data' => $journalEntry->fresh(['lines'])]);
     }
 }
-

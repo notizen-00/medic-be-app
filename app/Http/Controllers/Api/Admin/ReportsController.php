@@ -8,7 +8,6 @@ use App\Models\ServiceBooking;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
 
 class ReportsController extends Controller
 {
@@ -20,15 +19,12 @@ class ReportsController extends Controller
         $validated = $request->validate([
             'from' => ['nullable', 'date'],
             'to' => ['nullable', 'date'],
-            'status' => ['nullable', Rule::in(['pending', 'confirmed', 'processed', 'shipped', 'delivered', 'cancelled'])],
+            'status' => ['nullable', 'string', 'max:50'],
             'patient_user_id' => ['nullable', 'integer', 'min:1'],
             'pharmacy_id' => ['nullable', 'integer', 'min:1'],
         ]);
 
-        $query = Order::query()
-            ->with(['patient:id,name,email', 'pharmacy:id,name', 'items:id,order_id,product_name,unit_price,quantity,total_price'])
-            ->latest('ordered_at')
-            ->latest('id');
+        $query = Order::query();
 
         if (!empty($validated['status'])) {
             $query->where('status', $validated['status']);
@@ -46,8 +42,28 @@ class ReportsController extends Controller
             $query->whereDate('ordered_at', '<=', $validated['to']);
         }
 
+        $totalOrders = (clone $query)->count();
+        $totalAmount = (float) ((clone $query)->sum('total_amount') ?? 0);
+        $paidAmount = (float) ((clone $query)
+            ->whereIn('status', ['confirmed', 'processed', 'shipped', 'delivered'])
+            ->sum('total_amount') ?? 0);
+        $pendingAmount = (float) ((clone $query)->where('status', 'pending')->sum('total_amount') ?? 0);
+        $cancelledOrders = (clone $query)->where('status', 'cancelled')->count();
+        $completedOrders = (clone $query)->whereIn('status', ['delivered', 'completed'])->count();
+
         return response()->json([
-            'data' => $query->paginate(20),
+            'message' => 'OK',
+            'data' => [
+                'total_orders' => $totalOrders,
+                'orders_count' => $totalOrders,
+                'total_count' => $totalOrders,
+                'count' => $totalOrders,
+                'total_amount' => $totalAmount,
+                'paid_amount' => $paidAmount,
+                'pending_amount' => $pendingAmount,
+                'cancelled_orders' => $cancelledOrders,
+                'completed_orders' => $completedOrders,
+            ],
         ]);
     }
 
@@ -61,7 +77,16 @@ class ReportsController extends Controller
             'to' => ['nullable', 'date'],
         ]);
 
+        $customers = User::query()->where('role', 'pasien');
         $orders = Order::query();
+
+        if (!empty($validated['from'])) {
+            $customers->whereDate('created_at', '>=', $validated['from']);
+        }
+        if (!empty($validated['to'])) {
+            $customers->whereDate('created_at', '<=', $validated['to']);
+        }
+
         if (!empty($validated['from'])) {
             $orders->whereDate('ordered_at', '>=', $validated['from']);
         }
@@ -69,29 +94,27 @@ class ReportsController extends Controller
             $orders->whereDate('ordered_at', '<=', $validated['to']);
         }
 
-        $rows = $orders
-            ->select([
-                'patient_user_id',
-                DB::raw('COUNT(*) as total_orders'),
-                DB::raw('SUM(total_amount) as total_spent'),
-                DB::raw('MAX(ordered_at) as last_order_at'),
-            ])
-            ->groupBy('patient_user_id')
-            ->orderByDesc('total_spent')
-            ->paginate(20);
+        $activeCustomerIds = (clone $orders)
+            ->whereNotNull('patient_user_id')
+            ->distinct()
+            ->pluck('patient_user_id');
 
-        $userIds = collect($rows->items())->pluck('patient_user_id')->all();
-        $users = User::query()
-            ->whereIn('id', $userIds)
-            ->get(['id', 'name', 'email'])
-            ->keyBy('id');
+        $totalCustomers = User::query()->where('role', 'pasien')->count();
+        $newCustomers = $customers->count();
+        $activeCustomers = $activeCustomerIds->count();
+        $inactiveCustomers = max(0, $totalCustomers - $activeCustomers);
 
-        $rows->getCollection()->transform(function ($row) use ($users) {
-            $row->customer = $users->get($row->patient_user_id);
-            return $row;
-        });
-
-        return response()->json(['data' => $rows]);
+        return response()->json([
+            'message' => 'OK',
+            'data' => [
+                'total_customers' => $totalCustomers,
+                'new_customers' => $newCustomers,
+                'active_customers' => $activeCustomers,
+                'inactive_customers' => $inactiveCustomers,
+                'customers_count' => $newCustomers,
+                'count' => $newCustomers,
+            ],
+        ]);
     }
 
     /**
@@ -143,7 +166,39 @@ class ReportsController extends Controller
         $servicesMarkup = (float) ($serviceBookings->sum('markup_amount') ?? 0);
         $servicesDiscount = (float) ($serviceBookings->sum('discount_amount') ?? 0);
 
+        $totalRevenue = $ordersRevenue + $servicesRevenue;
+        $grossProfit = $totalRevenue - $ordersCogs;
+        $operationalCost = 0.0;
+        $platformProfit = ($ordersRevenue - $ordersCogs) + ($servicesMarkup - $servicesDiscount);
+        $netProfit = $grossProfit - $operationalCost;
+
         return response()->json([
+            'message' => 'OK',
+            'data' => [
+                'revenue' => $totalRevenue,
+                'total_revenue' => $totalRevenue,
+                'income' => $totalRevenue,
+                'gross_revenue' => $totalRevenue,
+                'total_income' => $totalRevenue,
+                'cogs' => $ordersCogs,
+                'cost_of_goods_sold' => $ordersCogs,
+                'cost' => $ordersCogs,
+                'total_cost' => $ordersCogs,
+                'gross_profit' => $grossProfit,
+                'operational_cost' => $operationalCost,
+                'operating_expense' => $operationalCost,
+                'expense' => $operationalCost,
+                'total_expense' => $operationalCost,
+                'app_profit' => $platformProfit,
+                'applicator_profit' => $platformProfit,
+                'platform_profit' => $platformProfit,
+                'laba_aplikator' => $platformProfit,
+                'net_profit' => $netProfit,
+                'profit' => $netProfit,
+                'orders_revenue' => $ordersRevenue,
+                'services_revenue' => $servicesRevenue,
+                'service_markup_net' => $servicesMarkup - $servicesDiscount,
+            ],
             'period' => [
                 'from' => $validated['from'] ?? null,
                 'to' => $validated['to'] ?? null,
