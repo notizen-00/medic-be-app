@@ -41,6 +41,7 @@ class ServiceBookingMatched implements ShouldBroadcastNow
     public function broadcastWith(): array
     {
         $address = $this->booking->serviceAddress();
+        $partnerPayoutAmount = $this->booking->partnerPayoutAmount();
 
         return [
             'booking' => [
@@ -49,7 +50,9 @@ class ServiceBookingMatched implements ShouldBroadcastNow
                 'patient_member_id' => $this->booking->patient_member_id,
                 'status' => $this->booking->status,
                 'scheduled_at' => $this->booking->scheduled_at?->toISOString(),
-                'total_amount' => $this->booking->total_amount,
+                'total_amount' => $partnerPayoutAmount,
+                'patient_total_amount' => (float) $this->booking->total_amount,
+                'partner_payout_amount' => $partnerPayoutAmount,
                 'notes' => $this->booking->notes,
                 'service' => $this->booking->service ? [
                     'id' => $this->booking->service->id,

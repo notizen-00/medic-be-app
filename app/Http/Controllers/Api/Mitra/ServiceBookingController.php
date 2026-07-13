@@ -50,7 +50,10 @@ class ServiceBookingController extends Controller
             ->paginate($request->input('per_page', 20))
             ->withQueryString();
 
-        $bookings->getCollection()->each->useServiceAddressRelation();
+        $bookings->getCollection()->each(function (ServiceBooking $booking) {
+            $booking->useServiceAddressRelation();
+            $this->normalizeMitraBookingAmounts($booking);
+        });
 
         return response()->json([
             'message' => 'Daftar booking layanan mitra berhasil diambil.',
@@ -65,6 +68,7 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction', 'payment']);
         $serviceBooking->useServiceAddressRelation();
+        $this->normalizeMitraBookingAmounts($serviceBooking);
 
         return response()->json([
             'message' => 'Detail booking layanan mitra berhasil diambil.',
@@ -105,6 +109,7 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
         $serviceBooking->useServiceAddressRelation();
+        $this->normalizeMitraBookingAmounts($serviceBooking);
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.accepted',
@@ -160,6 +165,7 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
         $serviceBooking->useServiceAddressRelation();
+        $this->normalizeMitraBookingAmounts($serviceBooking);
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.on_the_way',
@@ -348,6 +354,7 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor', 'partnerBalanceTransaction']);
         $serviceBooking->useServiceAddressRelation();
+        $this->normalizeMitraBookingAmounts($serviceBooking);
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.completed',
@@ -434,6 +441,7 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patient', 'patientMember', 'assignedPartner.partnerProfile', 'address', 'histories.actor']);
         $serviceBooking->useServiceAddressRelation();
+        $this->normalizeMitraBookingAmounts($serviceBooking);
 
         $this->notifications->send($serviceBooking->patient_user_id, [
             'type' => 'service_booking.status_updated',
@@ -490,6 +498,16 @@ class ServiceBookingController extends Controller
                 'payment' => ['Pesanan layanan belum dapat diproses karena pembayaran belum lunas.'],
             ]);
         }
+    }
+
+    private function normalizeMitraBookingAmounts(ServiceBooking $serviceBooking): void
+    {
+        $patientTotalAmount = (float) $serviceBooking->getRawOriginal('total_amount');
+        $partnerPayoutAmount = $serviceBooking->partnerPayoutAmount();
+
+        $serviceBooking->setAttribute('patient_total_amount', $patientTotalAmount);
+        $serviceBooking->setAttribute('partner_payout_amount', $partnerPayoutAmount);
+        $serviceBooking->setAttribute('total_amount', $partnerPayoutAmount);
     }
 
     private function ensurePartnerCanHandleBooking(User $partner, ServiceBooking $serviceBooking): void
