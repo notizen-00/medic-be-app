@@ -857,6 +857,22 @@ GET /api/patient/service-bookings/{serviceBooking}
 4. Render ulang layar dari response terbaru.
 5. Jangan tampilkan tombol bayar sebelum booking diterima mitra (`status=confirmed` atau `accepted_at != null`).
 
+Jika setelah reject belum ada mitra pengganti (`assigned_partner_user_id=null`), mobile boleh menyediakan tombol **Cari mitra lagi**:
+
+```http
+POST /api/patient/service-bookings/{serviceBooking}/rematch
+```
+
+Body opsional:
+
+```json
+{
+  "notes": "Cari mitra pengganti lagi."
+}
+```
+
+Endpoint ini tidak menerima `service_id` dari mobile. Backend memakai `service_id`, alamat, jadwal, mode layanan, dan histori reject dari booking yang sama. Jika mitra pengganti ditemukan, response akan berisi `matchmaking_status=rematched_waiting_partner_acceptance`, `assigned_partner_user_id` baru, serta `payment.amount` terbaru. Jika belum ada, response tetap `matchmaking_status=waiting_partner_available`.
+
 State machine yang disarankan:
 
 ```dart
@@ -925,7 +941,7 @@ Tombol yang disarankan:
 | Kondisi | Tombol |
 | --- | --- |
 | `pending`, belum dibayar, `accepted_at=null` | Batalkan booking |
-| `pending`, `assigned_partner_user_id=null` | Batalkan booking, refresh status |
+| `pending`, `assigned_partner_user_id=null` | Batalkan booking, refresh status, cari mitra lagi |
 | `confirmed` dan payment belum paid | Bayar sekarang |
 | `on_the_way` | Lihat tracking |
 | `completed` dan belum konfirmasi pasien | Konfirmasi selesai |
