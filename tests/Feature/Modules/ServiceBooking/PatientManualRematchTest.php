@@ -43,7 +43,7 @@ function createManualRematchPatientMember(User $patient): PatientMember
     ]);
 }
 
-function createManualRematchPartner(Service $service, float $latitude, float $longitude): User
+function createManualRematchPartner(Service $service, float $latitude, float $longitude, int $yearsOfExperience = 3): User
 {
     $partner = User::factory()->create(['role' => 'mitra']);
 
@@ -52,7 +52,7 @@ function createManualRematchPartner(Service $service, float $latitude, float $lo
         'profession' => 'perawat',
         'latitude' => $latitude,
         'longitude' => $longitude,
-        'years_of_experience' => 3,
+        'years_of_experience' => $yearsOfExperience,
         'is_available' => true,
         'verification_status' => 'verified',
         'verified_at' => now(),
@@ -155,6 +155,65 @@ it('lets patient manually rematch a pending service booking without assigned par
         'status' => 'pending',
         'amount' => 125000,
     ]);
+});
+
+it('prioritizes the nearest replacement partner during patient manual rematch after rejection', function () {
+    $patient = User::factory()->create(['role' => 'pasien']);
+    $rejectedPartner = User::factory()->create(['role' => 'mitra']);
+    $service = createManualRematchService();
+    $patientMember = createManualRematchPatientMember($patient);
+    $nearestReplacement = createManualRematchPartner($service, -8.1750000, 113.7000000, 1);
+    $fartherHighScoreReplacement = createManualRematchPartner($service, -8.2600000, 113.7000000, 10);
+
+    $booking = ServiceBooking::create([
+        'booking_code' => 'SVC-MANUAL-REMATCH-003',
+        'service_id' => $service->id,
+        'patient_user_id' => $patient->id,
+        'patient_member_id' => $patientMember->id,
+        'assigned_partner_user_id' => null,
+        'status' => 'pending',
+        'visit_plan' => 'once',
+        'visit_count' => 1,
+        'care_mode' => 'visit',
+        'location_type' => 'home',
+        'subtotal' => 100000,
+        'discount_amount' => 0,
+        'markup_amount' => 0,
+        'total_amount' => 100000,
+    ]);
+
+    Payment::create([
+        'service_booking_id' => $booking->id,
+        'patient_user_id' => $patient->id,
+        'payment_code' => 'PAY-MANUAL-REMATCH-003',
+        'status' => 'pending',
+        'amount' => 100000,
+    ]);
+
+    ServiceBookingHistory::create([
+        'service_booking_id' => $booking->id,
+        'actor_user_id' => $rejectedPartner->id,
+        'type' => 'status',
+        'title' => 'Mitra menolak pesanan',
+        'description' => 'Mitra menolak pesanan layanan.',
+        'meta' => [
+            'status' => 'rejected_by_partner',
+            'type' => 'matchmaking',
+            'rejected_partner_user_id' => $rejectedPartner->id,
+        ],
+        'handled_at' => now(),
+    ]);
+
+    Event::fake([ServiceBookingMatched::class]);
+    Sanctum::actingAs($patient);
+
+    $this->postJson("/api/patient/service-bookings/{$booking->id}/rematch")
+        ->assertOk()
+        ->assertJsonPath('matchmaking_status', 'rematched_waiting_partner_acceptance')
+        ->assertJsonPath('data.assigned_partner_user_id', $nearestReplacement->id)
+        ->assertJsonPath('matchmaking.partner_user_id', $nearestReplacement->id);
+
+    expect($fartherHighScoreReplacement->id)->not->toBe($nearestReplacement->id);
 });
 
 it('prevents patient manual rematch while a partner is still assigned', function () {

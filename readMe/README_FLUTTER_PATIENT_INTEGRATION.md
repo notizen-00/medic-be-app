@@ -729,7 +729,7 @@ Pasien memilih service -> booking dibuat pending -> backend memilih mitra -> mit
 
 `assigned_partner_user_id` sudah terisi saat booking berhasil dibuat jika backend menemukan mitra yang memenuhi syarat. Jika tidak ada mitra yang cocok, backend akan mengembalikan error validasi.
 
-Jika mitra pertama menolak sebelum accept dan sebelum pembayaran lunas, booking pasien tidak otomatis batal. Backend akan mencatat penolakan, mencari mitra pengganti, lalu memperbarui `assigned_partner_user_id`. Karena mitra pengganti bisa punya jarak berbeda, `distance_km`, `transport_fee`, `meal_fee`, `total_amount`, dan `payment.amount` juga bisa berubah. Flutter pasien wajib refresh detail booking setelah menerima notifikasi `service_booking.rematched` atau ketika layar status dibuka kembali.
+Jika mitra pertama menolak sebelum accept dan sebelum pembayaran lunas, booking pasien tidak otomatis batal. Backend akan mencatat penolakan, mengecualikan mitra yang sudah menolak booking tersebut, mencari mitra pengganti terdekat, lalu memperbarui `assigned_partner_user_id`. Karena mitra pengganti bisa punya jarak berbeda, `distance_km`, `transport_fee`, `meal_fee`, `total_amount`, dan `payment.amount` juga bisa berubah. Flutter pasien wajib refresh detail booking setelah menerima notifikasi `service_booking.rematched` atau ketika layar status dibuka kembali.
 
 State UI yang disarankan:
 
@@ -871,7 +871,7 @@ Body opsional:
 }
 ```
 
-Endpoint ini tidak menerima `service_id` dari mobile. Backend memakai `service_id`, alamat, jadwal, mode layanan, dan histori reject dari booking yang sama. Jika mitra pengganti ditemukan, response akan berisi `matchmaking_status=rematched_waiting_partner_acceptance`, `assigned_partner_user_id` baru, serta `payment.amount` terbaru. Jika belum ada, response tetap `matchmaking_status=waiting_partner_available`.
+Endpoint ini tidak menerima `service_id` dari mobile. Backend memakai `service_id`, alamat, jadwal, mode layanan, dan histori reject dari booking yang sama. Kandidat yang sudah pernah menolak booking tersebut tidak akan dipilih ulang, lalu backend memprioritaskan mitra aktif terdekat dari alamat pasien. Jika mitra pengganti ditemukan, response akan berisi `matchmaking_status=rematched_waiting_partner_acceptance`, `assigned_partner_user_id` baru, serta `payment.amount` terbaru. Jika belum ada, response tetap `matchmaking_status=waiting_partner_available`.
 
 State machine yang disarankan:
 
@@ -1841,6 +1841,28 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `address` | object/null | alamat pasien |
 | `histories` | array | histori tindakan/status jika dimuat |
 | `payment` | object/null | tagihan booking layanan; `amount` mengikuti `total_amount` terbaru selama payment masih pending |
+| `detail_actions` | object/null | hanya muncul di detail booking; gunakan `chat.label = "Chat"` dan `call.label = "Call"` untuk tombol aksi |
+
+Pada detail booking pasien, tombol komunikasi memakai field:
+
+```json
+{
+  "detail_actions": {
+    "chat": {
+      "label": "Chat",
+      "enabled": false,
+      "notifier": "Silakan selesaikan pembayaran terlebih dahulu untuk memakai fitur ini."
+    },
+    "call": {
+      "label": "Call",
+      "enabled": false,
+      "notifier": "Silakan selesaikan pembayaran terlebih dahulu untuk memakai fitur ini."
+    }
+  }
+}
+```
+
+Jika `payment.status != paid`, disable tombol `Chat` dan `Call`, lalu tampilkan `notifier` ketika user menekan tombol. Setelah pembayaran lunas, `enabled=true` dan `notifier=null`.
 
 ### Consultation
 

@@ -81,7 +81,25 @@ class ServicePartnerSelectionService
 
     public function resolveNearestPartnerForBooking(Service $service, ?PatientAddress $address, array $excludePartnerUserIds = []): PartnerService
     {
-        return $this->resolveBestPartnerForQuickBooking($service, $address, $excludePartnerUserIds);
+        $eligiblePartners = $this->eligiblePartnerServices($service, $address, $excludePartnerUserIds);
+
+        if ($eligiblePartners->isEmpty()) {
+            throw ValidationException::withMessages([
+                'service_id' => ['Belum ada mitra aktif yang tersedia untuk layanan ini.'],
+            ]);
+        }
+
+        /** @var PartnerService $selected */
+        $selected = $eligiblePartners
+            ->sortBy(fn (PartnerService $partnerService) => [
+                $partnerService->distance_km ?? PHP_FLOAT_MAX,
+                -1 * (float) $partnerService->match_score,
+                -1 * (float) $partnerService->quality_score,
+                (float) $partnerService->effective_price,
+            ])
+            ->first();
+
+        return $selected;
     }
 
     public function resolveBestPartnerForQuickBooking(Service $service, ?PatientAddress $address, array $excludePartnerUserIds = []): PartnerService

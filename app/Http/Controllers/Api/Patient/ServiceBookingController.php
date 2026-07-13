@@ -392,6 +392,7 @@ class ServiceBookingController extends Controller
 
         $serviceBooking->load(['service', 'patientMember', 'address', 'assignedPartner.partnerProfile', 'histories.actor', 'partnerBalanceTransaction', 'payment']);
         $serviceBooking->useServiceAddressRelation();
+        $this->attachDetailBookingActions($serviceBooking);
 
         return response()->json([
             'success' => true,
@@ -1080,6 +1081,26 @@ class ServiceBookingController extends Controller
             'description' => $description,
             'meta' => $meta,
             'handled_at' => $handledAt ?? now(),
+        ]);
+    }
+
+    private function attachDetailBookingActions(ServiceBooking $serviceBooking): void
+    {
+        $paymentStatus = $serviceBooking->payment?->status;
+        $isPaid = $paymentStatus === 'paid';
+        $paymentRequiredMessage = $isPaid ? null : 'Silakan selesaikan pembayaran terlebih dahulu untuk memakai fitur ini.';
+
+        $serviceBooking->setAttribute('detail_actions', [
+            'chat' => [
+                'label' => 'Chat',
+                'enabled' => $isPaid,
+                'notifier' => $paymentRequiredMessage,
+            ],
+            'call' => [
+                'label' => 'Call',
+                'enabled' => $isPaid,
+                'notifier' => $paymentRequiredMessage,
+            ],
         ]);
     }
 }

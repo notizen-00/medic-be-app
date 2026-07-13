@@ -368,7 +368,7 @@ Syarat:
 - `accepted_at` masih null;
 - pembayaran belum `paid`.
 
-Saat mitra menolak, booking pasien tidak otomatis batal. Backend mencatat penolakan mitra, mengecualikan mitra tersebut dari kandidat, lalu mencari mitra lain untuk layanan yang sama. Jika mitra pengganti ditemukan, `assigned_partner_user_id`, `distance_km`, `transport_fee`, `meal_fee`, `total_amount`, dan payment pending akan disesuaikan dengan mitra baru, kemudian event `service-booking.matched` dikirim ke mitra pengganti.
+Saat mitra menolak, booking pasien tidak otomatis batal. Backend mencatat penolakan mitra, mengecualikan mitra tersebut dari kandidat, lalu mencari mitra aktif terdekat lain untuk layanan yang sama. Jika mitra pengganti ditemukan, `assigned_partner_user_id`, `distance_km`, `transport_fee`, `meal_fee`, `total_amount`, dan payment pending akan disesuaikan dengan mitra baru, kemudian event `service-booking.matched` dikirim ke mitra pengganti.
 
 Response penting:
 
@@ -1181,6 +1181,28 @@ Gunakan channel ini jika app mitra perlu menampilkan status user online.
 | `histories` | array | riwayat status/treatment |
 | `payment` | object/null | pembayaran |
 | `partner_balance_transaction` | object/null | transaksi saldo mitra |
+| `detail_actions` | object/null | hanya muncul di detail booking; gunakan `chat.label = "Chat"` dan `call.label = "Call"` untuk tombol aksi |
+
+Pada detail booking mitra, tombol komunikasi memakai field:
+
+```json
+{
+  "detail_actions": {
+    "chat": {
+      "label": "Chat",
+      "enabled": false,
+      "notifier": "Pasien harus menyelesaikan pembayaran terlebih dahulu untuk memakai fitur ini."
+    },
+    "call": {
+      "label": "Call",
+      "enabled": false,
+      "notifier": "Pasien harus menyelesaikan pembayaran terlebih dahulu untuk memakai fitur ini."
+    }
+  }
+}
+```
+
+Jika `payment.status != paid`, disable tombol `Chat` dan `Call`, lalu tampilkan `notifier` ketika mitra menekan tombol. Setelah pembayaran lunas, `enabled=true` dan `notifier=null`.
 
 `partner_payout_breakdown`:
 
