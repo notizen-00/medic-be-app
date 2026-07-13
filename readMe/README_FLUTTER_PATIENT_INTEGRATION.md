@@ -729,6 +729,20 @@ Pasien memilih service -> booking dibuat pending -> backend memilih mitra -> mit
 
 `assigned_partner_user_id` sudah terisi saat booking berhasil dibuat jika backend menemukan mitra yang memenuhi syarat. Jika tidak ada mitra yang cocok, backend akan mengembalikan error validasi.
 
+Jika mitra pertama menolak sebelum accept dan sebelum pembayaran lunas, booking pasien tidak otomatis batal. Backend akan mencatat penolakan, mencari mitra pengganti, lalu memperbarui `assigned_partner_user_id`. Karena mitra pengganti bisa punya jarak berbeda, `distance_km`, `transport_fee`, `meal_fee`, `total_amount`, dan `payment.amount` juga bisa berubah. Flutter pasien wajib refresh detail booking setelah menerima notifikasi `service_booking.rematched` atau ketika layar status dibuka kembali.
+
+State UI yang disarankan:
+
+| Kondisi | Tampilan pasien |
+| --- | --- |
+| `status=pending` dan `assigned_partner_user_id` terisi | Menunggu mitra menerima pesanan |
+| `status=pending` dan `assigned_partner_user_id=null` | Sedang mencari mitra pengganti |
+| Notifikasi `service_booking.rematched` | Mitra pengganti ditemukan, refresh detail dan tampilkan total terbaru |
+| Notifikasi `service_booking.waiting_partner` | Mitra sebelumnya menolak, sistem masih mencari mitra |
+| `status=confirmed` | Mitra menerima pesanan, pasien bisa lanjut bayar |
+
+Jangan menampilkan nama/foto mitra sebagai final sebelum `accepted_at` terisi. Sebelum accept, mitra masih bisa berubah karena flow reject/rematch otomatis.
+
 List booking pasien:
 
 ```http
@@ -812,6 +826,131 @@ Contoh response pembayaran:
 ```
 
 Mitra dapat menerima booking saat status masih `pending` atau `scheduled`. Untuk aksi operasional berikutnya seperti berangkat, menambah catatan penanganan, atau menyelesaikan layanan, pembayaran harus sudah `paid`.
+
+Mitra juga dapat menolak booking lewat endpoint mitra. Dari sisi pasien, perubahan ini muncul sebagai update detail booking dan notifikasi:
+
+- `service_booking.rematched`: mitra pengganti sudah ditemukan;
+- `service_booking.waiting_partner`: belum ada mitra pengganti yang tersedia.
+
+Setelah notifikasi tersebut, panggil ulang:
+
+```http
+GET /api/patient/service-bookings/{serviceBooking}
+```
+
+Gunakan response terbaru untuk menampilkan mitra, jarak, biaya transport/makan, `total_amount`, dan `payment.amount`.
+
+### Handling Mitra Reject & Rematch di Mobile
+
+Flutter pasien tidak perlu memanggil endpoint khusus untuk mencari mitra baru. Pencarian mitra pengganti dilakukan otomatis oleh backend saat mitra menekan reject di aplikasi mitra.
+
+Yang harus dilakukan mobile pasien:
+
+1. Tetap simpan `service_booking_id` yang sama. Jangan membuat booking baru.
+2. Subscribe notifikasi user di `private-user.{userId}.notifications`.
+3. Saat menerima notifikasi `service_booking.rematched` atau `service_booking.waiting_partner`, panggil ulang:
+
+```http
+GET /api/patient/service-bookings/{serviceBooking}
+```
+
+4. Render ulang layar dari response terbaru.
+5. Jangan tampilkan tombol bayar sebelum booking diterima mitra (`status=confirmed` atau `accepted_at != null`).
+
+State machine yang disarankan:
+
+```dart
+enum ServiceBookingUiState {
+  waitingPartnerAccept,
+  findingReplacementPartner,
+  readyToPay,
+  waitingPayment,
+  onTheWay,
+  completed,
+  cancelled,
+}
+
+ServiceBookingUiState resolveServiceBookingUiState(Map<String, dynamic> booking) {
+  final status = booking['status'] as String?;
+  final assignedPartnerId = booking['assigned_partner_user_id'];
+  final acceptedAt = booking['accepted_at'];
+  final paymentStatus = booking['payment']?['status'];
+
+  if (status == 'cancelled') return ServiceBookingUiState.cancelled;
+  if (status == 'completed') return ServiceBookingUiState.completed;
+  if (status == 'on_the_way') return ServiceBookingUiState.onTheWay;
+
+  if (status == 'pending' && assignedPartnerId == null) {
+    return ServiceBookingUiState.findingReplacementPartner;
+  }
+
+  if (status == 'pending' && assignedPartnerId != null) {
+    return ServiceBookingUiState.waitingPartnerAccept;
+  }
+
+  if ((status == 'confirmed' || acceptedAt != null) && paymentStatus != 'paid') {
+    return ServiceBookingUiState.readyToPay;
+  }
+
+  return ServiceBookingUiState.waitingPayment;
+}
+```
+
+Copy UI yang disarankan:
+
+| State | Copy |
+| --- | --- |
+| `waitingPartnerAccept` | Menunggu mitra menerima pesanan |
+| `findingReplacementPartner` | Mitra sebelumnya belum bisa mengambil pesanan. Kami sedang mencari mitra pengganti. |
+| `readyToPay` | Mitra sudah menerima pesanan. Silakan lanjutkan pembayaran. |
+| `waitingPayment` | Menunggu pembayaran selesai |
+| `onTheWay` | Mitra sedang menuju lokasi |
+| `completed` | Layanan selesai |
+| `cancelled` | Booking dibatalkan |
+
+Saat rematch berhasil, backend dapat mengubah:
+
+- `assigned_partner_user_id`
+- `assigned_partner`
+- `distance_km`
+- `transport_fee`
+- `meal_fee`
+- `total_amount`
+- `payment.amount`
+
+Karena itu, setelah notifikasi rematch, mobile harus update ringkasan biaya dari detail booking terbaru. Jangan memakai cache harga lama.
+
+Tombol yang disarankan:
+
+| Kondisi | Tombol |
+| --- | --- |
+| `pending`, belum dibayar, `accepted_at=null` | Batalkan booking |
+| `pending`, `assigned_partner_user_id=null` | Batalkan booking, refresh status |
+| `confirmed` dan payment belum paid | Bayar sekarang |
+| `on_the_way` | Lihat tracking |
+| `completed` dan belum konfirmasi pasien | Konfirmasi selesai |
+
+Contoh handler notifikasi:
+
+```dart
+Future<void> handleNotification(Map<String, dynamic> notification) async {
+  final type = notification['type'];
+  final data = notification['data'] as Map<String, dynamic>?;
+  final bookingId = data?['service_booking_id'];
+
+  if (bookingId == null) return;
+
+  if (type == 'service_booking.rematched' ||
+      type == 'service_booking.waiting_partner' ||
+      type == 'service_booking.accepted' ||
+      type == 'service_booking.status_updated') {
+    final latestBooking = await api.getServiceBooking(bookingId);
+    bookingController.replaceBooking(latestBooking);
+  }
+}
+```
+
+Fallback jika notifikasi terlambat: selama layar detail booking terbuka dan status masih `pending`, lakukan polling ringan `GET /api/patient/service-bookings/{id}` setiap 10-15 detik sampai status menjadi `confirmed`, `cancelled`, atau `assigned_partner_user_id` berubah.
 
 Konfirmasi layanan selesai:
 
@@ -1646,7 +1785,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `service_id` | integer | ID layanan |
 | `patient_user_id` | integer | ID pasien |
 | `patient_member_id` | integer/null | profil pasien keluarga yang dipakai |
-| `assigned_partner_user_id` | integer/null | ID mitra hasil matchmaking |
+| `assigned_partner_user_id` | integer/null | ID mitra hasil matchmaking; bisa berubah sebelum `accepted_at` jika mitra sebelumnya menolak |
 | `patient_address_id` | integer/null | alamat layanan |
 | `status` | enum | `pending`, `confirmed`, `scheduled`, `on_the_way`, `completed`, `cancelled` |
 | `booking_type` | enum | `scheduled`, `daily` |
@@ -1655,7 +1794,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `visit_count` | integer | jumlah kunjungan |
 | `care_mode` | enum | `visit`, `live_in` |
 | `location_type` | enum | `home`, `hospital` |
-| `distance_km` | decimal string/null | snapshot jarak mitra ke lokasi pasien |
+| `distance_km` | decimal string/null | snapshot jarak mitra ke lokasi pasien; bisa berubah saat rematch sebelum accept |
 | `scheduled_at` | datetime/null | jadwal |
 | `schedule_start_at` | datetime/null | tanggal mulai layanan |
 | `schedule_end_at` | datetime/null | tanggal selesai layanan |
@@ -1669,14 +1808,14 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `partner_location_heading` | decimal string/null | arah gerak derajat 0-360 |
 | `partner_location_speed_mps` | decimal string/null | kecepatan meter/detik |
 | `partner_location_updated_at` | datetime/null | waktu lokasi terakhir diterima backend |
-| `total_amount` | decimal string | total akhir |
+| `total_amount` | decimal string | total akhir; refresh setelah rematch karena biaya jarak/makan bisa berubah |
 | `notes` | string/null | catatan |
 | `promo_code` | string/null | kode promo |
 | `discount_amount` | decimal string/null | nominal diskon |
 | `discount_type` | string/null | tipe diskon |
 | `subtotal` | decimal string/null | subtotal sebelum diskon |
 | `markup_amount` | decimal string/null | markup layanan |
-| `transport_fee` | decimal string | total biaya transport booking |
+| `transport_fee` | decimal string | total biaya transport booking; bisa berubah saat mitra pengganti punya jarak berbeda |
 | `meal_fee` | decimal string | total uang makan booking |
 | `fee_policy_snapshot` | object/null | tarif dan ambang admin saat booking dibuat |
 | `service` | object/null | data layanan |
@@ -1685,7 +1824,7 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `assigned_partner` | object/null | user mitra |
 | `address` | object/null | alamat pasien |
 | `histories` | array | histori tindakan/status jika dimuat |
-| `payment` | object/null | tagihan booking layanan |
+| `payment` | object/null | tagihan booking layanan; `amount` mengikuti `total_amount` terbaru selama payment masih pending |
 
 ### Consultation
 
@@ -1830,15 +1969,16 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 8. Tampilkan form jadwal jika `requires_schedule=true`.
 9. Buat booking via `POST /api/patient/service-bookings`.
 10. Tampilkan status `Menunggu konfirmasi mitra`; response awal punya `assigned_partner_user_id` dan `matchmaking_status=waiting_partner_acceptance`.
-11. Jika pasien ingin batal sebelum mitra menerima dan sebelum bayar, panggil `PATCH /api/patient/service-bookings/{id}/cancel`.
-12. Bayar booking via `PATCH /api/patient/service-bookings/{id}/pay`.
-13. Saat status `on_the_way`, buka map dengan snapshot `GET /api/patient/service-bookings/{id}/tracking`, lalu subscribe ke `private-service-booking.{id}.tracking`.
-14. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
-15. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
-16. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
-17. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
-18. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
-19. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
+11. Jika menerima notifikasi `service_booking.rematched` atau `service_booking.waiting_partner`, refresh detail booking. Tampilkan `Sedang mencari mitra pengganti` jika `assigned_partner_user_id=null`.
+12. Jika pasien ingin batal sebelum mitra menerima dan sebelum bayar, panggil `PATCH /api/patient/service-bookings/{id}/cancel`.
+13. Setelah status `confirmed` atau `accepted_at` terisi, bayar booking via `PATCH /api/patient/service-bookings/{id}/pay` memakai `payment.amount` terbaru.
+14. Saat status `on_the_way`, buka map dengan snapshot `GET /api/patient/service-bookings/{id}/tracking`, lalu subscribe ke `private-service-booking.{id}.tracking`.
+15. Setelah layanan selesai di lapangan, pasien konfirmasi via `PATCH /api/patient/service-bookings/{id}/confirm-completion`; wallet mitra otomatis dikreditkan jika belum pernah dibayarkan.
+16. Setelah mitra menerima dan pembayaran berhasil, polling/detail booking atau tunggu notifikasi status untuk melihat perjalanan layanan.
+17. Subscribe ke `private-user.{userId}.notifications` untuk menerima notifikasi realtime.
+18. Untuk chat konsultasi, subscribe ke `private-consultation.{consultationId}`.
+19. Saat mengirim pesan konsultasi, panggil `POST /api/patient/consultations/{consultation}/messages`; penerima akan dapat event `chat.message.created`.
+20. Panggil `GET /api/shared/notifications/unread-count` untuk badge jumlah notifikasi.
 
 ## Debug WebSocket
 
