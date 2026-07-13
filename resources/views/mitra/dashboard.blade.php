@@ -231,6 +231,33 @@
         .info { padding: 10px; border: 1px solid #e5ebf3; border-radius: 7px; background: #fbfcfe; }
         .info span { display: block; margin-bottom: 4px; color: #64748b; font-size: 12px; font-weight: 750; }
         .info b { font-size: 14px; }
+        .amount-breakdown {
+            display: grid;
+            gap: 7px;
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #dfe7f1;
+            border-radius: 7px;
+            background: #f8fafc;
+        }
+        .amount-breakdown-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 750;
+        }
+        .amount-breakdown-row b { color: #182235; font-size: 13px; text-align: right; }
+        .amount-breakdown-row.total {
+            margin-top: 2px;
+            padding-top: 8px;
+            border-top: 1px solid #dfe7f1;
+            color: #0f766e;
+            font-size: 13px;
+        }
+        .amount-breakdown-row.total b { color: #0f766e; font-size: 15px; }
         .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
         .messages {
             display: grid;
@@ -525,6 +552,7 @@
                 <div class="order-alert-field"><span>Total</span><b id="order-alert-total">-</b></div>
                 <div class="order-alert-field"><span>Jadwal</span><b id="order-alert-schedule">-</b></div>
                 <div class="order-alert-field"><span>Jarak</span><b id="order-alert-distance">-</b></div>
+                <div class="order-alert-address"><div id="order-alert-breakdown" class="amount-breakdown"></div></div>
                 <div class="order-alert-field order-alert-address"><span>Alamat</span><b id="order-alert-address">-</b></div>
             </div>
             <p id="order-alert-notes" class="muted" style="margin-bottom:0;"></p>
@@ -595,6 +623,57 @@
 
     function money(value) {
         return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(Number(value || 0));
+    }
+
+    function numberValue(value) {
+        const parsed = Number(value || 0);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function bookingPayoutBreakdown(booking) {
+        const breakdown = booking?.partner_payout_breakdown || {};
+        const serviceBase = numberValue(breakdown.service_base_amount ?? (numberValue(booking?.subtotal) - numberValue(booking?.markup_amount)));
+        const transportFee = numberValue(breakdown.transport_fee ?? booking?.transport_fee);
+        const mealFee = numberValue(breakdown.meal_fee ?? booking?.meal_fee);
+        const partnerPayout = numberValue(breakdown.partner_payout_amount ?? booking?.partner_payout_amount ?? booking?.total_amount);
+
+        return {
+            serviceBase,
+            transportFee,
+            mealFee,
+            appMarkup: numberValue(breakdown.app_markup_amount ?? booking?.markup_amount),
+            patientTotal: numberValue(breakdown.patient_total_amount ?? booking?.patient_total_amount),
+            partnerPayout,
+            transportApplied: Boolean(breakdown.transport_fee_applied ?? transportFee > 0),
+            mealApplied: Boolean(breakdown.meal_fee_applied ?? mealFee > 0),
+        };
+    }
+
+    function bookingPayoutAmount(booking) {
+        return bookingPayoutBreakdown(booking).partnerPayout;
+    }
+
+    function bookingPayoutBreakdownHtml(booking, compact = false) {
+        const amount = bookingPayoutBreakdown(booking);
+        const rows = [
+            `<div class="amount-breakdown-row"><span>Biaya layanan</span><b>${escapeHtml(money(amount.serviceBase))}</b></div>`,
+        ];
+
+        if (amount.transportApplied) {
+            rows.push(`<div class="amount-breakdown-row"><span>Transportasi</span><b>${escapeHtml(money(amount.transportFee))}</b></div>`);
+        }
+
+        if (amount.mealApplied) {
+            rows.push(`<div class="amount-breakdown-row"><span>Uang makan</span><b>${escapeHtml(money(amount.mealFee))}</b></div>`);
+        }
+
+        if (!compact && amount.patientTotal > 0) {
+            rows.push(`<div class="amount-breakdown-row"><span>Total bayar pasien</span><b>${escapeHtml(money(amount.patientTotal))}</b></div>`);
+        }
+
+        rows.push(`<div class="amount-breakdown-row total"><span>Diterima mitra</span><b>${escapeHtml(money(amount.partnerPayout))}</b></div>`);
+
+        return rows.join('');
     }
 
     function formatDate(value) {
@@ -723,7 +802,8 @@
         $('#order-alert-code').textContent = booking.booking_code || `Order #${booking.id}`;
         $('#order-alert-service').textContent = booking.service?.name || '-';
         $('#order-alert-patient').textContent = patientName;
-        $('#order-alert-total').textContent = money(booking.total_amount);
+        $('#order-alert-total').textContent = money(bookingPayoutAmount(booking));
+        $('#order-alert-breakdown').innerHTML = bookingPayoutBreakdownHtml(booking);
         $('#order-alert-schedule').textContent = formatDate(booking.scheduled_at);
         $('#order-alert-distance').textContent = distance === null || distance === undefined ? '-' : `${Number(distance).toFixed(2)} km`;
         $('#order-alert-address').textContent = booking.address?.address || '-';
@@ -1069,7 +1149,8 @@
                 <h3>${escapeHtml(booking.booking_code || `Order #${booking.id}`)}</h3>
                 <div class="muted">${escapeHtml(booking.service?.name || '-')}</div>
                 <div class="muted">${escapeHtml(booking.patient_member?.name || booking.patient?.name || '-')}</div>
-                <div class="badge-row"><span class="badge ${statusClass(booking.status)}">${escapeHtml(booking.status)}</span><span class="badge">${escapeHtml(money(booking.total_amount))}</span></div>
+                <div class="badge-row"><span class="badge ${statusClass(booking.status)}">${escapeHtml(booking.status)}</span><span class="badge">Diterima ${escapeHtml(money(bookingPayoutAmount(booking)))}</span></div>
+                <div class="amount-breakdown">${bookingPayoutBreakdownHtml(booking, true)}</div>
             </button>
         `).join('');
         document.querySelectorAll('[data-booking-id]').forEach((button) => button.addEventListener('click', () => openBooking(Number(button.dataset.bookingId))));
@@ -1098,10 +1179,12 @@
                 <div class="info"><span>Hubungan</span><b>${escapeHtml(b.patient_member?.relationship || '-')}</b></div>
                 <div class="info"><span>Layanan</span><b>${escapeHtml(b.service?.name || '-')}</b></div>
                 <div class="info"><span>Jadwal</span><b>${escapeHtml(formatDate(b.scheduled_at))}</b></div>
-                <div class="info"><span>Total</span><b>${escapeHtml(money(b.total_amount))}</b></div>
+                <div class="info"><span>Diterima Mitra</span><b>${escapeHtml(money(bookingPayoutAmount(b)))}</b></div>
+                <div class="info"><span>Total Bayar Pasien</span><b>${escapeHtml(money(bookingPayoutBreakdown(b).patientTotal || b.patient_total_amount || b.total_amount))}</b></div>
                 <div class="info"><span>Alamat</span><b>${escapeHtml(b.address?.address || '-')}</b></div>
                 <div class="info"><span>Dibuat</span><b>${escapeHtml(formatDate(b.created_at))}</b></div>
             </div>
+            <div class="amount-breakdown">${bookingPayoutBreakdownHtml(b)}</div>
             <div class="actions">
                 <button type="button" class="primary-button" data-booking-action="accept" ${!['pending', 'scheduled'].includes(b.status) ? 'disabled' : ''}>Terima</button>
                 <button type="button" class="primary-button" data-booking-action="start-journey" ${!['confirmed', 'scheduled'].includes(b.status) ? 'disabled' : ''}>Berangkat</button>
