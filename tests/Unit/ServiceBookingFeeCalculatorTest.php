@@ -13,7 +13,7 @@ function feePolicy(array $overrides = []): ServiceBookingFeeSetting
     ]);
 }
 
-it('charges transport per recurring visit above the configured distance', function () {
+it('charges transport per visit above the configured distance', function () {
     $fees = app(ServiceBookingFeeCalculator::class)->calculate([
         'visit_plan' => 'recurring',
         'visit_count' => 4,
@@ -24,17 +24,31 @@ it('charges transport per recurring visit above the configured distance', functi
 
     expect($fees['transport_fee'])->toBe(100000.0)
         ->and($fees['meal_fee'])->toBe(0.0)
-        ->and($fees['transport_eligible'])->toBeTrue();
+        ->and($fees['transport_eligible'])->toBeTrue()
+        ->and($fees['distance_threshold_km'])->toBe(10.0)
+        ->and($fees['distance_over_threshold_km'])->toBe(0.01)
+        ->and($fees['extra_fee_applied'])->toBeTrue()
+        ->and($fees['messages']['transport'])->toContain('melewati batas');
 });
 
-it('does not charge transport for once, threshold distance, or live in bookings', function (array $booking) {
+it('charges transport once for once visit above threshold', function () {
+    $fees = app(ServiceBookingFeeCalculator::class)->calculate([
+        'visit_plan' => 'once',
+        'visit_count' => 1,
+        'care_mode' => 'visit',
+        'distance_km' => 20,
+    ], feePolicy());
+
+    expect($fees['transport_fee'])->toBe(25000.0)
+        ->and($fees['transport_eligible'])->toBeTrue()
+        ->and($fees['extra_fee_total'])->toBe(25000.0);
+});
+
+it('does not charge transport for threshold distance or live in bookings', function (array $booking) {
     $fees = app(ServiceBookingFeeCalculator::class)->calculate($booking, feePolicy());
 
     expect($fees['transport_fee'])->toBe(0.0);
 })->with([
-    'once above threshold' => [[
-        'visit_plan' => 'once', 'visit_count' => 1, 'care_mode' => 'visit', 'distance_km' => 20,
-    ]],
     'exactly threshold' => [[
         'visit_plan' => 'recurring', 'visit_count' => 4, 'care_mode' => 'visit', 'distance_km' => 10,
     ]],

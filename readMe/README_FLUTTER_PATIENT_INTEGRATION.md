@@ -603,7 +603,7 @@ meal_fee = hospital_meal_fee_per_visit x visit_count
 total_amount = service_subtotal - discount_amount + transport_fee + meal_fee
 ```
 
-Transport hanya dikenakan jika recurring, bukan live-in, koordinat tersedia, dan jarak mitra lebih besar dari ambang admin. Jarak tepat pada ambang tidak dikenai biaya. Lokasi rumah sakit selalu mendapat uang makan per visit. Nilai `distance_km` dan `fee_policy_snapshot` dari response harus dianggap snapshot/read-only.
+Transport dikenakan jika `care_mode=visit`, koordinat tersedia, dan jarak mitra lebih besar dari ambang admin. Sekali visit dikenakan satu kali; recurring dikenakan per visit. Live-in tidak dikenakan transport. Jarak tepat pada ambang tidak dikenai biaya. Lokasi rumah sakit selalu mendapat uang makan per visit. Nilai `distance_km` dan `fee_policy_snapshot` dari response harus dianggap snapshot/read-only.
 
 Rekomendasi state form Flutter:
 
@@ -638,7 +638,34 @@ Map<String, dynamic> buildBookingPayload({
 }
 ```
 
-Di layar konfirmasi, tampilkan breakdown dari response backend (`subtotal`, `discount_amount`, `transport_fee`, `meal_fee`, `total_amount`). Jangan menghitung total final hanya di Flutter karena tarif admin dan jarak mitra ditentukan backend.
+Di layar konfirmasi, tampilkan breakdown dari response backend (`subtotal`, `discount_amount`, `transport_fee`, `meal_fee`, `extra_fees`, `fee_messages`, `total_amount`). Jangan menghitung total final hanya di Flutter karena tarif admin dan jarak mitra ditentukan backend.
+
+Jika `pricing.extra_fee_applied=true`, tampilkan banner biaya tambahan. Contoh field:
+
+```json
+{
+  "extra_fee_total": 25000,
+  "extra_fee_applied": true,
+  "extra_fees": {
+    "transport": {
+      "applied": true,
+      "amount": "25000.00",
+      "distance_km": 14.45,
+      "threshold_km": 10,
+      "distance_over_threshold_km": 4.45,
+      "message": "Lokasi berjarak 14.45 km, melewati batas 10.00 km. Biaya transport tambahan Rp25.000 dikenakan."
+    },
+    "meal": {
+      "applied": false,
+      "amount": "0.00",
+      "message": null
+    }
+  },
+  "fee_messages": [
+    "Lokasi berjarak 14.45 km, melewati batas 10.00 km. Biaya transport tambahan Rp25.000 dikenakan."
+  ]
+}
+```
 
 Response penting:
 
