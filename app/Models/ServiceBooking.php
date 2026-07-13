@@ -143,31 +143,56 @@ class ServiceBooking extends Model
 
     public function partnerPayoutAmount(): float
     {
-        $subtotal = (float) ($this->subtotal ?? 0);
-        $markupAmount = (float) ($this->markup_amount ?? 0);
-        $transportFee = (float) ($this->transport_fee ?? 0);
-
-        if ($subtotal > 0) {
-            return max(0, $subtotal - $markupAmount + $transportFee);
-        }
-
-        $service = $this->relationLoaded('service')
-            ? $this->service
-            : Service::find($this->service_id);
-
-        $basePrice = (float) ($service?->base_price ?? 0);
-        $visitCount = max(1, (int) ($this->visit_count ?? 1));
-
-        if ($basePrice > 0) {
-            return ($basePrice * $visitCount) + $transportFee;
-        }
-
-        return max(0, (float) ($this->total_amount ?? 0));
+        return $this->partnerPayoutBreakdown()['partner_payout_amount'];
     }
 
     public function getPartnerPayoutAmountAttribute(): float
     {
         return $this->partnerPayoutAmount();
+    }
+
+    public function partnerPayoutBreakdown(): array
+    {
+        $subtotal = (float) ($this->subtotal ?? 0);
+        $markupAmount = (float) ($this->markup_amount ?? 0);
+        $transportFee = (float) ($this->transport_fee ?? 0);
+        $mealFee = (float) ($this->meal_fee ?? 0);
+        $patientTotalAmount = (float) ($this->getRawOriginal('total_amount') ?? $this->total_amount ?? 0);
+        $serviceBaseAmount = 0.0;
+
+        if ($subtotal > 0) {
+            $serviceBaseAmount = max(0, $subtotal - $markupAmount);
+        } else {
+            $service = $this->relationLoaded('service')
+                ? $this->service
+                : Service::find($this->service_id);
+
+            $basePrice = (float) ($service?->base_price ?? 0);
+            $visitCount = max(1, (int) ($this->visit_count ?? 1));
+
+            if ($basePrice > 0) {
+                $serviceBaseAmount = $basePrice * $visitCount;
+            }
+        }
+
+        if ($serviceBaseAmount <= 0) {
+            $serviceBaseAmount = max(0, $patientTotalAmount - $transportFee - $mealFee);
+        }
+
+        $extraFeeAmount = $transportFee + $mealFee;
+        $partnerPayoutAmount = max(0, $serviceBaseAmount + $extraFeeAmount);
+
+        return [
+            'service_base_amount' => round($serviceBaseAmount, 2),
+            'transport_fee' => round($transportFee, 2),
+            'meal_fee' => round($mealFee, 2),
+            'extra_fee_amount' => round($extraFeeAmount, 2),
+            'app_markup_amount' => round($markupAmount, 2),
+            'patient_total_amount' => round($patientTotalAmount, 2),
+            'partner_payout_amount' => round($partnerPayoutAmount, 2),
+            'transport_fee_applied' => $transportFee > 0,
+            'meal_fee_applied' => $mealFee > 0,
+        ];
     }
 
     /**

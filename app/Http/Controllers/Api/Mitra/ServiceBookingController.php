@@ -503,10 +503,12 @@ class ServiceBookingController extends Controller
     private function normalizeMitraBookingAmounts(ServiceBooking $serviceBooking): void
     {
         $patientTotalAmount = (float) $serviceBooking->getRawOriginal('total_amount');
-        $partnerPayoutAmount = $serviceBooking->partnerPayoutAmount();
+        $payoutBreakdown = $serviceBooking->partnerPayoutBreakdown();
+        $partnerPayoutAmount = $payoutBreakdown['partner_payout_amount'];
 
         $serviceBooking->setAttribute('patient_total_amount', $patientTotalAmount);
         $serviceBooking->setAttribute('partner_payout_amount', $partnerPayoutAmount);
+        $serviceBooking->setAttribute('partner_payout_breakdown', $payoutBreakdown);
         $serviceBooking->setAttribute('total_amount', $partnerPayoutAmount);
     }
 

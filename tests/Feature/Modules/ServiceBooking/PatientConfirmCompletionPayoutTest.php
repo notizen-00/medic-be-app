@@ -32,10 +32,11 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'patient_user_id' => $patient->id,
         'assigned_partner_user_id' => $partner->id,
         'status' => 'on_the_way',
-        'total_amount' => 228500,
+        'total_amount' => 243500,
         'subtotal' => 203500,
         'markup_amount' => 18500,
         'transport_fee' => 25000,
+        'meal_fee' => 15000,
     ]);
 
     Payment::create([
@@ -43,7 +44,7 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'patient_user_id' => $patient->id,
         'payment_code' => 'PAY-CONFIRM-001',
         'status' => 'paid',
-        'amount' => 228500,
+        'amount' => 243500,
         'paid_at' => now(),
     ]);
 
@@ -53,11 +54,11 @@ it('credits partner wallet when patient confirms service booking completion', fu
         'notes' => 'Layanan sudah selesai.',
     ])->assertOk()
         ->assertJsonPath('data.status', 'completed')
-        ->assertJsonPath('data.partner_balance_transaction.amount', '210000.00');
+        ->assertJsonPath('data.partner_balance_transaction.amount', '225000.00');
 
     $this->assertDatabaseHas('user_balances', [
         'user_id' => $partner->id,
-        'balance' => 210000,
+        'balance' => 225000,
     ]);
 
     $this->assertDatabaseHas('service_bookings', [
