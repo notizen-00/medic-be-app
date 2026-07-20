@@ -48,6 +48,7 @@ use App\Http\Controllers\Api\Mitra\ServiceBookingController as MitraServiceBooki
 use App\Http\Controllers\Api\Mitra\BalanceController as MitraBalanceController;
 use App\Http\Controllers\Api\Shared\PartnerDocumentController;
 use App\Http\Controllers\Api\Shared\NotificationController;
+use App\Http\Controllers\Api\Shared\ProfilePhotoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Broadcast;
 use Illuminate\Support\Facades\Route;
@@ -110,6 +111,8 @@ Route::middleware('auth:sanctum')->group(function () {
         });
 
         Route::get('/secure-image/partners/{user}/documents/{type}', [PartnerDocumentController::class, 'show']);
+        Route::post('/profile-photo', [ProfilePhotoController::class, 'store']);
+        Route::delete('/profile-photo', [ProfilePhotoController::class, 'destroy']);
 
         Route::prefix('notifications')->controller(NotificationController::class)->group(function () {
             Route::get('/', 'index');
