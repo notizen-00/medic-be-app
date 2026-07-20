@@ -95,6 +95,8 @@ class BalanceService
             $balance->balance = $newBalance;
             $balance->save();
 
+            app(JournalService::class)->recordPartnerPayout($transaction);
+
             Log::info('Balance topup successful', [
                 'user_id' => $balance->user_id,
                 'transaction_id' => $transaction->id,

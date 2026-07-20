@@ -7,6 +7,7 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\PatientAddress;
 use App\Models\Product;
+use App\Services\JournalService;
 use App\Services\PharmacySelectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,7 +19,8 @@ use Illuminate\Validation\ValidationException;
 class OrderController extends Controller
 {
     public function __construct(
-        private readonly PharmacySelectionService $pharmacySelectionService
+        private readonly PharmacySelectionService $pharmacySelectionService,
+        private readonly JournalService $journals
     ) {
     }
 
@@ -180,6 +182,7 @@ class OrderController extends Controller
             }
 
             $lockedOrder->update(['status' => $target, 'notes' => $validated['notes'] ?? $lockedOrder->notes]);
+            $this->journals->recordOrderRevenue($lockedOrder->fresh(['items']));
 
             return $lockedOrder;
         });

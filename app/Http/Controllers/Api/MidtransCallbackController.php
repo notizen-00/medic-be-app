@@ -7,6 +7,7 @@ use App\Models\Payment;
 use App\Models\Consultation;
 use App\Models\ServiceBooking;
 use App\Services\AppNotificationService;
+use App\Services\JournalService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,7 +18,8 @@ use Symfony\Component\HttpKernel\Exception\ConflictHttpException;
 class MidtransCallbackController extends Controller
 {
     public function __construct(
-        private readonly AppNotificationService $notifications
+        private readonly AppNotificationService $notifications,
+        private readonly JournalService $journals
     ) {
     }
 
@@ -88,6 +90,8 @@ class MidtransCallbackController extends Controller
                     $this->handleServiceBookingPayment($lockedPayment, $paymentStatus);
                 }
 
+                $this->journals->recordPaymentReceived($lockedPayment->fresh(['serviceBooking.service']));
+
                 return $paymentStatus;
             }
 
@@ -106,6 +110,8 @@ class MidtransCallbackController extends Controller
             if ($paymentStatus === 'refunded' && $consultation->status !== 'completed') {
                 $consultation->update(['status' => 'cancelled', 'ended_at' => $consultation->ended_at ?? now()]);
             }
+
+            $this->journals->recordPaymentReceived($lockedPayment->fresh(['consultation']));
 
             return $paymentStatus;
         }, 5);

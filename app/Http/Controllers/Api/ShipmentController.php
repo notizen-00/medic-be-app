@@ -6,12 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Models\ShipmentHistory;
 use App\Models\User;
+use App\Services\JournalService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
 class ShipmentController extends Controller
 {
+    public function __construct(
+        private readonly JournalService $journals
+    ) {
+    }
+
     public function index(Request $request): JsonResponse
     {
         $validated = $request->validate([
@@ -118,6 +124,7 @@ class ShipmentController extends Controller
 
         if ($validated['status'] === 'delivered') {
             $shipment->order()->update(['status' => 'delivered']);
+            $this->journals->recordOrderRevenue($shipment->order()->with('items')->first());
         }
 
         if (in_array($validated['status'], ['picked_up', 'on_delivery'], true)) {
