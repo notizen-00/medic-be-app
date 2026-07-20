@@ -2,29 +2,20 @@
 
 namespace Database\Seeders;
 
-use App\Models\Consultation;
-use App\Models\ConsultationMessage;
 use App\Models\CourierProfile;
-use App\Models\Order;
-use App\Models\OrderItem;
 use App\Models\PartnerProfile;
 use App\Models\PartnerService;
 use App\Models\PartnerSchedule;
 use App\Models\PatientAddress;
 use App\Models\PatientProfile;
-use App\Models\Payment;
 use App\Models\Pharmacy;
 use App\Models\PharmacyProfile;
-use App\Models\Prescription;
-use App\Models\PrescriptionItem;
 use App\Models\Product;
 use App\Models\Service;
-use App\Models\ServiceBooking;
 use App\Models\ServiceCategory;
-use App\Models\Shipment;
-use App\Models\ShipmentHistory;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
@@ -37,6 +28,8 @@ class JemberMedicSeeder extends Seeder
      */
     public function run(): void
     {
+        $this->clearTransactionalSeedData();
+
         $password = Hash::make('password');
 
         $patientOne = User::updateOrCreate(
@@ -1299,352 +1292,39 @@ class JemberMedicSeeder extends Seeder
             );
         }
 
-        ServiceBooking::updateOrCreate(
-            ['booking_code' => 'SVB-JBR-0001'],
-            [
-                'service_id' => $doctorHomecareService->id,
-                'patient_user_id' => $patientOne->id,
-                'assigned_partner_user_id' => $doctor->id,
-                'patient_address_id' => $addressOne->id,
-                'status' => 'completed',
-                'scheduled_at' => now()->subDays(2),
-                'started_at' => now()->subDays(2)->addMinutes(10),
-                'completed_at' => now()->subDays(2)->addMinutes(70),
-                'total_amount' => 235000,
-                'notes' => 'Kunjungan dokter home visit untuk evaluasi demam dan batuk.',
-            ]
-        );
+    }
 
-        ServiceBooking::updateOrCreate(
-            ['booking_code' => 'SVB-JBR-0002'],
-            [
-                'service_id' => $nurseHomecareService->id,
-                'patient_user_id' => $patientTwo->id,
-                'assigned_partner_user_id' => $nurse->id,
-                'patient_address_id' => $addressTwo->id,
-                'status' => 'scheduled',
-                'scheduled_at' => now()->addDay()->setTime(9, 0),
-                'started_at' => null,
-                'completed_at' => null,
-                'total_amount' => 185000,
-                'notes' => 'Booking perawat home visit untuk kontrol kondisi pasien pasca perawatan.',
-            ]
-        );
+    private function clearTransactionalSeedData(): void
+    {
+        Schema::disableForeignKeyConstraints();
 
-        ServiceBooking::updateOrCreate(
-            ['booking_code' => 'SVB-JBR-0003'],
-            [
-                'service_id' => $nurseWoundCareService->id,
-                'patient_user_id' => $patientOne->id,
-                'assigned_partner_user_id' => $nurse->id,
-                'patient_address_id' => $addressOne->id,
-                'status' => 'confirmed',
-                'scheduled_at' => now()->addHours(6),
-                'started_at' => null,
-                'completed_at' => null,
-                'total_amount' => 210000,
-                'notes' => 'Rawat luka lanjutan di rumah pasien area Kaliwates.',
-            ]
-        );
-
-        $consultation = Consultation::updateOrCreate(
-            ['consultation_code' => 'KONS-JBR-0001'],
-            [
-                'patient_user_id' => $patientOne->id,
-                'partner_user_id' => $doctor->id,
-                'service_type' => 'chat',
-                'status' => 'completed',
-                'scheduled_at' => now()->subDays(1),
-                'started_at' => now()->subDays(1)->addMinutes(5),
-                'ended_at' => now()->subDays(1)->addMinutes(35),
-                'complaint' => 'Demam dan sakit tenggorokan sejak dua hari.',
-                'diagnosis' => 'Infeksi saluran napas atas ringan.',
-                'notes' => 'Disarankan istirahat dan minum obat sesuai aturan.',
-                'consultation_fee' => 75000,
-            ]
-        );
-
-        ConsultationMessage::updateOrCreate(
-            [
-                'consultation_id' => $consultation->id,
-                'sender_user_id' => $patientOne->id,
-                'message' => 'Dok, saya demam sejak kemarin dan tenggorokan sakit.',
-            ],
-            [
-                'message_type' => 'text',
-                'read_at' => now()->subDays(1),
-            ]
-        );
-
-        ConsultationMessage::updateOrCreate(
-            [
-                'consultation_id' => $consultation->id,
-                'sender_user_id' => $doctor->id,
-                'message' => 'Baik, saya sarankan minum obat dan cukup istirahat. Jika sesak segera ke fasilitas kesehatan terdekat.',
-            ],
-            [
-                'message_type' => 'text',
-                'read_at' => now()->subDays(1),
-            ]
-        );
-
-        $prescription = Prescription::updateOrCreate(
-            ['prescription_code' => 'RSP-JBR-0001'],
-            [
-                'consultation_id' => $consultation->id,
-                'patient_user_id' => $patientOne->id,
-                'partner_user_id' => $doctor->id,
-                'status' => 'issued',
-                'notes' => 'Tebus obat di area Kota Jember.',
-            ]
-        );
-
-        $paracetamol = Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-001')->firstOrFail();
-        $amoxicillin = Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-002')->firstOrFail();
-        $vitaminC = Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-003')->firstOrFail();
-
-        PrescriptionItem::updateOrCreate(
-            ['prescription_id' => $prescription->id, 'medicine_name' => 'Paracetamol 500mg'],
-            [
-                'dosage' => '500 mg',
-                'frequency' => '3x sehari',
-                'duration' => '3 hari',
-                'quantity' => 10,
-                'instructions' => 'Diminum setelah makan.',
-            ]
-        );
-
-        PrescriptionItem::updateOrCreate(
-            ['prescription_id' => $prescription->id, 'medicine_name' => 'Amoxicillin 500mg'],
-            [
-                'dosage' => '500 mg',
-                'frequency' => '3x sehari',
-                'duration' => '5 hari',
-                'quantity' => 15,
-                'instructions' => 'Habiskan sesuai anjuran dokter.',
-            ]
-        );
-
-        Payment::updateOrCreate(
-            ['payment_code' => 'PAY-KONS-JBR-0001'],
-            [
-                'consultation_id' => $consultation->id,
-                'patient_user_id' => $patientOne->id,
-                'payment_method' => 'bank_transfer',
-                'status' => 'paid',
-                'amount' => 75000,
-                'paid_at' => now()->subDay(),
-                'notes' => 'Pembayaran konsultasi online Jember.',
-            ]
-        );
-
-        $orderOneData = [
-            'patient_user_id' => $patientOne->id,
-            'pharmacy_id' => $pharmacy->id,
-            'patient_address_id' => $addressOne->id,
-            'prescription_id' => $prescription->id,
-            'order_type' => 'resep',
-            'status' => 'shipped',
-            'subtotal' => 47000,
-            'shipping_cost' => 10000,
-            'total_amount' => 57000,
-            'notes' => 'Pengantaran ke area Kaliwates, Jember.',
-            'ordered_at' => now()->subHours(6),
-        ];
-
-        if (Schema::hasColumn('orders', 'pharmacy_user_id')) {
-            $orderOneData['pharmacy_user_id'] = $pharmacyOwner->id;
+        try {
+            foreach ([
+                'app_notifications',
+                'journal_lines',
+                'journal_entries',
+                'balance_transactions',
+                'user_balances',
+                'service_booking_partner_locations',
+                'service_booking_histories',
+                'payments',
+                'shipment_histories',
+                'shipments',
+                'order_items',
+                'orders',
+                'prescription_items',
+                'prescriptions',
+                'consultation_messages',
+                'consultations',
+                'service_bookings',
+            ] as $table) {
+                if (Schema::hasTable($table)) {
+                    DB::table($table)->delete();
+                }
+            }
+        } finally {
+            Schema::enableForeignKeyConstraints();
         }
-
-        $orderOne = Order::unguarded(fn () => Order::updateOrCreate(
-            ['order_code' => 'ORD-JBR-0001'],
-            $orderOneData
-        ));
-
-        OrderItem::updateOrCreate(
-            ['order_id' => $orderOne->id, 'product_id' => $paracetamol->id],
-            [
-                'product_name' => $paracetamol->name,
-                'unit_price' => $paracetamol->price,
-                'unit_cost' => $paracetamol->cost_price,
-                'quantity' => 1,
-                'total_price' => $paracetamol->price,
-                'total_cost' => $paracetamol->cost_price,
-            ]
-        );
-
-        OrderItem::updateOrCreate(
-            ['order_id' => $orderOne->id, 'product_id' => $amoxicillin->id],
-            [
-                'product_name' => $amoxicillin->name,
-                'unit_price' => $amoxicillin->price,
-                'unit_cost' => $amoxicillin->cost_price,
-                'quantity' => 1,
-                'total_price' => $amoxicillin->price,
-                'total_cost' => $amoxicillin->cost_price,
-            ]
-        );
-
-        $orderTwoData = [
-            'patient_user_id' => $patientTwo->id,
-            'pharmacy_id' => $pharmacy->id,
-            'patient_address_id' => $addressTwo->id,
-            'prescription_id' => null,
-            'order_type' => 'non_resep',
-            'status' => 'delivered',
-            'subtotal' => 83000,
-            'shipping_cost' => 12000,
-            'total_amount' => 95000,
-            'notes' => 'Pesanan vitamin dan alat kesehatan area Sumbersari, Jember.',
-            'ordered_at' => now()->subDay(),
-        ];
-
-        if (Schema::hasColumn('orders', 'pharmacy_user_id')) {
-            $orderTwoData['pharmacy_user_id'] = $pharmacyOwner->id;
-        }
-
-        $orderTwo = Order::unguarded(fn () => Order::updateOrCreate(
-            ['order_code' => 'ORD-JBR-0002'],
-            $orderTwoData
-        ));
-
-        OrderItem::updateOrCreate(
-            ['order_id' => $orderTwo->id, 'product_id' => $vitaminC->id],
-            [
-                'product_name' => $vitaminC->name,
-                'unit_price' => $vitaminC->price,
-                'unit_cost' => $vitaminC->cost_price,
-                'quantity' => 1,
-                'total_price' => $vitaminC->price,
-                'total_cost' => $vitaminC->cost_price,
-            ]
-        );
-
-        OrderItem::updateOrCreate(
-            ['order_id' => $orderTwo->id, 'product_id' => Product::where('pharmacy_id', $pharmacy->id)->where('sku', 'JBR-OBT-004')->firstOrFail()->id],
-            [
-                'product_name' => 'Termometer Digital',
-                'unit_price' => 55000,
-                'unit_cost' => 40000,
-                'quantity' => 1,
-                'total_price' => 55000,
-                'total_cost' => 40000,
-            ]
-        );
-
-        $shipmentOne = Shipment::updateOrCreate(
-            ['shipment_code' => 'SHP-JBR-0001'],
-            [
-                'order_id' => $orderOne->id,
-                'courier_user_id' => $courierOne->id,
-                'delivery_type' => 'same_day',
-                'status' => 'on_delivery',
-                'assigned_at' => now()->subHours(5),
-                'picked_up_at' => now()->subHours(4),
-                'delivered_at' => null,
-                'notes' => 'Kurir sedang menuju alamat pasien di Kaliwates, Jember.',
-            ]
-        );
-
-        $shipmentTwo = Shipment::updateOrCreate(
-            ['shipment_code' => 'SHP-JBR-0002'],
-            [
-                'order_id' => $orderTwo->id,
-                'courier_user_id' => $courierTwo->id,
-                'delivery_type' => 'same_day',
-                'status' => 'delivered',
-                'assigned_at' => now()->subDay()->addHour(),
-                'picked_up_at' => now()->subDay()->addHours(2),
-                'delivered_at' => now()->subHours(20),
-                'notes' => 'Pesanan berhasil diterima di Sumbersari, Jember.',
-            ]
-        );
-
-        $shipmentHistories = [
-            [
-                'shipment_id' => $shipmentOne->id,
-                'status' => 'waiting_courier',
-                'title' => 'Menunggu kurir',
-                'description' => 'Pesanan sedang menunggu penugasan kurir area Jember.',
-                'logged_at' => now()->subHours(6),
-            ],
-            [
-                'shipment_id' => $shipmentOne->id,
-                'status' => 'picked_up',
-                'title' => 'Pesanan diambil',
-                'description' => 'Kurir telah mengambil pesanan dari apotek mitra Jember.',
-                'logged_at' => now()->subHours(4),
-            ],
-            [
-                'shipment_id' => $shipmentOne->id,
-                'status' => 'on_delivery',
-                'title' => 'Dalam pengantaran',
-                'description' => 'Kurir sedang menuju alamat pasien di Kaliwates.',
-                'logged_at' => now()->subHours(2),
-            ],
-            [
-                'shipment_id' => $shipmentTwo->id,
-                'status' => 'waiting_courier',
-                'title' => 'Menunggu kurir',
-                'description' => 'Order disiapkan untuk pengantaran di Sumbersari.',
-                'logged_at' => now()->subDay(),
-            ],
-            [
-                'shipment_id' => $shipmentTwo->id,
-                'status' => 'picked_up',
-                'title' => 'Pesanan diambil',
-                'description' => 'Kurir telah mengambil pesanan dari gudang Jember.',
-                'logged_at' => now()->subDay()->addHours(2),
-            ],
-            [
-                'shipment_id' => $shipmentTwo->id,
-                'status' => 'delivered',
-                'title' => 'Pesanan diterima',
-                'description' => 'Pesanan diterima pasien di wilayah Sumbersari, Jember.',
-                'logged_at' => now()->subHours(20),
-            ],
-        ];
-
-        foreach ($shipmentHistories as $history) {
-            ShipmentHistory::updateOrCreate(
-                [
-                    'shipment_id' => $history['shipment_id'],
-                    'status' => $history['status'],
-                    'title' => $history['title'],
-                ],
-                [
-                    'description' => $history['description'],
-                    'logged_at' => $history['logged_at'],
-                ]
-            );
-        }
-
-        Payment::updateOrCreate(
-            ['payment_code' => 'PAY-ORD-JBR-0001'],
-            [
-                'consultation_id' => null,
-                'patient_user_id' => $patientOne->id,
-                'payment_method' => 'wallet',
-                'status' => 'paid',
-                'amount' => 57000,
-                'paid_at' => now()->subHours(6),
-                'notes' => 'Pembayaran order resep area Jember.',
-            ]
-        );
-
-        Payment::updateOrCreate(
-            ['payment_code' => 'PAY-ORD-JBR-0002'],
-            [
-                'consultation_id' => null,
-                'patient_user_id' => $patientTwo->id,
-                'payment_method' => 'bank_transfer',
-                'status' => 'paid',
-                'amount' => 95000,
-                'paid_at' => now()->subDay(),
-                'notes' => 'Pembayaran produk kesehatan area Jember.',
-            ]
-        );
-
     }
 
     private function seedPartnerDocuments(int $userId, string $partnerName, string $licenseNumber): array

@@ -18,7 +18,6 @@ class DatabaseSeeder extends Seeder
             JemberMedicSeeder::class,
             PromoCodeSeeder::class,
             ServiceMarkupSettingSeeder::class,
-            JournalSeeder::class,
         ]);
     }
 }
