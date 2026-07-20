@@ -141,6 +141,40 @@ atau:
 POST /api/shared/logout
 ```
 
+### Foto Profil
+
+Endpoint foto profil bersifat shared, jadi bisa dipakai oleh pasien dan role login lain yang memakai Bearer token.
+
+```http
+POST /api/shared/profile-photo
+DELETE /api/shared/profile-photo
+```
+
+Upload foto memakai `multipart/form-data`, bukan JSON. Jangan set header `Content-Type` manual di Flutter; biarkan `MultipartRequest`/Dio/FormData mengisi boundary otomatis.
+
+Field upload:
+
+| Field | Required | Type | Rule/Catatan |
+| --- | --- | --- | --- |
+| `profile_photo` | Ya | file image | jpg, jpeg, png, webp; max 2MB |
+
+Contoh response setelah upload:
+
+```json
+{
+  "message": "Foto profil berhasil diperbarui.",
+  "data": {
+    "id": 7,
+    "name": "Budi",
+    "role": "pasien",
+    "profile_photo_path": "users/7/profile/abc123.jpg",
+    "profile_photo_url": "https://backend.perawatku.tech/storage/users/7/profile/abc123.jpg"
+  }
+}
+```
+
+Gunakan `profile_photo_url` untuk preview di aplikasi. `profile_photo_path` hanya path internal backend.
+
 ## Endpoint Pasien
 
 Semua endpoint di bawah ini memakai `Authorization: Bearer {token}` dari akun pasien. Route `/api/patient/*` dilindungi middleware role pasien, sehingga token mitra tidak dapat memakai endpoint pasien.
@@ -1695,6 +1729,8 @@ Bagian ini adalah kamus field yang umum muncul di response API. Field relasi sep
 | `email` | string | email login |
 | `phone` | string/null | nomor telepon |
 | `role` | enum | `patient`, `mitra`, `admin`, atau role lain sesuai data |
+| `profile_photo_path` | string/null | path internal foto profil |
+| `profile_photo_url` | string/null | URL siap pakai untuk menampilkan foto profil |
 | `patient_profile` | object/null | profil pasien |
 | `partner_profile` | object/null | profil dokter/perawat/mitra |
 | `pharmacy` | object/null | data apotik jika user owner apotik |
