@@ -415,10 +415,10 @@ class ServiceBookingController extends Controller
         $history = $this->recordHistory(
             $serviceBooking,
             $partner,
-            'treatment',
+            'status',
             $validated['title'],
             $validated['description'] ?? null,
-            $validated['meta'] ?? null,
+            array_merge($validated['meta'] ?? [], ['status' => 'proses penanganan']),
             isset($validated['handled_at']) ? Carbon::parse($validated['handled_at']) : now()
         );
 
